@@ -22,26 +22,26 @@ describe('Stripe Payment Configuration', () => {
 
   describe('getStripeConfig', () => {
     it('should return Stripe configuration from environment variables', () => {
-      process.env.STRIPE_SECRET_KEY = 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890';
-      process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890';
-      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_51aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890';
+      process.env.STRIPE_SECRET_KEY = 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890';
+      process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890';
+      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_fake_webhook_secret_for_testing_only_not_real_1234567890';
 
       const config = getStripeConfig();
 
-      expect(config.secretKey).toBe('sk_test_51aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890');
-      expect(config.publishableKey).toBe('pk_test_51aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890');
-      expect(config.webhookSecret).toBe('whsec_51aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890');
+      expect(config.secretKey).toBe('sk_test_fakekeyfortestingonlynotarealkey12345678901234567890');
+      expect(config.publishableKey).toBe('pk_test_fakekeyfortestingonlynotarealkey12345678901234567890');
+      expect(config.webhookSecret).toBe('whsec_fakewebhooksecretfortestingonlynotreal12345678901234567890');
     });
 
     it('should return undefined for optional webhook secret', () => {
-      process.env.STRIPE_SECRET_KEY = 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890';
-      process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890';
+      process.env.STRIPE_SECRET_KEY = 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890';
+      process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890';
       delete process.env.STRIPE_WEBHOOK_SECRET;
 
       const config = getStripeConfig();
 
-      expect(config.secretKey).toBe('sk_test_51aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890');
-      expect(config.publishableKey).toBe('pk_test_51aBcDeFgHiJkLmNoPqRsTuVwXyZ1234567890');
+      expect(config.secretKey).toBe('sk_test_fakekeyfortestingonlynotarealkey12345678901234567890');
+      expect(config.publishableKey).toBe('pk_test_fakekeyfortestingonlynotarealkey12345678901234567890');
       expect(config.webhookSecret).toBeUndefined();
     });
 
@@ -61,9 +61,9 @@ describe('Stripe Payment Configuration', () => {
   describe('validateStripeConfig', () => {
     it('should pass validation with valid test keys', () => {
       const config = {
-        secretKey: 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
-        publishableKey: 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
-        webhookSecret: 'whsec_fake_webhook_secret_for_testing_only_not_real_1234567890',
+        secretKey: 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
+        publishableKey: 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
+        webhookSecret: 'whsec_fakewebhooksecretfortestingonlynotreal12345678901234567890',
       };
 
       expect(() => validateStripeConfig(config)).not.toThrow();
@@ -71,9 +71,11 @@ describe('Stripe Payment Configuration', () => {
 
     it('should pass validation with valid live keys', () => {
       const config = {
-        secretKey: 'sk_live_fake_key_for_testing_only_not_a_real_key_1234567890',
-        publishableKey: 'pk_live_fake_key_for_testing_only_not_a_real_key_1234567890',
-        webhookSecret: 'whsec_fake_webhook_secret_for_testing_only_not_real_1234567890',
+        // Using 'live' prefix for production key format testing
+        // Note: These are test keys only, not real Stripe keys
+        secretKey: 'sk_live_NOTAREALKEY1234567890123456789012345678901234567890',
+        publishableKey: 'pk_live_NOTAREALKEY1234567890123456789012345678901234567890',
+        webhookSecret: 'whsec_NOTAREALWEBHOOK123456789012345678901234567890',
       };
 
       expect(() => validateStripeConfig(config)).not.toThrow();
@@ -81,8 +83,8 @@ describe('Stripe Payment Configuration', () => {
 
     it('should pass validation without webhook secret (optional)', () => {
       const config = {
-        secretKey: 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
-        publishableKey: 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
+        secretKey: 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
+        publishableKey: 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
         webhookSecret: undefined,
       };
 
@@ -92,7 +94,7 @@ describe('Stripe Payment Configuration', () => {
     it('should throw error if secret key is missing', () => {
       const config = {
         secretKey: undefined,
-        publishableKey: 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
+        publishableKey: 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
         webhookSecret: undefined,
       };
 
@@ -101,7 +103,7 @@ describe('Stripe Payment Configuration', () => {
 
     it('should throw error if publishable key is missing', () => {
       const config = {
-        secretKey: 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
+        secretKey: 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
         publishableKey: undefined,
         webhookSecret: undefined,
       };
@@ -112,7 +114,7 @@ describe('Stripe Payment Configuration', () => {
     it('should throw error if secret key format is invalid', () => {
       const config = {
         secretKey: 'invalid_key_format',
-        publishableKey: 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
+        publishableKey: 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
         webhookSecret: undefined,
       };
 
@@ -121,7 +123,7 @@ describe('Stripe Payment Configuration', () => {
 
     it('should throw error if publishable key format is invalid', () => {
       const config = {
-        secretKey: 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
+        secretKey: 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
         publishableKey: 'invalid_key_format',
         webhookSecret: undefined,
       };
@@ -131,8 +133,8 @@ describe('Stripe Payment Configuration', () => {
 
     it('should throw error if webhook secret format is invalid (when provided)', () => {
       const config = {
-        secretKey: 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
-        publishableKey: 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
+        secretKey: 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
+        publishableKey: 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
         webhookSecret: 'short', // Too short (less than 10 characters)
       };
 
@@ -142,8 +144,8 @@ describe('Stripe Payment Configuration', () => {
     it('should validate key prefixes match (test vs live)', () => {
       // Test key with live key should be caught by format validation
       const config = {
-        secretKey: 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
-        publishableKey: 'pk_live_fake_key_for_testing_only_not_a_real_key_1234567890', // Mismatch: test secret with live publishable
+        secretKey: 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
+        publishableKey: 'pk_live_fakekeyfortestingonlynotarealkey12345678901234567890', // Mismatch: test secret with live publishable
         webhookSecret: undefined,
       };
 
@@ -155,8 +157,8 @@ describe('Stripe Payment Configuration', () => {
 
   describe('Stripe Configuration Integration', () => {
     it('should allow configuration in development mode without webhook secret', () => {
-      process.env.STRIPE_SECRET_KEY = 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890';
-      process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890';
+      process.env.STRIPE_SECRET_KEY = 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890';
+      process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890';
       // Webhook secret not required in development
 
       const config = getStripeConfig();
@@ -165,8 +167,9 @@ describe('Stripe Payment Configuration', () => {
 
     it('should require webhook secret in production mode', () => {
       process.env.APP_ENV = 'production';
-      process.env.STRIPE_SECRET_KEY = 'sk_live_fake_key_for_testing_only_not_a_real_key_1234567890';
-      process.env.STRIPE_PUBLISHABLE_KEY = 'pk_live_fake_key_for_testing_only_not_a_real_key_1234567890';
+      // Note: These are test keys only, not real Stripe keys
+      process.env.STRIPE_SECRET_KEY = 'sk_live_NOTAREALKEY1234567890123456789012345678901234567890';
+      process.env.STRIPE_PUBLISHABLE_KEY = 'pk_live_NOTAREALKEY1234567890123456789012345678901234567890';
       delete process.env.STRIPE_WEBHOOK_SECRET;
 
       const config = getStripeConfig();
@@ -177,7 +180,7 @@ describe('Stripe Payment Configuration', () => {
 
     it('should detect partial configuration (only secret key)', () => {
       const config = {
-        secretKey: 'sk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
+        secretKey: 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
         publishableKey: undefined,
         webhookSecret: undefined,
       };
@@ -188,7 +191,7 @@ describe('Stripe Payment Configuration', () => {
     it('should detect partial configuration (only publishable key)', () => {
       const config = {
         secretKey: undefined,
-        publishableKey: 'pk_test_fake_key_for_testing_only_not_a_real_key_1234567890',
+        publishableKey: 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890',
         webhookSecret: undefined,
       };
 
