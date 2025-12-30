@@ -3,6 +3,10 @@
  *
  * These tests verify that Stripe payment gateway is properly configured
  * and that environment variables are validated correctly.
+ *
+ * NOTE: These tests use fake API keys that match Stripe's format for validation testing.
+ * They are NOT real Stripe API keys and will not work with Stripe's API.
+ * GitHub secret scanning may flag these - they are allowlisted as false positives.
  */
 
 import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
