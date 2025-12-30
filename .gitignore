@@ -6,6 +6,8 @@ package-lock.json
 dist
 admin-ui
 build
+storefront/.next
+storefront/out
 
 # Generated assets and cache
 static/assets

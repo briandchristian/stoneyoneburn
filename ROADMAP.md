@@ -62,15 +62,15 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 ---
 
 ### Phase 1: Single-Vendor MVP (Learning Phase)
-**Status:** Not Started  
+**Status:** In Progress  
 **Estimated Time:** 2-3 weeks
 
 **Goal:** Master Vendure basics before building multi-vendor features
 
 #### Tasks
-- [ ] Enable EmailPlugin with proper configuration
-- [ ] Integrate real payment gateway (Stripe recommended)
-- [ ] Build basic storefront (Next.js/React)
+- [x] Enable EmailPlugin with proper configuration
+- [x] Integrate real payment gateway (Stripe recommended)
+- [x] Build basic storefront (Next.js/React)
 - [ ] Product catalog functionality
 - [ ] Shopping cart and checkout flow
 - [ ] Order management system

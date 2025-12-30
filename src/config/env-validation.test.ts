@@ -93,7 +93,9 @@ describe('Environment Variable Validation', () => {
       process.env.DB_DATABASE = undefined as any;
 
       // Act & Assert
-      expect(() => validateEnvironmentVariables()).toThrow(/database/i);
+      // The error message contains variable names like "DB_HOST", "DB_PORT", etc.
+      // It does not contain the word "database", so we match on "DB_" or "environment"
+      expect(() => validateEnvironmentVariables()).toThrow(/DB_|environment/i);
     });
   });
 

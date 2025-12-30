@@ -20,6 +20,34 @@ export interface MigrationStatus {
   totalPending: number;
 }
 
+/**
+ * Convert migration filename to TypeORM migration name format
+ * 
+ * TypeORM migration naming convention:
+ * - Filename: {timestamp}-{Name}.ts (e.g., "1735430400000-AddUniqueSkuConstraint.ts")
+ * - Migration name (stored in DB): {Name}{timestamp} (e.g., "AddUniqueSkuConstraint1735430400000")
+ * 
+ * @param filename Migration filename (with or without extension)
+ * @returns Migration name as stored in TypeORM's migrations table
+ */
+export function filenameToMigrationName(filename: string): string {
+  // Remove file extension
+  const nameWithoutExt = filename.replace(/\.(ts|js)$/, '');
+  
+  // Match pattern: {timestamp}-{Name}
+  // TypeORM migration files follow this pattern: timestamp-ClassName
+  const match = nameWithoutExt.match(/^(\d+)-(.+)$/);
+  
+  if (match) {
+    const [, timestamp, name] = match;
+    // Convert to TypeORM format: {Name}{timestamp}
+    return `${name}${timestamp}`;
+  }
+  
+  // If pattern doesn't match, return as-is (might be a different naming convention)
+  return nameWithoutExt;
+}
+
 export interface RollbackTestResult {
   success: boolean;
   canRollback: boolean;
@@ -202,9 +230,12 @@ export async function testMigrationRollback(
     const canRollback = status.executedMigrations.length > 0;
 
     // Calculate pending migrations (files that haven't been executed)
-    const pendingMigrations = migrationFiles.filter(
-      (file) => !status.executedMigrations.includes(file.replace(/\.(ts|js)$/, ''))
-    );
+    // Convert filenames to TypeORM migration names for comparison
+    // TypeORM stores migration names as {Name}{timestamp}, not {timestamp}-{Name}
+    const pendingMigrations = migrationFiles.filter((file) => {
+      const migrationName = filenameToMigrationName(file);
+      return !status.executedMigrations.includes(migrationName);
+    });
 
     return {
       success: true,

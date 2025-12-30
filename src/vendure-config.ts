@@ -5,15 +5,16 @@ import {
   DefaultSearchPlugin,
   VendureConfig,
 } from '@vendure/core';
-// EmailPlugin imports (commented out, will be enabled in Phase 1)
-// import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
+import { defaultEmailHandlers, EmailPlugin, FileBasedTemplateLoader } from '@vendure/email-plugin';
 import { AssetServerPlugin } from '@vendure/asset-server-plugin';
 import { DashboardPlugin } from '@vendure/dashboard/plugin';
 import { GraphiqlPlugin } from '@vendure/graphiql-plugin';
+import { StripePlugin } from '@vendure/payments-plugin/package/stripe';
 import 'dotenv/config';
 import path from 'path';
 import { validateEnvironmentVariables } from './config/env-validation';
 import { getSecurityConfig, isProductionMode, validateSecurityConfig } from './config/security';
+import { getStripeConfig, validateStripeConfig } from './config/stripe-config';
 
 // Validate critical environment variables on startup
 // Critical variables (authentication, security) are always required, even in development
@@ -31,6 +32,25 @@ try {
 const IS_DEV = !isProductionMode();
 const serverPort = +process.env.PORT || 3000;
 const securityConfig = getSecurityConfig();
+
+// Get and validate Stripe configuration (optional in dev, required in production)
+const stripeConfig = getStripeConfig();
+// Validate if ANY Stripe key is provided (not just when both are present)
+// This catches partial configurations early and prevents silent failures
+if (stripeConfig.secretKey || stripeConfig.publishableKey) {
+  try {
+    validateStripeConfig(stripeConfig);
+  } catch (error) {
+    console.error('Stripe configuration validation failed:', error);
+    // In production, Stripe should be configured correctly, so throw
+    // In development, allow the app to start without Stripe (for testing other features)
+    if (isProductionMode()) {
+      throw error;
+    } else {
+      console.warn('⚠️  Stripe configuration is invalid. Payment processing will not work.');
+    }
+  }
+}
 
 export const config: VendureConfig = {
   apiOptions: {
@@ -61,12 +81,11 @@ export const config: VendureConfig = {
     synchronize: securityConfig.dbConnectionOptions.synchronize,
     // Security: logging is automatically disabled in production
     logging: securityConfig.dbConnectionOptions.logging,
-    // In production, use migrations instead of synchronize
-    ...(isProductionMode()
-      ? {
-          migrations: [path.join(__dirname, 'migrations/*.+(js|ts)')],
-        }
-      : {}),
+    // Use migrations in both dev and production
+    // In dev mode, synchronize can be used for rapid development, but migrations
+    // should still be available for schema changes that need to be tracked
+    // Note: Using brace expansion format compatible with TypeORM's tinyglobby
+    migrations: [path.join(__dirname, 'migrations/*.{ts,js}')],
   },
   paymentOptions: {
     paymentMethodHandlers: [dummyPaymentHandler],
@@ -87,21 +106,72 @@ export const config: VendureConfig = {
     DefaultSchedulerPlugin.init(),
     DefaultJobQueuePlugin.init({ useDatabaseForBuffer: true }),
     DefaultSearchPlugin.init({ bufferUpdates: false, indexStockStatus: true }),
-    /*EmailPlugin.init({
-            devMode: true,
-            outputPath: path.join(__dirname, '../static/email/test-emails'),
-            route: 'mailbox',
-            handlers: defaultEmailHandlers,
-            templateLoader: new FileBasedTemplateLoader(path.join(__dirname, '../static/email/templates')),
-            globalTemplateVars: {
-                // The following variables will change depending on your storefront implementation.
-                // Here we are assuming a storefront running at http://localhost:8080.
-                fromAddress: '"example" <noreply@example.com>',
-                verifyEmailAddressUrl: 'http://localhost:8080/verify',
-                passwordResetUrl: 'http://localhost:8080/password-reset',
-                changeEmailAddressUrl: 'http://localhost:8080/verify-email-address-change'
+    // EmailPlugin configuration
+    // In development: writes emails to files for testing (devMode: true)
+    // In production: uses SMTP transport for actual email delivery
+    IS_DEV
+      ? EmailPlugin.init({
+          devMode: true,
+          outputPath: path.join(__dirname, '../static/email/test-emails'),
+          route: 'mailbox',
+          handlers: defaultEmailHandlers,
+          templateLoader: new FileBasedTemplateLoader(
+            path.join(__dirname, '../static/email/templates')
+          ),
+          globalTemplateVars: {
+            fromAddress:
+              process.env.EMAIL_FROM || '"StoneyOneBurn Dev" <noreply@localhost>',
+            verifyEmailAddressUrl:
+              process.env.STOREFRONT_URL || 'http://localhost:8080/verify',
+            passwordResetUrl:
+              process.env.STOREFRONT_URL || 'http://localhost:8080/password-reset',
+            changeEmailAddressUrl:
+              process.env.STOREFRONT_URL ||
+              'http://localhost:8080/verify-email-address-change',
+          },
+        })
+      : EmailPlugin.init({
+          transport: {
+            type: 'smtp',
+            host: process.env.EMAIL_HOST || 'smtp.example.com',
+            port: +(process.env.EMAIL_PORT || 587),
+            secure: (process.env.EMAIL_PORT || '587') === '465', // true for 465, false for other ports
+            auth: {
+              user: process.env.EMAIL_USER,
+              pass: process.env.EMAIL_PASSWORD,
             },
-        }),*/
+          },
+          handlers: defaultEmailHandlers,
+          templateLoader: new FileBasedTemplateLoader(
+            path.join(__dirname, '../static/email/templates')
+          ),
+          globalTemplateVars: {
+            fromAddress:
+              process.env.EMAIL_FROM ||
+              '"StoneyOneBurn" <noreply@stoneyoneburn.com>',
+            verifyEmailAddressUrl:
+              process.env.STOREFRONT_URL || 'https://stoneyoneburn.com/verify',
+            passwordResetUrl:
+              process.env.STOREFRONT_URL ||
+              'https://stoneyoneburn.com/password-reset',
+            changeEmailAddressUrl:
+              process.env.STOREFRONT_URL ||
+              'https://stoneyoneburn.com/verify-email-address-change',
+          },
+        }),
+    // StripePlugin configuration
+    // Only initialize if Stripe keys are configured
+    // In development, Stripe is optional (can use dummyPaymentHandler for testing)
+    // In production, Stripe should be configured for real payments
+    ...(stripeConfig.secretKey && stripeConfig.publishableKey
+      ? [
+          StripePlugin.init({
+            storeCustomersInStripe: true,
+            // Webhook secret is optional but recommended for production
+            // It will be set when creating the payment method in the admin UI
+          }),
+        ]
+      : []),
     DashboardPlugin.init({
       route: 'dashboard',
       appDir: IS_DEV

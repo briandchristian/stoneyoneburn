@@ -12,6 +12,7 @@ import {
   testMigrationRollback,
   getMigrationStatus,
   MigrationRollbackError,
+  filenameToMigrationName,
 } from './migration-rollback';
 import { getDatabaseConfig } from './database-connection';
 import path from 'path';
@@ -30,6 +31,32 @@ describe('Migration Rollback', () => {
   afterEach(() => {
     // Restore original environment
     process.env = originalEnv;
+  });
+
+  describe('filenameToMigrationName', () => {
+    it('should convert TypeORM migration filename to migration name format', () => {
+      // TypeORM format: {timestamp}-{Name}.ts -> {Name}{timestamp}
+      expect(filenameToMigrationName('1735430400000-AddUniqueSkuConstraint.ts')).toBe(
+        'AddUniqueSkuConstraint1735430400000'
+      );
+      expect(filenameToMigrationName('1234567890123-MyMigration.ts')).toBe(
+        'MyMigration1234567890123'
+      );
+      expect(filenameToMigrationName('9999999999999-AnotherMigration.js')).toBe(
+        'AnotherMigration9999999999999'
+      );
+    });
+
+    it('should handle filenames without extension', () => {
+      expect(filenameToMigrationName('1735430400000-AddUniqueSkuConstraint')).toBe(
+        'AddUniqueSkuConstraint1735430400000'
+      );
+    });
+
+    it('should return filename as-is if pattern does not match', () => {
+      const nonStandardName = 'CustomMigrationName';
+      expect(filenameToMigrationName(nonStandardName)).toBe(nonStandardName);
+    });
   });
 
   describe('getMigrationFiles', () => {
