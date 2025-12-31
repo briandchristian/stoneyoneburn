@@ -11,6 +11,12 @@ module.exports = {
     '!src/**/*.d.ts',
     '!src/**/index.ts',
     '!src/**/index-worker.ts',
+    // Exclude configuration files (hard to test in isolation)
+    '!src/vendure-config.ts',
+    // Exclude generated GraphQL files
+    '!src/gql/**',
+    // Exclude migration files (tested via integration tests)
+    '!src/migrations/**',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
