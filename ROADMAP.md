@@ -32,8 +32,9 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 ## 🗺️ Phase Roadmap
 
 ### Phase 0: Foundation & Setup ✅
-**Status:** In Progress  
-**Estimated Time:** 1 week
+**Status:** ✅ Complete  
+**Estimated Time:** 1 week  
+**Completed:** 2024
 
 #### Tasks
 - [x] Initial Vendure setup
@@ -63,7 +64,8 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 
 ### Phase 1: Single-Vendor MVP (Learning Phase)
 **Status:** In Progress  
-**Estimated Time:** 2-3 weeks
+**Estimated Time:** 2-3 weeks  
+**Started:** 2024
 
 **Goal:** Master Vendure basics before building multi-vendor features
 
@@ -71,7 +73,13 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - [x] Enable EmailPlugin with proper configuration
 - [x] Integrate real payment gateway (Stripe recommended)
 - [x] Build basic storefront (Next.js/React)
-- [ ] Product catalog functionality
+- [x] Product catalog functionality
+  - [x] Product listing with pagination
+  - [x] Product search functionality
+  - [x] Product filtering by facets/categories
+  - [x] Product sorting (name, price, date)
+  - [x] Category/collection browsing
+  - [x] Product detail pages
 - [ ] Shopping cart and checkout flow
 - [ ] Order management system
 - [ ] Customer account management
@@ -374,9 +382,9 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 ## 📊 Progress Tracking
 
 ### Overall Progress
-- **Completed Phases:** 0/8 (0%)**
-- **In Progress:** Phase 0 (Foundation & Setup)
-- **Not Started:** Phases 1-8
+- **Completed Phases:** 1/8 (12.5%)
+- **In Progress:** Phase 1 (Single-Vendor MVP)
+- **Not Started:** Phases 2-8
 
 ### Key Metrics
 - Total Estimated Time: 18-26 weeks (4.5-6.5 months)
@@ -476,8 +484,10 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 
 ## 🔄 Update Log
 
-- **2024-XX-XX:** Roadmap created
-- **2024-XX-XX:** Phase 0 started
+- **2024:** Roadmap created
+- **2024:** Phase 0 started
+- **2024:** Phase 0 completed (Foundation & Setup)
+- **2024:** Phase 1 started (Single-Vendor MVP)
 - _(Add updates as phases are completed)_
 
 ---

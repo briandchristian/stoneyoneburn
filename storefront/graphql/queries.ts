@@ -21,7 +21,7 @@ export const GET_ACTIVE_CHANNEL = gql`
 `;
 
 /**
- * Query to get product list with pagination
+ * Query to get product list with pagination, filtering, and sorting
  */
 export const GET_PRODUCTS = gql`
   query GetProducts($options: ProductListOptions) {
@@ -42,9 +42,129 @@ export const GET_PRODUCTS = gql`
           price
           priceWithTax
           sku
+          stockLevel
+        }
+        facetValues {
+          id
+          name
+          facet {
+            id
+            name
+          }
         }
       }
       totalItems
+    }
+  }
+`;
+
+/**
+ * Query to search products with advanced filtering
+ */
+export const SEARCH_PRODUCTS = gql`
+  query SearchProducts($input: SearchInput!) {
+    search(input: $input) {
+      items {
+        productId
+        productName
+        productSlug
+        productAsset {
+          id
+          preview
+        }
+        priceWithTax {
+          ... on SinglePrice {
+            value
+          }
+          ... on PriceRange {
+            min
+            max
+          }
+        }
+        currencyCode
+        description
+        facetIds
+        facetValueIds
+        inStock
+      }
+      totalItems
+      facetValues {
+        facetValue {
+          id
+          name
+          facet {
+            id
+            name
+          }
+        }
+        count
+      }
+      collections {
+        collection {
+          id
+          name
+          slug
+        }
+        count
+      }
+    }
+  }
+`;
+
+/**
+ * Query to get all collections (categories)
+ */
+export const GET_COLLECTIONS = gql`
+  query GetCollections {
+    collections {
+      items {
+        id
+        name
+        slug
+        description
+        featuredAsset {
+          id
+          preview
+        }
+        productCount
+      }
+      totalItems
+    }
+  }
+`;
+
+/**
+ * Query to get products by collection
+ */
+export const GET_PRODUCTS_BY_COLLECTION = gql`
+  query GetProductsByCollection($slug: String!, $options: ProductListOptions) {
+    collection(slug: $slug) {
+      id
+      name
+      slug
+      description
+      products(options: $options) {
+        items {
+          id
+          name
+          slug
+          description
+          featuredAsset {
+            id
+            preview
+          }
+          variants {
+            id
+            name
+            currencyCode
+            price
+            priceWithTax
+            sku
+            stockLevel
+          }
+        }
+        totalItems
+      }
     }
   }
 `;

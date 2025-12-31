@@ -102,7 +102,7 @@ docker-compose up redis
 
 This project is building an Etsy-style multi-vendor marketplace. See [ROADMAP.md](./ROADMAP.md) for the complete development plan and [PHASE_CHECKLIST.md](./PHASE_CHECKLIST.md) for quick phase tracking.
 
-**Current Phase:** Phase 0 - Foundation & Setup
+**Current Phase:** Phase 1 - Single-Vendor MVP (In Progress)
 
 ## Plugins
 

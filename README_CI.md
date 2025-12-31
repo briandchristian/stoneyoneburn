@@ -54,7 +54,8 @@ Before committing, ensure:
 
 - **CI/CD Plan:** [CI_CD_PLAN.md](./CI_CD_PLAN.md)
 - **Deployment Guide:** [DEPLOYMENT_PREPARATION.md](./DEPLOYMENT_PREPARATION.md)
-- **Phase 1 Completion:** [PHASE1_COMPLETION.md](./PHASE1_COMPLETION.md)
+- **Phase 0 CI Setup:** [PHASE_0_CI_SETUP.md](./PHASE_0_CI_SETUP.md)
+- **Roadmap:** [ROADMAP.md](./ROADMAP.md) - Overall project roadmap and phase tracking
 
 ## 🔧 Configuration Files
 
