@@ -62,8 +62,8 @@ jobs:
         uses: trufflesecurity/trufflehog@main
         with:
           path: ./
-          base: ${{ github.event.repository.default_branch }}
-          head: HEAD
+          # Don't specify base/head - let TruffleHog auto-detect from git event
+          # This prevents issues when BASE and HEAD resolve to the same commit
 
   # Job 3: Test Suite
   test:
