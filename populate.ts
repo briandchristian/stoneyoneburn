@@ -12,7 +12,7 @@ function loadJsonFile(filePath: string, fileDescription: string): any {
     if (!existsSync(filePath)) {
       throw new Error(
         `${fileDescription} not found at: ${filePath}\n` +
-        'Please ensure @vendure/create is installed: npm install --save-dev @vendure/create'
+          'Please ensure @vendure/create is installed: npm install --save-dev @vendure/create'
       );
     }
 
@@ -21,8 +21,7 @@ function loadJsonFile(filePath: string, fileDescription: string): any {
   } catch (error) {
     if (error instanceof SyntaxError) {
       throw new Error(
-        `Failed to parse ${fileDescription} as JSON: ${filePath}\n` +
-        `Error: ${error.message}`
+        `Failed to parse ${fileDescription} as JSON: ${filePath}\n` + `Error: ${error.message}`
       );
     }
     if (error instanceof Error && error.message.includes('not found')) {
@@ -30,7 +29,7 @@ function loadJsonFile(filePath: string, fileDescription: string): any {
     }
     throw new Error(
       `Failed to read ${fileDescription}: ${filePath}\n` +
-      `Error: ${error instanceof Error ? error.message : String(error)}`
+        `Error: ${error instanceof Error ? error.message : String(error)}`
     );
   }
 }
@@ -42,7 +41,7 @@ function verifyFileExists(filePath: string, fileDescription: string): string {
   if (!existsSync(filePath)) {
     throw new Error(
       `${fileDescription} not found at: ${filePath}\n` +
-      'Please ensure @vendure/create is installed: npm install --save-dev @vendure/create'
+        'Please ensure @vendure/create is installed: npm install --save-dev @vendure/create'
     );
   }
   return filePath;
@@ -111,7 +110,9 @@ try {
   console.error('❌ Error loading required files:');
   console.error(error instanceof Error ? error.message : String(error));
   console.error('\n💡 Troubleshooting:');
-  console.error('   1. Ensure @vendure/create is installed: npm install --save-dev @vendure/create');
+  console.error(
+    '   1. Ensure @vendure/create is installed: npm install --save-dev @vendure/create'
+  );
   console.error('   2. Run npm install to ensure all dependencies are installed');
   console.error('   3. Verify node_modules/@vendure/create/assets/ directory exists');
   process.exit(1);
