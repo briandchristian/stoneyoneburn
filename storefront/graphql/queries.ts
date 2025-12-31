@@ -536,3 +536,139 @@ export const TRANSITION_ORDER_TO_STATE = gql`
   }
 `;
 
+/**
+ * Query to get customer orders (order history)
+ */
+export const GET_ORDERS = gql`
+  query GetOrders($options: OrderListOptions) {
+    orders(options: $options) {
+      items {
+        id
+        code
+        state
+        orderPlacedAt
+        total
+        totalWithTax
+        currencyCode
+        lines {
+          id
+          quantity
+          productVariant {
+            id
+            name
+            product {
+              id
+              name
+              slug
+              featuredAsset {
+                id
+                preview
+              }
+            }
+          }
+        }
+      }
+      totalItems
+    }
+  }
+`;
+
+/**
+ * Query to get a single order by code
+ */
+export const GET_ORDER_BY_CODE = gql`
+  query GetOrderByCode($code: String!) {
+    orderByCode(code: $code) {
+      id
+      code
+      state
+      orderPlacedAt
+      createdAt
+      updatedAt
+      total
+      totalWithTax
+      subTotal
+      subTotalWithTax
+      shipping
+      shippingWithTax
+      currencyCode
+      customer {
+        id
+        firstName
+        lastName
+        emailAddress
+      }
+      shippingAddress {
+        fullName
+        company
+        streetLine1
+        streetLine2
+        city
+        province
+        postalCode
+        countryCode
+        phoneNumber
+      }
+      billingAddress {
+        fullName
+        company
+        streetLine1
+        streetLine2
+        city
+        province
+        postalCode
+        countryCode
+        phoneNumber
+      }
+      lines {
+        id
+        quantity
+        unitPrice
+        unitPriceWithTax
+        linePrice
+        linePriceWithTax
+        productVariant {
+          id
+          name
+          sku
+          product {
+            id
+            name
+            slug
+            featuredAsset {
+              id
+              preview
+            }
+          }
+        }
+      }
+      shippingLines {
+        id
+        shippingMethod {
+          id
+          name
+          code
+          description
+        }
+        price
+        priceWithTax
+      }
+      payments {
+        id
+        state
+        method
+        amount
+        transactionId
+        createdAt
+      }
+      fulfillments {
+        id
+        state
+        method
+        trackingCode
+        createdAt
+        updatedAt
+      }
+    }
+  }
+`;
