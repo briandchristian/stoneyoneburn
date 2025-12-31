@@ -28,7 +28,7 @@ describe('Stripe Payment Configuration', () => {
     it('should return Stripe configuration from environment variables', () => {
       process.env.STRIPE_SECRET_KEY = 'sk_test_fakekeyfortestingonlynotarealkey12345678901234567890';
       process.env.STRIPE_PUBLISHABLE_KEY = 'pk_test_fakekeyfortestingonlynotarealkey12345678901234567890';
-      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_fake_webhook_secret_for_testing_only_not_real_1234567890';
+      process.env.STRIPE_WEBHOOK_SECRET = 'whsec_fakewebhooksecretfortestingonlynotreal12345678901234567890';
 
       const config = getStripeConfig();
 
