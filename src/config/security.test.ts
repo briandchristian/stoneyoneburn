@@ -34,7 +34,7 @@ describe('Security Configuration', () => {
     });
 
     it('should return false when APP_ENV is not set', () => {
-      delete process.env.APP_ENV;
+      (process.env as { APP_ENV?: string }).APP_ENV = undefined;
       expect(isProductionMode()).toBe(false);
     });
   });

@@ -29,9 +29,9 @@ describe('Environment Variable Validation', () => {
   describe('validateEnvironmentVariables', () => {
     it('should throw error when required variables are missing', () => {
       // Arrange: Clear all environment variables
-      delete process.env.SUPERADMIN_USERNAME;
-      delete process.env.SUPERADMIN_PASSWORD;
-      delete process.env.COOKIE_SECRET;
+      (process.env as { SUPERADMIN_USERNAME?: string }).SUPERADMIN_USERNAME = undefined;
+      (process.env as { SUPERADMIN_PASSWORD?: string }).SUPERADMIN_PASSWORD = undefined;
+      (process.env as { COOKIE_SECRET?: string }).COOKIE_SECRET = undefined;
 
       // Act & Assert
       expect(() => validateEnvironmentVariables()).toThrow();
@@ -86,11 +86,11 @@ describe('Environment Variable Validation', () => {
       process.env.SUPERADMIN_USERNAME = 'admin';
       process.env.SUPERADMIN_PASSWORD = 'secure-password-123';
       process.env.COOKIE_SECRET = 'a-very-long-and-secure-cookie-secret-key';
-      delete process.env.DB_HOST;
-      delete process.env.DB_PORT;
-      delete process.env.DB_USERNAME;
-      delete process.env.DB_PASSWORD;
-      delete process.env.DB_DATABASE;
+      (process.env as { DB_HOST?: string }).DB_HOST = undefined;
+      (process.env as { DB_PORT?: string }).DB_PORT = undefined;
+      (process.env as { DB_USERNAME?: string }).DB_USERNAME = undefined;
+      (process.env as { DB_PASSWORD?: string }).DB_PASSWORD = undefined;
+      (process.env as { DB_DATABASE?: string }).DB_DATABASE = undefined;
 
       // Act & Assert
       // The error message contains variable names like "DB_HOST", "DB_PORT", etc.
@@ -102,9 +102,9 @@ describe('Environment Variable Validation', () => {
   describe('validateCriticalEnvVars', () => {
     it('should throw error when critical variables are missing', () => {
       // Arrange: Clear critical environment variables
-      delete process.env.SUPERADMIN_USERNAME;
-      delete process.env.SUPERADMIN_PASSWORD;
-      delete process.env.COOKIE_SECRET;
+      (process.env as { SUPERADMIN_USERNAME?: string }).SUPERADMIN_USERNAME = undefined;
+      (process.env as { SUPERADMIN_PASSWORD?: string }).SUPERADMIN_PASSWORD = undefined;
+      (process.env as { COOKIE_SECRET?: string }).COOKIE_SECRET = undefined;
 
       // Act & Assert
       expect(() => validateCriticalEnvVars()).toThrow(/critical/i);
@@ -126,9 +126,9 @@ describe('Environment Variable Validation', () => {
 
       for (const env of environments) {
         process.env.APP_ENV = env;
-        delete process.env.SUPERADMIN_USERNAME;
-        delete process.env.SUPERADMIN_PASSWORD;
-        delete process.env.COOKIE_SECRET;
+        (process.env as { SUPERADMIN_USERNAME?: string }).SUPERADMIN_USERNAME = undefined;
+        (process.env as { SUPERADMIN_PASSWORD?: string }).SUPERADMIN_PASSWORD = undefined;
+        (process.env as { COOKIE_SECRET?: string }).COOKIE_SECRET = undefined;
 
         // Act & Assert: Should throw in both environments
         expect(() => validateCriticalEnvVars()).toThrow(/critical/i);
