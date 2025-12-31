@@ -61,13 +61,12 @@ export function validateStripeConfig(config: StripeConfig): void {
 
   // Webhook secret is optional, but if provided, should be valid format (non-empty, at least 10 chars)
   if (config.webhookSecret && !STRIPE_WEBHOOK_SECRET_PATTERN.test(config.webhookSecret)) {
-    errors.push(
-      `STRIPE_WEBHOOK_SECRET has invalid format. Must be at least 10 characters long.`
-    );
+    errors.push(`STRIPE_WEBHOOK_SECRET has invalid format. Must be at least 10 characters long.`);
   }
 
   if (errors.length > 0) {
-    throw new Error(`Stripe configuration validation failed:\n${errors.map((e) => `  - ${e}`).join('\n')}`);
+    throw new Error(
+      `Stripe configuration validation failed:\n${errors.map((e) => `  - ${e}`).join('\n')}`
+    );
   }
 }
-

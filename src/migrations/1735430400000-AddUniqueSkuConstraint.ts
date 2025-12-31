@@ -2,7 +2,7 @@ import { MigrationInterface, QueryRunner } from 'typeorm';
 
 /**
  * Migration: Add unique constraint on product_variant.sku
- * 
+ *
  * This migration adds a unique index on the SKU column to prevent duplicate SKUs,
  * which can cause issues when creating new product variants. The constraint
  * only applies to non-deleted variants (soft-deleted variants can keep their SKU).
@@ -22,17 +22,20 @@ export class AddUniqueSkuConstraint1735430400000 implements MigrationInterface {
     `);
 
     if (duplicates.length > 0) {
-      console.log(`⚠️  Found ${duplicates.length} duplicate SKU(s). Fixing before creating unique constraint...`);
-      
+      console.log(
+        `⚠️  Found ${duplicates.length} duplicate SKU(s). Fixing before creating unique constraint...`
+      );
+
       for (const dup of duplicates) {
         const variantIds = dup.variant_ids;
-        const keepId = variantIds[0]; // Keep the most recently created
+        // Keep the most recently created (variantIds[0]) - not used but kept for clarity
+        const _keepId = variantIds[0];
         const fixIds = variantIds.slice(1); // Fix the others
 
         for (let i = 0; i < fixIds.length; i++) {
           const variantId = fixIds[i];
           const newSku = `${dup.sku}-${variantId}`;
-          
+
           // Check if new SKU already exists
           const existing = await queryRunner.query(
             'SELECT id FROM product_variant WHERE sku = $1 AND "deletedAt" IS NULL',
@@ -70,8 +73,8 @@ export class AddUniqueSkuConstraint1735430400000 implements MigrationInterface {
     if (remainingDuplicates.length > 0) {
       throw new Error(
         `Cannot create unique constraint: ${remainingDuplicates.length} duplicate SKU(s) still exist. ` +
-        `Please fix duplicates manually before running this migration. ` +
-        `Duplicates: ${remainingDuplicates.map((d: any) => d.sku).join(', ')}`
+          `Please fix duplicates manually before running this migration. ` +
+          `Duplicates: ${remainingDuplicates.map((d: { sku: string; count: number }) => d.sku).join(', ')}`
       );
     }
 
@@ -92,4 +95,3 @@ export class AddUniqueSkuConstraint1735430400000 implements MigrationInterface {
     `);
   }
 }
-

@@ -116,9 +116,7 @@ export async function testDatabaseConnection(
   } catch (error) {
     const connectionTime = Date.now() - startTime;
     const errorMessage =
-      error instanceof Error
-        ? error.message
-        : 'Unknown database connection error';
+      error instanceof Error ? error.message : 'Unknown database connection error';
 
     // Create a more descriptive error message
     const detailedMessage = `Failed to connect to database at ${config.host}:${config.port}/${config.database} as ${config.username}. Error: ${errorMessage}`;
@@ -139,10 +137,9 @@ export async function testDatabaseConnection(
     if (client) {
       try {
         await client.end();
-      } catch (closeError) {
+      } catch {
         // Ignore errors when closing - connection might already be closed
       }
     }
   }
 }
-

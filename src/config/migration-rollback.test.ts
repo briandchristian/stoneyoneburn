@@ -16,7 +16,7 @@ import {
 } from './migration-rollback';
 import { getDatabaseConfig } from './database-connection';
 import path from 'path';
-import { readdir, readFile } from 'fs/promises';
+// Note: readdir and readFile are used in mocked tests, not directly imported
 
 describe('Migration Rollback', () => {
   const originalEnv = process.env;
@@ -89,14 +89,15 @@ describe('Migration Rollback', () => {
 
     it('should throw MigrationRollbackError for non-ENOENT errors', async () => {
       // Mock readdir to throw a non-ENOENT error
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fsPromises = require('fs/promises');
       const permissionError = new Error('Permission denied') as NodeJS.ErrnoException;
       permissionError.code = 'EACCES'; // Access denied error code
-      jest.spyOn(fsPromises, 'readdir').mockImplementationOnce(() => Promise.reject(permissionError));
+      jest
+        .spyOn(fsPromises, 'readdir')
+        .mockImplementationOnce(() => Promise.reject(permissionError));
 
-      await expect(getMigrationFiles(migrationsDir)).rejects.toThrow(
-        MigrationRollbackError
-      );
+      await expect(getMigrationFiles(migrationsDir)).rejects.toThrow(MigrationRollbackError);
 
       // Restore original
       jest.restoreAllMocks();
@@ -104,6 +105,7 @@ describe('Migration Rollback', () => {
 
     it('should handle ENOENT error code correctly', async () => {
       // Mock readdir to throw an ENOENT error with proper error code
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fsPromises = require('fs/promises');
       const enoentError = new Error('ENOENT: no such file or directory') as NodeJS.ErrnoException;
       enoentError.code = 'ENOENT';
@@ -119,6 +121,7 @@ describe('Migration Rollback', () => {
     });
 
     it('should handle existsSync returning false', async () => {
+      // eslint-disable-next-line @typescript-eslint/no-require-imports
       const fs = require('fs');
       jest.spyOn(fs, 'existsSync').mockReturnValueOnce(false);
 
@@ -192,9 +195,7 @@ describe('Migration Rollback', () => {
         database: 'invalid',
       };
 
-      await expect(getMigrationStatus(invalidConfig)).rejects.toThrow(
-        MigrationRollbackError
-      );
+      await expect(getMigrationStatus(invalidConfig)).rejects.toThrow(MigrationRollbackError);
     }, 10000);
 
     it('should return empty status when migrations table does not exist', async () => {

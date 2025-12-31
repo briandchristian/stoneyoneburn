@@ -34,7 +34,7 @@ describe('Security Configuration', () => {
     });
 
     it('should return false when APP_ENV is not set', () => {
-      process.env.APP_ENV = undefined as any;
+      delete process.env.APP_ENV;
       expect(isProductionMode()).toBe(false);
     });
   });
@@ -104,7 +104,9 @@ describe('Security Configuration', () => {
         },
       };
 
-      expect(() => validateSecurityConfig(config as any)).toThrow(/synchronize.*production/i);
+      expect(() =>
+        validateSecurityConfig(config as unknown as Partial<import('@vendure/core').VendureConfig>)
+      ).toThrow(/synchronize.*production/i);
     });
 
     it('should pass validation in development with synchronize true', () => {
@@ -115,7 +117,9 @@ describe('Security Configuration', () => {
         },
       };
 
-      expect(() => validateSecurityConfig(config as any)).not.toThrow();
+      expect(() =>
+        validateSecurityConfig(config as unknown as Partial<import('@vendure/core').VendureConfig>)
+      ).not.toThrow();
     });
 
     it('should throw error if debug modes are enabled in production', () => {
@@ -127,7 +131,9 @@ describe('Security Configuration', () => {
         },
       };
 
-      expect(() => validateSecurityConfig(config as any)).toThrow(/debug.*production/i);
+      expect(() =>
+        validateSecurityConfig(config as unknown as Partial<import('@vendure/core').VendureConfig>)
+      ).toThrow(/debug.*production/i);
     });
   });
 });

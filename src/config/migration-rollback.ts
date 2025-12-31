@@ -6,9 +6,8 @@
  * to avoid data loss during testing.
  */
 
-import { readdir, stat } from 'fs/promises';
+import { readdir } from 'fs/promises';
 import { existsSync } from 'fs';
-import path from 'path';
 import { Client } from 'pg';
 import { DatabaseConfig } from './database-connection';
 
@@ -22,28 +21,28 @@ export interface MigrationStatus {
 
 /**
  * Convert migration filename to TypeORM migration name format
- * 
+ *
  * TypeORM migration naming convention:
  * - Filename: {timestamp}-{Name}.ts (e.g., "1735430400000-AddUniqueSkuConstraint.ts")
  * - Migration name (stored in DB): {Name}{timestamp} (e.g., "AddUniqueSkuConstraint1735430400000")
- * 
+ *
  * @param filename Migration filename (with or without extension)
  * @returns Migration name as stored in TypeORM's migrations table
  */
 export function filenameToMigrationName(filename: string): string {
   // Remove file extension
   const nameWithoutExt = filename.replace(/\.(ts|js)$/, '');
-  
+
   // Match pattern: {timestamp}-{Name}
   // TypeORM migration files follow this pattern: timestamp-ClassName
   const match = nameWithoutExt.match(/^(\d+)-(.+)$/);
-  
+
   if (match) {
     const [, timestamp, name] = match;
     // Convert to TypeORM format: {Name}{timestamp}
     return `${name}${timestamp}`;
   }
-  
+
   // If pattern doesn't match, return as-is (might be a different naming convention)
   return nameWithoutExt;
 }
@@ -83,7 +82,7 @@ export async function getMigrationFiles(migrationsDir: string): Promise<string[]
     }
 
     const files = await readdir(migrationsDir);
-    
+
     // Filter for TypeScript and JavaScript migration files
     // Exclude .gitkeep and other non-migration files
     const migrationFiles = files.filter((file) => {
@@ -134,9 +133,7 @@ export function validateMigrationFiles(files: string[]): void {
  * Get migration status from database
  * Queries TypeORM's migrations table to see which migrations have been executed
  */
-export async function getMigrationStatus(
-  dbConfig: DatabaseConfig
-): Promise<MigrationStatus> {
+export async function getMigrationStatus(dbConfig: DatabaseConfig): Promise<MigrationStatus> {
   let client: Client | null = null;
 
   try {
@@ -189,8 +186,7 @@ export async function getMigrationStatus(
       totalPending: 0, // Will be calculated when comparing with files
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown database error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown database error';
 
     throw new MigrationRollbackError(
       `Failed to get migration status: ${errorMessage}`,
@@ -200,7 +196,7 @@ export async function getMigrationStatus(
     if (client) {
       try {
         await client.end();
-      } catch (closeError) {
+      } catch {
         // Ignore close errors
       }
     }
@@ -218,7 +214,7 @@ export async function testMigrationRollback(
   try {
     // Get migration files
     const migrationFiles = await getMigrationFiles(migrationsDir);
-    
+
     // Validate migration files
     validateMigrationFiles(migrationFiles);
 
@@ -249,8 +245,7 @@ export async function testMigrationRollback(
       },
     };
   } catch (error) {
-    const errorMessage =
-      error instanceof Error ? error.message : 'Unknown error';
+    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
 
     return {
       success: false,

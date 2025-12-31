@@ -119,15 +119,11 @@ export const config: VendureConfig = {
             path.join(__dirname, '../static/email/templates')
           ),
           globalTemplateVars: {
-            fromAddress:
-              process.env.EMAIL_FROM || '"StoneyOneBurn Dev" <noreply@localhost>',
-            verifyEmailAddressUrl:
-              process.env.STOREFRONT_URL || 'http://localhost:8080/verify',
-            passwordResetUrl:
-              process.env.STOREFRONT_URL || 'http://localhost:8080/password-reset',
+            fromAddress: process.env.EMAIL_FROM || '"StoneyOneBurn Dev" <noreply@localhost>',
+            verifyEmailAddressUrl: process.env.STOREFRONT_URL || 'http://localhost:8080/verify',
+            passwordResetUrl: process.env.STOREFRONT_URL || 'http://localhost:8080/password-reset',
             changeEmailAddressUrl:
-              process.env.STOREFRONT_URL ||
-              'http://localhost:8080/verify-email-address-change',
+              process.env.STOREFRONT_URL || 'http://localhost:8080/verify-email-address-change',
           },
         })
       : EmailPlugin.init({
@@ -146,17 +142,12 @@ export const config: VendureConfig = {
             path.join(__dirname, '../static/email/templates')
           ),
           globalTemplateVars: {
-            fromAddress:
-              process.env.EMAIL_FROM ||
-              '"StoneyOneBurn" <noreply@stoneyoneburn.com>',
-            verifyEmailAddressUrl:
-              process.env.STOREFRONT_URL || 'https://stoneyoneburn.com/verify',
+            fromAddress: process.env.EMAIL_FROM || '"StoneyOneBurn" <noreply@stoneyoneburn.com>',
+            verifyEmailAddressUrl: process.env.STOREFRONT_URL || 'https://stoneyoneburn.com/verify',
             passwordResetUrl:
-              process.env.STOREFRONT_URL ||
-              'https://stoneyoneburn.com/password-reset',
+              process.env.STOREFRONT_URL || 'https://stoneyoneburn.com/password-reset',
             changeEmailAddressUrl:
-              process.env.STOREFRONT_URL ||
-              'https://stoneyoneburn.com/verify-email-address-change',
+              process.env.STOREFRONT_URL || 'https://stoneyoneburn.com/verify-email-address-change',
           },
         }),
     // StripePlugin configuration

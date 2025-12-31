@@ -15,7 +15,7 @@
     "outDir": "./dist",
     "baseUrl": "./"
   },
-  "include": ["src/**/*.ts", "populate.ts"],
+  "include": ["src/**/*.ts", "populate.ts", "tests/**/*.ts"],
   "exclude": [
     "node_modules",
     "migration.ts",

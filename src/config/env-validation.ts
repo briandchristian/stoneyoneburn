@@ -22,7 +22,13 @@ export const CRITICAL_ENV_VARS = ['SUPERADMIN_USERNAME', 'SUPERADMIN_PASSWORD', 
 /**
  * Non-critical environment variables that can have defaults in development
  */
-export const NON_CRITICAL_ENV_VARS = ['DB_HOST', 'DB_PORT', 'DB_USERNAME', 'DB_PASSWORD', 'DB_DATABASE'];
+export const NON_CRITICAL_ENV_VARS = [
+  'DB_HOST',
+  'DB_PORT',
+  'DB_USERNAME',
+  'DB_PASSWORD',
+  'DB_DATABASE',
+];
 
 /**
  * Get list of required environment variables based on environment
