@@ -156,9 +156,21 @@ jobs:
         run: npm ci
 
       - name: Build TypeScript
+        env:
+          # Required for vendure-config validation during build
+          SUPERADMIN_USERNAME: build-user
+          SUPERADMIN_PASSWORD: build-password-123456789
+          COOKIE_SECRET: build-cookie-secret-key-min-32-chars-long-for-ci
+          APP_ENV: build
         run: npm run build
 
       - name: Build dashboard
+        env:
+          # Required for vendure-config validation during dashboard build
+          SUPERADMIN_USERNAME: build-user
+          SUPERADMIN_PASSWORD: build-password-123456789
+          COOKIE_SECRET: build-cookie-secret-key-min-32-chars-long-for-ci
+          APP_ENV: build
         run: npm run build:dashboard
 
       - name: Verify build artifacts
