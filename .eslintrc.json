@@ -34,6 +34,7 @@
     "dist/",
     "coverage/",
     "src/gql/**",
+    "tests/setup.ts",
     "*.js",
     "*.mjs"
   ]
