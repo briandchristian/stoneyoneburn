@@ -6,7 +6,7 @@
  */
 
 import '@testing-library/jest-dom';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import { MockedProvider } from '@apollo/client/testing';
 import OrderDetailPage from '../page';
 import { GET_ORDER_BY_CODE } from '@/graphql/queries';
@@ -370,7 +370,9 @@ describe('OrderDetailPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/\$48\.00/i)).toBeInTheDocument();
+        // $48.00 appears in both order items and order summary, so use getAllByText
+        const priceElements = screen.getAllByText(/\$48\.00/i);
+        expect(priceElements.length).toBeGreaterThan(0);
       });
     });
   });
@@ -401,7 +403,12 @@ describe('OrderDetailPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/subtotal/i)).toBeInTheDocument();
-        expect(screen.getByText(/\$48\.00/i)).toBeInTheDocument();
+        // Scope the $48.00 query to the Order Summary section
+        const orderSummary = screen.getByRole('heading', { name: /order summary/i }).closest('div');
+        expect(orderSummary).not.toBeNull();
+        if (orderSummary) {
+          expect(within(orderSummary as HTMLElement).getByText(/\$48\.00/i)).toBeInTheDocument();
+        }
       });
     });
 
@@ -429,8 +436,13 @@ describe('OrderDetailPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/shipping/i)).toBeInTheDocument();
-        expect(screen.getByText(/\$12\.00/i)).toBeInTheDocument();
+        // Scope the "Shipping" query to the Order Summary section to avoid matching "Shipping Method" or "Shipping Address"
+        const orderSummary = screen.getByRole('heading', { name: /order summary/i }).closest('div');
+        expect(orderSummary).not.toBeNull();
+        if (orderSummary) {
+          expect(within(orderSummary as HTMLElement).getByText(/shipping/i)).toBeInTheDocument();
+          expect(within(orderSummary as HTMLElement).getByText(/\$12\.00/i)).toBeInTheDocument();
+        }
       });
     });
 
@@ -458,8 +470,15 @@ describe('OrderDetailPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/total/i)).toBeInTheDocument();
-        expect(screen.getByText(/\$60\.00/i)).toBeInTheDocument();
+        // Scope the queries to the Order Summary section
+        const orderSummary = screen.getByRole('heading', { name: /order summary/i }).closest('div');
+        expect(orderSummary).not.toBeNull();
+        if (orderSummary) {
+          expect(within(orderSummary as HTMLElement).getByText(/^total$/i)).toBeInTheDocument();
+          // $60.00 appears in both order summary and payment, so get all and check at least one exists
+          const totalElements = within(orderSummary as HTMLElement).getAllByText(/\$60\.00/i);
+          expect(totalElements.length).toBeGreaterThan(0);
+        }
       });
     });
   });
@@ -489,9 +508,14 @@ describe('OrderDetailPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/shipping address/i)).toBeInTheDocument();
-        expect(screen.getByText('123 Main St')).toBeInTheDocument();
-        expect(screen.getByText('New York, NY 10001')).toBeInTheDocument();
+        // Scope queries to the Shipping Address section
+        const shippingHeading = screen.getByRole('heading', { name: /shipping address/i });
+        expect(shippingHeading).toBeInTheDocument();
+        const shippingAddressSection = shippingHeading.closest('div');
+        expect(shippingAddressSection).not.toBeNull();
+        // Address text is formatted with newlines, check that the container includes the expected text
+        expect(shippingAddressSection?.textContent).toContain('123 Main St');
+        expect(shippingAddressSection?.textContent).toContain('New York, NY 10001');
       });
     });
 
@@ -519,8 +543,13 @@ describe('OrderDetailPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/billing address/i)).toBeInTheDocument();
-        expect(screen.getByText('123 Main St')).toBeInTheDocument();
+        // Scope queries to the Billing Address section
+        const billingHeading = screen.getByRole('heading', { name: /billing address/i });
+        expect(billingHeading).toBeInTheDocument();
+        const billingAddressSection = billingHeading.closest('div');
+        expect(billingAddressSection).not.toBeNull();
+        // Address text is formatted with newlines, check that the container includes the expected text
+        expect(billingAddressSection?.textContent).toContain('123 Main St');
       });
     });
   });
@@ -550,8 +579,12 @@ describe('OrderDetailPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/payment/i)).toBeInTheDocument();
-        expect(screen.getByText(/settled/i)).toBeInTheDocument();
+        // Scope queries to the Payment section
+        const paymentSection = screen.getByRole('heading', { name: /^payment$/i }).closest('div');
+        expect(paymentSection).not.toBeNull();
+        if (paymentSection) {
+          expect(within(paymentSection as HTMLElement).getByText(/settled/i)).toBeInTheDocument();
+        }
       });
     });
 
@@ -579,7 +612,12 @@ describe('OrderDetailPage', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByText(/\$60\.00/i)).toBeInTheDocument();
+        // $60.00 appears in both order summary and payment, so scope to Payment section
+        const paymentSection = screen.getByRole('heading', { name: /^payment$/i }).closest('div');
+        expect(paymentSection).not.toBeNull();
+        if (paymentSection) {
+          expect(within(paymentSection as HTMLElement).getByText(/\$60\.00/i)).toBeInTheDocument();
+        }
       });
     });
   });

@@ -47,8 +47,9 @@ interface Product {
 
 interface SearchResult {
   productId: string;
+  productVariantId: string;
   productName: string;
-  productSlug: string;
+  slug: string;
   productAsset?: {
     id: string;
     preview: string;
@@ -109,26 +110,25 @@ export default function ProductsPage() {
   // Always use search query to get facet values aggregated across all results
   // Search API provides facet values for all matching products, not just current page
   // This ensures filter options remain consistent across pagination
-  const { data, loading, error } = useQuery<SearchData>(
-    SEARCH_PRODUCTS,
-    {
-      variables: {
-        input: {
-          term: searchTerm || undefined, // Empty string becomes undefined for "all products"
-          facetValueIds: selectedFacets.length > 0 ? selectedFacets : undefined,
-          take: ITEMS_PER_PAGE,
-          skip: (page - 1) * ITEMS_PER_PAGE,
-          // Vendure search API only supports 'name' and 'price' sorting
-          // For 'createdAt' and other unsupported fields, fall back to 'name'
-          sort:
-            searchSortField === 'price'
-              ? { price: sortOrder }
-              : { name: sortOrder },
-        },
-      },
-      fetchPolicy: 'cache-and-network',
-    }
-  );
+  const searchInput = {
+    take: ITEMS_PER_PAGE,
+    skip: (page - 1) * ITEMS_PER_PAGE,
+    // Vendure SearchInput sort expects a single object, not an array
+    sort:
+      searchSortField === 'price'
+        ? { price: sortOrder.toUpperCase() }
+        : { name: sortOrder.toUpperCase() },
+    ...(searchTerm && { term: searchTerm }),
+    ...(selectedFacets.length > 0 && { facetValueIds: selectedFacets }),
+  };
+
+  const { data, loading, error } = useQuery<SearchData>(SEARCH_PRODUCTS, {
+    variables: {
+      input: searchInput,
+    },
+    fetchPolicy: 'cache-and-network',
+    skip: false,
+  });
 
   // Extract products and facet values from search response
   // Search API provides facet values aggregated across all matching results
@@ -137,14 +137,14 @@ export default function ProductsPage() {
     const searchResults = searchData?.search?.items || [];
     return {
       products: searchResults.map((result) => ({
-        id: result.productId,
+        id: result.productVariantId, // Use productVariantId for unique key
         name: result.productName,
-        slug: result.productSlug,
+        slug: result.slug,
         description: result.description,
         featuredAsset: result.productAsset,
         variants: [
           {
-            id: result.productId,
+            id: result.productVariantId,
             name: result.productName,
             currencyCode: result.currencyCode,
             price: result.priceWithTax.value || result.priceWithTax.min || 0,
@@ -183,6 +183,8 @@ export default function ProductsPage() {
   }
 
   if (error) {
+    console.error('GraphQL Error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     return (
       <div className="flex min-h-screen flex-col bg-white">
         <Header />
@@ -190,6 +192,18 @@ export default function ProductsPage() {
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
             <div className="text-center">
               <p className="text-red-700 font-semibold">Error loading products: {error.message}</p>
+              {error.networkError && (
+                <p className="mt-2 text-sm text-red-600">
+                  Network Error: {error.networkError.message}
+                </p>
+              )}
+              {error.graphQLErrors && error.graphQLErrors.length > 0 && (
+                <div className="mt-2 text-sm text-red-600">
+                  {error.graphQLErrors.map((err, idx) => (
+                    <p key={idx}>{err.message}</p>
+                  ))}
+                </div>
+              )}
               <p className="mt-2 text-sm text-black">
                 Make sure the Vendure server is running at{' '}
                 {process.env.NEXT_PUBLIC_VENDURE_SHOP_API_URL || 'http://localhost:3000/shop-api'}

@@ -66,8 +66,9 @@ export const SEARCH_PRODUCTS = gql`
     search(input: $input) {
       items {
         productId
+        productVariantId
         productName
-        productSlug
+        slug
         productAsset {
           id
           preview

@@ -14,6 +14,7 @@ import { GET_ACTIVE_ORDER } from '@/graphql/queries';
 export function Header() {
   const { data } = useQuery(GET_ACTIVE_ORDER, {
     fetchPolicy: 'cache-and-network',
+    errorPolicy: 'ignore', // Ignore errors to prevent Header from breaking on API errors
   });
 
   const order = data?.activeOrder;
