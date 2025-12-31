@@ -7,7 +7,7 @@
 'use client';
 
 import { useQuery } from '@apollo/client';
-import { GET_PRODUCTS, SEARCH_PRODUCTS } from '@/graphql/queries';
+import { SEARCH_PRODUCTS } from '@/graphql/queries';
 import { Header } from '@/components/Header';
 import { ProductFilters } from '@/components/ProductFilters';
 import { ProductSort } from '@/components/ProductSort';

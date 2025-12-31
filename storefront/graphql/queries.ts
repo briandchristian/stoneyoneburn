@@ -248,6 +248,290 @@ export const GET_ACTIVE_ORDER = gql`
           }
         }
       }
+      shippingAddress {
+        fullName
+        streetLine1
+        streetLine2
+        city
+        province
+        postalCode
+        countryCode
+        phoneNumber
+      }
+      shippingWithTax
+      shippingLines {
+        shippingMethod {
+          id
+          name
+        }
+        priceWithTax
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to add item to order (cart)
+ */
+export const ADD_ITEM_TO_ORDER = gql`
+  mutation AddItemToOrder($productVariantId: ID!, $quantity: Int!) {
+    addItemToOrder(productVariantId: $productVariantId, quantity: $quantity) {
+      ... on Order {
+        id
+        code
+        state
+        total
+        totalWithTax
+        currencyCode
+        lines {
+          id
+          quantity
+          unitPrice
+          unitPriceWithTax
+          linePrice
+          linePriceWithTax
+          productVariant {
+            id
+            name
+            sku
+            product {
+              id
+              name
+              slug
+              featuredAsset {
+                id
+                preview
+              }
+            }
+          }
+        }
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to adjust order line quantity
+ */
+export const ADJUST_ORDER_LINE = gql`
+  mutation AdjustOrderLine($orderLineId: ID!, $quantity: Int!) {
+    adjustOrderLine(orderLineId: $orderLineId, quantity: $quantity) {
+      ... on Order {
+        id
+        code
+        state
+        total
+        totalWithTax
+        currencyCode
+        lines {
+          id
+          quantity
+          unitPrice
+          unitPriceWithTax
+          linePrice
+          linePriceWithTax
+          productVariant {
+            id
+            name
+            sku
+            product {
+              id
+              name
+              slug
+              featuredAsset {
+                id
+                preview
+              }
+            }
+          }
+        }
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to remove order line from cart
+ */
+export const REMOVE_ORDER_LINE = gql`
+  mutation RemoveOrderLine($orderLineId: ID!) {
+    removeOrderLine(orderLineId: $orderLineId) {
+      ... on Order {
+        id
+        code
+        state
+        total
+        totalWithTax
+        currencyCode
+        lines {
+          id
+          quantity
+          unitPrice
+          unitPriceWithTax
+          linePrice
+          linePriceWithTax
+          productVariant {
+            id
+            name
+            sku
+            product {
+              id
+              name
+              slug
+              featuredAsset {
+                id
+                preview
+              }
+            }
+          }
+        }
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Query to get eligible shipping methods
+ */
+export const GET_ELIGIBLE_SHIPPING_METHODS = gql`
+  query GetEligibleShippingMethods {
+    eligibleShippingMethods {
+      id
+      name
+      code
+      description
+      price
+      priceWithTax
+      metadata
+    }
+  }
+`;
+
+/**
+ * Mutation to set order shipping address
+ */
+export const SET_ORDER_SHIPPING_ADDRESS = gql`
+  mutation SetOrderShippingAddress($input: CreateAddressInput!) {
+    setOrderShippingAddress(input: $input) {
+      ... on Order {
+        id
+        shippingAddress {
+          fullName
+          streetLine1
+          streetLine2
+          city
+          province
+          postalCode
+          countryCode
+          phoneNumber
+        }
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to set order billing address
+ */
+export const SET_ORDER_BILLING_ADDRESS = gql`
+  mutation SetOrderBillingAddress($input: CreateAddressInput!) {
+    setOrderBillingAddress(input: $input) {
+      ... on Order {
+        id
+        billingAddress {
+          fullName
+          streetLine1
+          streetLine2
+          city
+          province
+          postalCode
+          countryCode
+          phoneNumber
+        }
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to set order shipping method
+ */
+export const SET_ORDER_SHIPPING_METHOD = gql`
+  mutation SetOrderShippingMethod($shippingMethodId: [ID!]!) {
+    setOrderShippingMethod(shippingMethodId: $shippingMethodId) {
+      ... on Order {
+        id
+        shippingWithTax
+        shippingLines {
+          shippingMethod {
+            id
+            name
+          }
+          priceWithTax
+        }
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to add payment to order
+ */
+export const ADD_PAYMENT_TO_ORDER = gql`
+  mutation AddPaymentToOrder($input: PaymentInput!) {
+    addPaymentToOrder(input: $input) {
+      ... on Order {
+        id
+        state
+        active
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to transition order to state
+ */
+export const TRANSITION_ORDER_TO_STATE = gql`
+  mutation TransitionOrderToState($state: String!) {
+    transitionOrderToState(state: $state) {
+      ... on Order {
+        id
+        state
+        active
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
     }
   }
 `;

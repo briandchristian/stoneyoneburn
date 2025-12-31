@@ -33,7 +33,8 @@ export const apolloClient = new ApolloClient({
       Product: {
         fields: {
           variants: {
-            merge(existing = [], incoming: any[]) {
+            // eslint-disable-next-line @typescript-eslint/no-unused-vars
+            merge(_existing: unknown[] = [], incoming: unknown[]) {
               return incoming;
             },
           },

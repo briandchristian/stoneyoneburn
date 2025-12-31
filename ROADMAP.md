@@ -63,9 +63,10 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 ---
 
 ### Phase 1: Single-Vendor MVP (Learning Phase)
-**Status:** In Progress  
+**Status:** In Progress (85% Complete)  
 **Estimated Time:** 2-3 weeks  
-**Started:** 2024
+**Started:** 2024  
+**Last Updated:** December 2024
 
 **Goal:** Master Vendure basics before building multi-vendor features
 
@@ -80,28 +81,70 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
   - [x] Product sorting (name, price, date)
   - [x] Category/collection browsing
   - [x] Product detail pages
-- [ ] Shopping cart and checkout flow
+- [x] Shopping cart and checkout flow (Implementation complete, tests incomplete)
+  - [x] Shopping cart page with add/remove/update items
+  - [x] Checkout flow with multi-step process
+  - [x] Address form component (shipping & billing)
+  - [x] Shipping method selection
+  - [x] Payment integration placeholder
+  - [ ] **Checkout page tests (MISSING - TDD gap)**
 - [ ] Order management system
 - [ ] Customer account management
 
 #### Deliverables
-- [ ] Working single-vendor storefront
-- [ ] Payment processing working
-- [ ] Email notifications functional
-- [ ] Basic admin dashboard usage
-- [ ] Test suite for all features
+- [x] Working single-vendor storefront (functional)
+- [x] Payment processing configured (Stripe integration ready)
+- [x] Email notifications functional
+- [x] Basic admin dashboard usage
+- [ ] Test suite for all features (Partially complete - checkout tests missing)
 
 #### Tests Required
-- [ ] Payment handler tests
-- [ ] Order creation tests
-- [ ] Email sending tests
-- [ ] Cart functionality tests
-- [ ] Product search tests
+- [ ] Payment handler tests (backend)
+- [ ] Order creation tests (backend)
+- [x] Email sending tests (configured)
+- [x] Cart functionality tests (CartPage.test.tsx)
+- [x] AddressForm component tests (AddressForm.test.tsx)
+- [ ] **Checkout page tests (CRITICAL MISSING - must complete before Phase 1 done)**
+- [ ] Product search tests (frontend)
+
+#### Current TDD Gap (December 2024)
+**Issue:** Shopping cart and checkout flow were implemented without following TDD principles. Tests were added retroactively, but checkout page tests were never completed.
+
+**What's Done:**
+- ✅ Shopping cart page (`storefront/app/cart/page.tsx`) - Implemented
+- ✅ Checkout page (`storefront/app/checkout/page.tsx`) - Implemented  
+- ✅ AddressForm component (`storefront/components/AddressForm.tsx`) - Implemented
+- ✅ CartPage tests (`storefront/app/cart/__tests__/CartPage.test.tsx`) - Complete
+- ✅ AddressForm tests (`storefront/components/__tests__/AddressForm.test.tsx`) - Complete
+
+**What's Missing:**
+- ❌ **CheckoutPage tests** (`storefront/app/checkout/__tests__/CheckoutPage.test.tsx`) - **CRITICAL GAP**
+
+**Required Tests for CheckoutPage:**
+- [ ] Loading state when fetching order
+- [ ] Empty cart redirect/display
+- [ ] Multi-step checkout flow progression
+- [ ] Shipping address form submission
+- [ ] Shipping method selection
+- [ ] Billing address form (same as shipping option)
+- [ ] Payment step handling
+- [ ] Order completion state
+- [ ] Error handling for each step
+- [ ] Order summary display throughout checkout
+- [ ] Step indicator updates
+- [ ] GraphQL mutation error handling
+
+**Next Steps:**
+1. Write comprehensive CheckoutPage tests following TDD principles
+2. Ensure all tests pass
+3. Verify test coverage meets 80%+ requirement
+4. Complete Phase 1 checklist
 
 #### Recommendations
 - Start with Stripe for payments (well-documented, widely used)
 - Use Next.js for storefront (good Vendure integration examples)
 - Implement email templates early
+- **Always write tests first (TDD)** - This gap demonstrates why TDD is critical
 
 ---
 
@@ -382,9 +425,15 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 ## 📊 Progress Tracking
 
 ### Overall Progress
-- **Completed Phases:** 1/8 (12.5%)
-- **In Progress:** Phase 1 (Single-Vendor MVP)
+- **Completed Phases:** 0/8 (0%)
+- **In Progress:** Phase 1 (Single-Vendor MVP) - 85% complete
 - **Not Started:** Phases 2-8
+
+### Phase 1 Current Status
+- ✅ **Completed:** Product catalog, shopping cart UI, checkout flow UI, AddressForm component
+- ✅ **Tests Written:** CartPage tests, AddressForm tests, ProductDetailPage tests
+- ❌ **Missing:** Checkout page tests (critical TDD gap - must complete before Phase 1 completion)
+- ⚠️ **Note:** Shopping cart and checkout were implemented without following TDD. Tests were added retroactively for cart and AddressForm, but checkout page tests were never completed.
 
 ### Key Metrics
 - Total Estimated Time: 18-26 weeks (4.5-6.5 months)
@@ -488,6 +537,11 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - **2024:** Phase 0 started
 - **2024:** Phase 0 completed (Foundation & Setup)
 - **2024:** Phase 1 started (Single-Vendor MVP)
+- **December 2024:** Shopping cart and checkout flow implemented
+  - ⚠️ **TDD Gap Identified:** Implementation was done without tests first
+  - ✅ CartPage tests created retroactively
+  - ✅ AddressForm tests created retroactively
+  - ❌ **CheckoutPage tests never completed** (blocking Phase 1 completion)
 - _(Add updates as phases are completed)_
 
 ---
@@ -502,6 +556,18 @@ When completing a phase, ensure:
 - [ ] Security review completed
 - [ ] Performance benchmarks met
 - [ ] Phase marked as complete in this document
+
+### Phase 1 Specific Checklist
+- [x] Product catalog fully functional
+- [x] Shopping cart UI implemented
+- [x] Checkout flow UI implemented
+- [x] CartPage tests written and passing
+- [x] AddressForm tests written and passing
+- [ ] **CheckoutPage tests written and passing (BLOCKING)**
+- [ ] All storefront tests passing
+- [ ] Backend payment handler tests
+- [ ] Order management UI
+- [ ] Customer account management
 
 ---
 
