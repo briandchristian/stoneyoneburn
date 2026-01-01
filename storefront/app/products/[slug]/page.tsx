@@ -127,16 +127,30 @@ export default function ProductDetailPage() {
       });
 
       const addItemResult = result.data?.addItemToOrder;
+      
+      // Check if result is an Order (success case)
       if (addItemResult?.__typename === 'Order') {
         // Success - optionally redirect to cart or show success message
         router.push('/cart');
-      } else if (addItemResult && 'errorCode' in addItemResult) {
-        // Handle error result - check for errorCode property to identify error types
+        return;
+      }
+      
+      // Handle error cases
+      if (addItemResult && 'errorCode' in addItemResult) {
+        // Error result with errorCode property
         const errorResult = addItemResult as { errorCode: string; message: string };
         setAddToCartError(errorResult.message || 'Failed to add item to cart');
+      } else if (addItemResult && addItemResult.__typename && addItemResult.__typename !== 'Order') {
+        // Error result with non-Order typename
+        const errorResult = addItemResult as { message?: string; __typename: string };
+        setAddToCartError(errorResult.message || 'Failed to add item to cart');
+      } else {
+        // No result or unexpected format
+        setAddToCartError('Failed to add item to cart');
       }
-    } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'Failed to add item to cart';
+    } catch (err: any) {
+      // Handle GraphQL errors or network errors
+      const errorMessage = err?.message || err?.graphQLErrors?.[0]?.message || 'Failed to add item to cart';
       setAddToCartError(errorMessage);
     } finally {
       setIsAddingToCart(false);

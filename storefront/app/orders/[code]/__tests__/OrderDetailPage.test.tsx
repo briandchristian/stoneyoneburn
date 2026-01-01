@@ -136,7 +136,7 @@ describe('OrderDetailPage', () => {
       const mocks: any[] = [];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -164,7 +164,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -188,7 +188,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -218,7 +218,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -246,7 +246,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -274,7 +274,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -304,7 +304,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -334,7 +334,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -364,7 +364,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -396,7 +396,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -430,7 +430,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -464,7 +464,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -502,7 +502,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -537,7 +537,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -573,7 +573,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -606,7 +606,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );
@@ -641,7 +641,7 @@ describe('OrderDetailPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <OrderDetailPage />
         </MockedProvider>
       );

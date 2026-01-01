@@ -21,6 +21,7 @@ import {
 
 // Helper function to create complete shipping address with all required fields
 const createShippingAddress = (overrides = {}) => ({
+  __typename: 'Address' as const,
   fullName: 'John Doe',
   streetLine1: '123 Main St',
   streetLine2: null,
@@ -29,6 +30,24 @@ const createShippingAddress = (overrides = {}) => ({
   postalCode: '10001',
   countryCode: 'US',
   phoneNumber: null,
+  ...overrides,
+});
+
+// Helper function to create a complete Order mock with all required fields
+// This must include all fields queried in GET_ACTIVE_ORDER to avoid cache errors
+const createCompleteOrder = (overrides = {}) => ({
+  __typename: 'Order' as const,
+  id: 'order-1',
+  code: 'ORDER001',
+  state: 'AddingItems',
+  total: 2400,
+  totalWithTax: 2400,
+  currencyCode: 'USD',
+  lines: [mockOrderLine],
+  shippingWithTax: overrides.shippingWithTax !== undefined ? overrides.shippingWithTax : 0,
+  shippingAddress: overrides.shippingAddress !== undefined ? overrides.shippingAddress : null,
+  shippingLines: overrides.shippingLines !== undefined ? overrides.shippingLines : [],
+  billingAddress: overrides.billingAddress !== undefined ? overrides.billingAddress : null,
   ...overrides,
 });
 
@@ -76,6 +95,7 @@ jest.mock('@/components/AddressForm', () => ({
 
 // Mock data
 const mockOrderLine = {
+  __typename: 'OrderLine' as const,
   id: 'line-1',
   quantity: 2,
   unitPrice: 1000,
@@ -83,14 +103,17 @@ const mockOrderLine = {
   linePrice: 2000,
   linePriceWithTax: 2400,
   productVariant: {
+    __typename: 'ProductVariant' as const,
     id: 'variant-1',
     name: 'Variant 1',
     sku: 'SKU-001',
     product: {
+      __typename: 'Product' as const,
       id: 'product-1',
       name: 'Test Product',
       slug: 'test-product',
       featuredAsset: {
+        __typename: 'Asset' as const,
         id: 'asset-1',
         preview: 'https://example.com/image.jpg',
       },
@@ -99,6 +122,7 @@ const mockOrderLine = {
 };
 
 const mockActiveOrder = {
+  __typename: 'Order' as const,
   id: 'order-1',
   code: 'ORDER001',
   state: 'AddingItems',
@@ -109,9 +133,11 @@ const mockActiveOrder = {
   shippingWithTax: 0,
   shippingAddress: null,
   shippingLines: [],
+  billingAddress: null,
 };
 
 const mockEmptyOrder = {
+  __typename: 'Order' as const,
   id: 'order-empty',
   code: 'ORDER002',
   state: 'AddingItems',
@@ -122,10 +148,12 @@ const mockEmptyOrder = {
   shippingWithTax: 0,
   shippingAddress: null,
   shippingLines: [],
+  billingAddress: null,
 };
 
 const mockShippingMethods = [
   {
+    __typename: 'ShippingMethod' as const,
     id: 'shipping-1',
     name: 'Standard Shipping',
     code: 'standard',
@@ -135,6 +163,7 @@ const mockShippingMethods = [
     metadata: {},
   },
   {
+    __typename: 'ShippingMethod' as const,
     id: 'shipping-2',
     name: 'Express Shipping',
     code: 'express',
@@ -151,7 +180,7 @@ describe('CheckoutPage', () => {
       const mocks: any[] = [];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -176,7 +205,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -204,7 +233,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -231,7 +260,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -259,7 +288,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -292,7 +321,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -339,7 +368,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -362,11 +391,9 @@ describe('CheckoutPage', () => {
         },
         result: {
           data: {
-            setOrderShippingAddress: {
-              __typename: 'Order',
-              id: 'order-1',
+            setOrderShippingAddress: createCompleteOrder({
               shippingAddress: shippingAddressInput,
-            },
+            }),
           },
         },
       };
@@ -399,7 +426,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -445,7 +472,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -488,11 +515,9 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-                shippingAddress: shippingAddressInput,
-              },
+            setOrderShippingAddress: createCompleteOrder({
+              shippingAddress: shippingAddressInput,
+            }),
             },
           },
         },
@@ -522,7 +547,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -563,10 +588,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -596,7 +618,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -638,10 +660,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -672,7 +691,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -702,11 +721,20 @@ describe('CheckoutPage', () => {
         },
         result: {
           data: {
-            setOrderShippingMethod: {
-              __typename: 'Order',
-              id: 'order-1',
+            setOrderShippingMethod: createCompleteOrder({
               shippingWithTax: 600,
-            },
+              shippingLines: [
+                {
+                  __typename: 'ShippingLine' as const,
+                  shippingMethod: {
+                    __typename: 'ShippingMethod' as const,
+                    id: 'shipping-1',
+                    name: 'Standard Shipping',
+                  },
+                  priceWithTax: 600,
+                },
+              ],
+            }),
           },
         },
       };
@@ -731,10 +759,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -779,7 +804,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -839,10 +864,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -873,7 +895,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -923,10 +945,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -956,7 +975,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -999,10 +1018,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -1038,10 +1054,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -1075,7 +1088,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -1125,10 +1138,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -1164,10 +1174,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -1201,7 +1208,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -1240,11 +1247,9 @@ describe('CheckoutPage', () => {
         },
         result: {
           data: {
-            setOrderBillingAddress: {
-              __typename: 'Order',
-              id: 'order-1',
+            setOrderBillingAddress: createCompleteOrder({
               billingAddress: shippingAddressInput,
-            },
+            }),
           },
         },
       };
@@ -1269,10 +1274,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -1308,10 +1310,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -1375,7 +1374,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -1432,10 +1431,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -1471,10 +1467,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -1508,7 +1501,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -1575,10 +1568,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -1614,10 +1604,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -1652,7 +1639,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -1711,10 +1698,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -1750,10 +1734,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -1793,10 +1774,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderBillingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderBillingAddress: createCompleteOrder(),
             },
           },
         },
@@ -1832,7 +1810,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -1930,10 +1908,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -1969,10 +1944,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -1998,10 +1970,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderBillingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderBillingAddress: createCompleteOrder(),
             },
           },
         },
@@ -2024,7 +1993,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -2101,10 +2070,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -2140,10 +2106,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -2183,10 +2146,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderBillingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderBillingAddress: createCompleteOrder(),
             },
           },
         },
@@ -2223,7 +2183,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -2289,10 +2249,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingAddress: createCompleteOrder(),
             },
           },
         },
@@ -2328,10 +2285,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderShippingMethod: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderShippingMethod: createCompleteOrder(),
             },
           },
         },
@@ -2371,10 +2325,7 @@ describe('CheckoutPage', () => {
           },
           result: {
             data: {
-              setOrderBillingAddress: {
-                __typename: 'Order',
-                id: 'order-1',
-              },
+            setOrderBillingAddress: createCompleteOrder(),
             },
           },
         },
@@ -2449,7 +2400,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );
@@ -2504,7 +2455,7 @@ describe('CheckoutPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CheckoutPage />
         </MockedProvider>
       );

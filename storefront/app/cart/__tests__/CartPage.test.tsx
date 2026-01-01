@@ -24,6 +24,7 @@ jest.mock('@/components/Header', () => ({
 
 // Mock data
 const mockOrderLine = {
+  __typename: 'OrderLine' as const,
   id: '1',
   quantity: 2,
   unitPrice: 1000,
@@ -31,14 +32,17 @@ const mockOrderLine = {
   linePrice: 2000,
   linePriceWithTax: 2400,
   productVariant: {
+    __typename: 'ProductVariant' as const,
     id: 'variant-1',
     name: 'Variant 1',
     sku: 'SKU-001',
     product: {
+      __typename: 'Product' as const,
       id: 'product-1',
       name: 'Test Product',
       slug: 'test-product',
       featuredAsset: {
+        __typename: 'Asset' as const,
         id: 'asset-1',
         preview: 'https://example.com/image.jpg',
       },
@@ -47,6 +51,7 @@ const mockOrderLine = {
 };
 
 const mockActiveOrder = {
+  __typename: 'Order' as const,
   id: 'order-1',
   code: 'ORDER001',
   state: 'AddingItems',
@@ -55,9 +60,13 @@ const mockActiveOrder = {
   currencyCode: 'USD',
   lines: [mockOrderLine],
   shippingWithTax: 0,
+  shippingAddress: null,
+  shippingLines: [],
+  billingAddress: null,
 };
 
 const mockEmptyOrder = {
+  __typename: 'Order' as const,
   id: 'order-empty',
   code: 'ORDER002',
   state: 'AddingItems',
@@ -66,6 +75,9 @@ const mockEmptyOrder = {
   currencyCode: 'USD',
   lines: [],
   shippingWithTax: 0,
+  shippingAddress: null,
+  shippingLines: [],
+  billingAddress: null,
 };
 
 describe('CartPage', () => {
@@ -74,7 +86,7 @@ describe('CartPage', () => {
       const mocks: any[] = [];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -99,7 +111,7 @@ describe('CartPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -129,7 +141,7 @@ describe('CartPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -158,7 +170,7 @@ describe('CartPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -183,7 +195,7 @@ describe('CartPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -193,7 +205,12 @@ describe('CartPage', () => {
       });
 
       // Check for price displays (formatted as currency)
-      expect(screen.getByText(/\$24\.00/)).toBeInTheDocument(); // $24.00 total
+      // Find the "Total" label and verify the total value is displayed next to it
+      const totalLabel = screen.getByText('Total');
+      const totalRow = totalLabel.closest('div');
+      expect(totalRow).toBeInTheDocument();
+      // The total value should be in the same row as the "Total" label
+      expect(totalRow).toHaveTextContent('$24.00');
     });
 
     it('should display checkout button when cart has items', async () => {
@@ -211,7 +228,7 @@ describe('CartPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -283,7 +300,7 @@ describe('CartPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -308,6 +325,34 @@ describe('CartPage', () => {
     it('should not allow quantity below 1', async () => {
       const user = userEvent.setup();
 
+      const adjustMutationMock = {
+        request: {
+          query: ADJUST_ORDER_LINE,
+          variables: {
+            orderLineId: '1',
+            quantity: 1,
+          },
+        },
+        result: {
+          data: {
+            adjustOrderLine: {
+              __typename: 'Order',
+              ...mockActiveOrder,
+              lines: [
+                {
+                  ...mockOrderLine,
+                  quantity: 1,
+                  linePrice: 1000,
+                  linePriceWithTax: 1200,
+                },
+              ],
+              total: 1200,
+              totalWithTax: 1200,
+            },
+          },
+        },
+      };
+
       const mocks = [
         {
           request: {
@@ -319,10 +364,33 @@ describe('CartPage', () => {
             },
           },
         },
+        adjustMutationMock,
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: {
+                ...mockActiveOrder,
+                lines: [
+                  {
+                    ...mockOrderLine,
+                    quantity: 1,
+                    linePrice: 1000,
+                    linePriceWithTax: 1200,
+                  },
+                ],
+                total: 1200,
+                totalWithTax: 1200,
+              },
+            },
+          },
+        },
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -392,7 +460,7 @@ describe('CartPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );
@@ -422,7 +490,7 @@ describe('CartPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <CartPage />
         </MockedProvider>
       );

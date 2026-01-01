@@ -7,7 +7,7 @@
 'use client';
 
 import { useQuery } from '@apollo/client';
-import { GET_PRODUCTS_BY_COLLECTION } from '@/graphql/queries';
+import { SEARCH_PRODUCTS, GET_COLLECTIONS } from '@/graphql/queries';
 import { Header } from '@/components/Header';
 import { ProductSort } from '@/components/ProductSort';
 import { Pagination } from '@/components/Pagination';
@@ -36,16 +36,42 @@ interface Product {
   }>;
 }
 
-interface CollectionData {
-  collection?: {
+interface SearchResult {
+  productId: string;
+  productVariantId: string;
+  productName: string;
+  slug: string;
+  productAsset?: {
     id: string;
-    name: string;
-    slug: string;
-    description?: string;
-    products: {
-      items: Product[];
-      totalItems: number;
-    };
+    preview: string;
+  };
+  priceWithTax: {
+    value?: number;
+    min?: number;
+    max?: number;
+  };
+  currencyCode: string;
+  description: string;
+  inStock: boolean;
+}
+
+interface SearchData {
+  search?: {
+    items: SearchResult[];
+    totalItems: number;
+  };
+}
+
+interface Collection {
+  id: string;
+  name: string;
+  slug: string;
+  description?: string;
+}
+
+interface CollectionsData {
+  collections?: {
+    items: Collection[];
   };
 }
 
@@ -54,7 +80,9 @@ const ITEMS_PER_PAGE = 20;
 export default function CollectionDetailPage() {
   const params = useParams();
   const searchParams = useSearchParams();
-  const slug = params.slug as string;
+  // Handle slug - it might be a string or array from Next.js params
+  const slugParam = params?.slug;
+  const slug = Array.isArray(slugParam) ? slugParam[0] : (slugParam as string);
   const sortParam = searchParams.get('sort') || 'name_ASC';
   const page = parseInt(searchParams.get('page') || '1', 10);
 
@@ -63,19 +91,76 @@ export default function CollectionDetailPage() {
     return [parts[0], parts[1] || 'ASC'];
   }, [sortParam]);
 
-  const { data, loading, error } = useQuery<CollectionData>(GET_PRODUCTS_BY_COLLECTION, {
-    variables: {
-      slug,
-      options: {
-        take: ITEMS_PER_PAGE,
-        skip: (page - 1) * ITEMS_PER_PAGE,
-        sort: {
-          [sortField]: sortOrder,
-        },
+  // Determine search sort field (Vendure search API only supports 'name' and 'price')
+  const searchSortField = useMemo(() => {
+    if (sortField === 'price') {
+      return 'price';
+    }
+    // Default to 'name' for name, createdAt, and any other fields
+    return 'name';
+  }, [sortField]);
+
+  // Use search API with collectionSlug to get products in collection
+  const searchInput = {
+    collectionSlug: slug,
+    take: ITEMS_PER_PAGE,
+    skip: (page - 1) * ITEMS_PER_PAGE,
+    // Vendure SearchInput sort expects a single object, not an array
+    sort:
+      searchSortField === 'price'
+        ? { price: sortOrder.toUpperCase() }
+        : { name: sortOrder.toUpperCase() },
+  };
+
+  const { data: searchData, loading: searchLoading, error: searchError } = useQuery<SearchData>(
+    SEARCH_PRODUCTS,
+    {
+      variables: {
+        input: searchInput,
       },
-    },
-    fetchPolicy: 'cache-and-network',
+      fetchPolicy: 'cache-and-network',
+      skip: !slug,
+    }
+  );
+
+  // Get collection info separately
+  const { data: collectionsData } = useQuery<CollectionsData>(GET_COLLECTIONS, {
+    fetchPolicy: 'cache-first',
   });
+
+  const loading = searchLoading;
+  const error = searchError;
+
+  // Find the collection from the collections list
+  const collection = useMemo(() => {
+    return collectionsData?.collections?.items.find((c) => c.slug === slug);
+  }, [collectionsData, slug]);
+
+  // Extract products from search response (same structure as products page)
+  const { products, totalItems } = useMemo(() => {
+    const searchResults = searchData?.search?.items || [];
+    return {
+      products: searchResults.map((result) => ({
+        id: result.productVariantId, // Use productVariantId for unique key
+        name: result.productName,
+        slug: result.slug,
+        description: result.description,
+        featuredAsset: result.productAsset,
+        variants: [
+          {
+            id: result.productVariantId,
+            name: result.productName,
+            currencyCode: result.currencyCode,
+            price: result.priceWithTax.value || result.priceWithTax.min || 0,
+            priceWithTax: result.priceWithTax.value || result.priceWithTax.min || 0,
+            sku: '',
+            stockLevel: result.inStock ? 'IN_STOCK' : 'OUT_OF_STOCK',
+          },
+        ],
+      })) as Product[],
+      totalItems: searchData?.search?.totalItems || 0,
+    };
+  }, [searchData]);
 
   if (loading) {
     return (
@@ -90,25 +175,38 @@ export default function CollectionDetailPage() {
     );
   }
 
-  if (error || !data?.collection) {
+  if (error) {
+    console.error('GraphQL Error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     return (
       <div className="flex min-h-screen flex-col bg-white">
         <Header />
         <main className="flex-1">
           <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-            <p className="text-red-700 font-semibold">
-              {error ? `Error: ${error.message}` : 'Collection not found'}
-            </p>
+            <div className="text-center">
+              <p className="text-red-700 font-semibold">Error loading collection: {error.message}</p>
+              {error.networkError && (
+                <p className="mt-2 text-sm text-red-600">
+                  Network Error: {error.networkError.message}
+                </p>
+              )}
+              {error.graphQLErrors && error.graphQLErrors.length > 0 && (
+                <div className="mt-2 text-sm text-red-600">
+                  {error.graphQLErrors.map((err, idx) => (
+                    <p key={idx}>{err.message}</p>
+                  ))}
+                </div>
+              )}
+            </div>
           </div>
         </main>
       </div>
     );
   }
 
-  const collection = data.collection;
-  const products = collection.products.items;
-  const totalItems = collection.products.totalItems;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
+  const collectionName = collection?.name || slug;
+  const collectionDescription = collection?.description;
 
   return (
     <div className="flex min-h-screen flex-col bg-white">
@@ -120,13 +218,13 @@ export default function CollectionDetailPage() {
               Collections
             </Link>
             <span className="mx-2 text-gray-500">/</span>
-            <span className="text-black">{collection.name}</span>
+            <span className="text-black">{collectionName}</span>
           </nav>
 
           <div className="mb-6">
-            <h1 className="text-3xl font-bold tracking-tight text-black">{collection.name}</h1>
-            {collection.description && (
-              <p className="mt-2 text-base text-gray-600">{collection.description}</p>
+            <h1 className="text-3xl font-bold tracking-tight text-black">{collectionName}</h1>
+            {collectionDescription && (
+              <p className="mt-2 text-base text-gray-600">{collectionDescription}</p>
             )}
           </div>
 

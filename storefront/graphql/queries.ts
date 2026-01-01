@@ -127,7 +127,6 @@ export const GET_COLLECTIONS = gql`
           id
           preview
         }
-        productCount
       }
       totalItems
     }

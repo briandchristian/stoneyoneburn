@@ -240,9 +240,20 @@ export default function CartPage() {
                             >
                               −
                             </button>
-                            <span className="px-4 py-1 text-black font-medium min-w-[3rem] text-center">
-                              {isAdjusting ? '...' : line.quantity}
-                            </span>
+                            <input
+                              type="number"
+                              min="1"
+                              value={line.quantity}
+                              onChange={(e) => {
+                                const newQuantity = parseInt(e.target.value, 10);
+                                if (!isNaN(newQuantity) && newQuantity >= 1) {
+                                  handleQuantityChange(line.id, newQuantity);
+                                }
+                              }}
+                              disabled={isAdjusting || isRemoving}
+                              className="px-4 py-1 text-black font-medium min-w-[3rem] text-center border-0 focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                              aria-label="Quantity"
+                            />
                             <button
                               type="button"
                               onClick={() => handleQuantityChange(line.id, line.quantity + 1)}

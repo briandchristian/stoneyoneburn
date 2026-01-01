@@ -175,9 +175,10 @@ describe('AddressForm', () => {
         />
       );
 
-      // Note: AddressForm doesn't currently display field-specific errors
-      // This test documents expected behavior that could be added
-      expect(screen.queryByText('Full name is required')).not.toBeInTheDocument();
+      // AddressForm displays field-specific errors when provided
+      expect(screen.getByText('Full name is required')).toBeInTheDocument();
+      expect(screen.getByText('Street address is required')).toBeInTheDocument();
+      expect(screen.getByText('City is required')).toBeInTheDocument();
     });
   });
 

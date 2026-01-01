@@ -16,12 +16,17 @@
     "test": "jest",
     "test:watch": "jest --watch",
     "test:coverage": "jest --coverage",
+    "test:storefront": "cd storefront && npm test",
+    "test:all": "concurrently --kill-others-on-fail \"npm test\" \"npm run test:storefront\"",
+    "test:log": "ts-node scripts/test-with-logs.ts",
+    "test:log:backend": "ts-node scripts/test-with-logs.ts backend",
+    "test:log:frontend": "ts-node scripts/test-with-logs.ts frontend",
     "lint": "eslint src tests --ignore-pattern 'src/gql/**'",
     "lint:fix": "eslint src tests --fix --ignore-pattern 'src/gql/**'",
     "format": "prettier --write \"src/**/*.ts\" \"tests/**/*.ts\" \"*.ts\"",
     "format:check": "prettier --check \"src/**/*.ts\" \"tests/**/*.ts\" \"*.ts\"",
     "type-check": "tsc --noEmit",
-    "ci": "npm run type-check && npm run lint && npm run format:check && npm test",
+    "ci": "npm run type-check && npm run lint && npm run format:check && npm run test:all",
     "postinstall": "patch-package"
   },
   "dependencies": {

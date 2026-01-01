@@ -24,16 +24,19 @@ jest.mock('@/components/Header', () => ({
 }));
 
 const mockProduct = {
+  __typename: 'Product' as const,
   id: 'product-1',
   name: 'Test Product',
   slug: 'test-product',
   description: 'A test product description',
   featuredAsset: {
+    __typename: 'Asset' as const,
     id: 'asset-1',
     preview: 'https://example.com/image.jpg',
   },
   variants: [
     {
+      __typename: 'ProductVariant' as const,
       id: 'variant-1',
       name: 'Default Variant',
       currencyCode: 'USD',
@@ -65,7 +68,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -94,7 +97,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -130,7 +133,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -159,7 +162,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -189,7 +192,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -224,7 +227,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -267,6 +270,38 @@ describe('ProductDetailPage - Add to Cart', () => {
               __typename: 'Order',
               id: 'order-1',
               code: 'ORDER001',
+              state: 'AddingItems',
+              total: 1200,
+              totalWithTax: 1200,
+              currencyCode: 'USD',
+              lines: [
+                {
+                  __typename: 'OrderLine',
+                  id: 'line-1',
+                  quantity: 1,
+                  unitPrice: 1000,
+                  unitPriceWithTax: 1200,
+                  linePrice: 1000,
+                  linePriceWithTax: 1200,
+                  productVariant: {
+                    __typename: 'ProductVariant',
+                    id: 'variant-1',
+                    name: 'Default Variant',
+                    sku: 'SKU-001',
+                    product: {
+                      __typename: 'Product',
+                      id: 'product-1',
+                      name: 'Test Product',
+                      slug: 'test-product',
+                      featuredAsset: {
+                        __typename: 'Asset',
+                        id: 'asset-1',
+                        preview: 'https://example.com/image.jpg',
+                      },
+                    },
+                  },
+                },
+              ],
             },
           },
         },
@@ -301,7 +336,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -340,6 +375,38 @@ describe('ProductDetailPage - Add to Cart', () => {
               __typename: 'Order',
               id: 'order-1',
               code: 'ORDER001',
+              state: 'AddingItems',
+              total: 1200,
+              totalWithTax: 1200,
+              currencyCode: 'USD',
+              lines: [
+                {
+                  __typename: 'OrderLine',
+                  id: 'line-1',
+                  quantity: 1,
+                  unitPrice: 1000,
+                  unitPriceWithTax: 1200,
+                  linePrice: 1000,
+                  linePriceWithTax: 1200,
+                  productVariant: {
+                    __typename: 'ProductVariant',
+                    id: 'variant-1',
+                    name: 'Default Variant',
+                    sku: 'SKU-001',
+                    product: {
+                      __typename: 'Product',
+                      id: 'product-1',
+                      name: 'Test Product',
+                      slug: 'test-product',
+                      featuredAsset: {
+                        __typename: 'Asset',
+                        id: 'asset-1',
+                        preview: 'https://example.com/image.jpg',
+                      },
+                    },
+                  },
+                },
+              ],
             },
           },
         },
@@ -374,7 +441,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -418,6 +485,38 @@ describe('ProductDetailPage - Add to Cart', () => {
               __typename: 'Order',
               id: 'order-1',
               code: 'ORDER001',
+              state: 'AddingItems',
+              total: 1200,
+              totalWithTax: 1200,
+              currencyCode: 'USD',
+              lines: [
+                {
+                  __typename: 'OrderLine',
+                  id: 'line-1',
+                  quantity: 1,
+                  unitPrice: 1000,
+                  unitPriceWithTax: 1200,
+                  linePrice: 1000,
+                  linePriceWithTax: 1200,
+                  productVariant: {
+                    __typename: 'ProductVariant',
+                    id: 'variant-1',
+                    name: 'Default Variant',
+                    sku: 'SKU-001',
+                    product: {
+                      __typename: 'Product',
+                      id: 'product-1',
+                      name: 'Test Product',
+                      slug: 'test-product',
+                      featuredAsset: {
+                        __typename: 'Asset',
+                        id: 'asset-1',
+                        preview: 'https://example.com/image.jpg',
+                      },
+                    },
+                  },
+                },
+              ],
             },
           },
         },
@@ -453,7 +552,7 @@ describe('ProductDetailPage - Add to Cart', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );
@@ -504,10 +603,20 @@ describe('ProductDetailPage - Add to Cart', () => {
           },
         },
         addItemMock,
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: null,
+            },
+          },
+        },
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks}>
           <ProductDetailPage />
         </MockedProvider>
       );

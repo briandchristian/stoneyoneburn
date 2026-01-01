@@ -15,7 +15,19 @@ import { ApolloClient, InMemoryCache, ApolloProvider } from '@apollo/client';
 export function createTestApolloClient() {
   return new ApolloClient({
     uri: 'http://localhost:3000/shop-api',
-    cache: new InMemoryCache(),
+    cache: new InMemoryCache({
+      typePolicies: {
+        Product: {
+          fields: {
+            variants: {
+              merge(_existing: unknown[] = [], incoming: unknown[]) {
+                return incoming;
+              },
+            },
+          },
+        },
+      },
+    }),
     defaultOptions: {
       watchQuery: {
         fetchPolicy: 'no-cache',

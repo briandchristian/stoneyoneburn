@@ -21,7 +21,6 @@ interface Collection {
     id: string;
     preview: string;
   };
-  productCount: number;
 }
 
 interface CollectionsData {
@@ -52,6 +51,8 @@ export default function CollectionsPage() {
   }
 
   if (error) {
+    console.error('GraphQL Error:', error);
+    console.error('Error details:', JSON.stringify(error, null, 2));
     return (
       <div className="flex min-h-screen flex-col bg-white">
         <Header />
@@ -61,6 +62,18 @@ export default function CollectionsPage() {
               <p className="text-red-700 font-semibold">
                 Error loading collections: {error.message}
               </p>
+              {error.networkError && (
+                <p className="mt-2 text-sm text-red-600">
+                  Network Error: {error.networkError.message}
+                </p>
+              )}
+              {error.graphQLErrors && error.graphQLErrors.length > 0 && (
+                <div className="mt-2 text-sm text-red-600">
+                  {error.graphQLErrors.map((err, idx) => (
+                    <p key={idx}>{err.message}</p>
+                  ))}
+                </div>
+              )}
             </div>
           </div>
         </main>
@@ -106,7 +119,7 @@ export default function CollectionsPage() {
                     </p>
                   )}
                   <p className="text-sm font-medium text-blue-700">
-                    {collection.productCount} {collection.productCount === 1 ? 'product' : 'products'}
+                    View products
                   </p>
                 </Link>
               ))}

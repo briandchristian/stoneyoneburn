@@ -97,7 +97,7 @@ describe('OrderHistoryPage', () => {
       const mocks: any[] = [];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -132,7 +132,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -171,7 +171,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -208,7 +208,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -243,7 +243,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -279,7 +279,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -314,7 +314,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -349,7 +349,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -380,7 +380,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
@@ -417,7 +417,7 @@ describe('OrderHistoryPage', () => {
       ];
 
       render(
-        <MockedProvider mocks={mocks} addTypename={false}>
+        <MockedProvider mocks={mocks} >
           <OrderHistoryPage />
         </MockedProvider>
       );
