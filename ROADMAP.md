@@ -96,7 +96,7 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
   - [x] Order history page tests (12 tests)
   - [x] Order detail page tests (15 tests)
   - [x] Backend order management documentation tests
-- [ ] Customer account management
+- [x] Customer account management
 
 #### Deliverables
 - [x] Working single-vendor storefront (functional)
@@ -117,6 +117,17 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - [x] Order detail page tests (OrderDetailPage.test.tsx) - Complete (15 tests)
 - [x] Backend order management tests (order-management.test.ts) - Complete
 - [ ] Product search tests (frontend)
+- [x] Customer registration tests (RegisterPage.test.tsx - complete)
+  - [x] Registration page tests
+  - [x] Registration form validation tests
+  - [x] Registration mutation tests
+- [x] Customer login tests (LoginPage.test.tsx - complete)
+  - [x] Login page tests
+  - [x] Login form validation tests
+  - [x] Authentication tests
+- [x] Customer logout tests (LogoutPage.test.tsx - complete)
+- [x] Email verification tests (VerifyEmailPage.test.tsx - complete)
+- [x] Customer account/profile tests (AccountPage.test.tsx - complete)
 
 #### Test Coverage Status (December 2024)
 **Status:** ✅ Checkout tests completed retroactively
@@ -442,7 +453,7 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - ✅ **Test Coverage:** All storefront components have comprehensive test coverage
 - ✅ **Features:** Product search, filtering, sorting, pagination, collections browsing, add to cart, order management
 - ✅ **Order Management:** Order history page, order detail page, comprehensive test coverage (27 tests)
-- ⚠️ **Remaining:** Customer account management, backend payment handler tests
+- ⚠️ **Remaining:** Backend payment handler tests, product search tests (frontend)
 
 ### Key Metrics
 - Total Estimated Time: 18-26 weeks (4.5-6.5 months)
@@ -596,7 +607,12 @@ When completing a phase, ensure:
 - [ ] Backend payment handler tests
 - [x] Order management UI (OrderHistoryPage, OrderDetailPage)
 - [x] Order management tests (27 tests total)
-- [ ] Customer account management
+- [x] Customer account management
+  - [x] Customer registration page and tests (RegisterPage.test.tsx - complete)
+  - [x] Customer login page and tests (LoginPage.test.tsx - complete)
+  - [x] Customer logout functionality (LogoutPage.test.tsx - complete)
+  - [x] Email verification flow (VerifyEmailPage.test.tsx - complete)
+  - [x] Customer account/profile page (AccountPage.test.tsx - complete with address management)
 
 ---
 

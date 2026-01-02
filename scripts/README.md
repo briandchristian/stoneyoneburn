@@ -68,3 +68,36 @@ Each log file contains:
 - Log files are excluded from git (see `.gitignore`)
 - This script is separate from the regular `npm test` command
 - CI/CD pipelines should use `npm run ci` which does NOT use logging
+
+---
+
+## Email Verification Helper
+
+The `show-latest-verification-url.js` script helps extract verification URLs from test emails in development.
+
+### Usage
+
+```bash
+node scripts/show-latest-verification-url.js
+```
+
+This script:
+- Finds the most recent verification email in `static/email/test-emails/`
+- Extracts the verification token
+- Displays a ready-to-use verification URL with the correct storefront port (3001)
+
+### Example Output
+
+```
+📧 Latest Verification Email:
+═══════════════════════════════════════════════════
+To: user@example.com
+Subject: Please verify your email address
+Date: 1/2/2026, 12:02:34 AM
+
+🔗 Verification URL:
+═══════════════════════════════════════════════════
+http://localhost:3001/verify?token=MjAyNi0wMS0wMlQwMDowMjozMy45NDBa_6DNNPG8UTYYZ241M
+
+💡 Tip: Copy the URL above and paste it in your browser to verify the email address.
+```

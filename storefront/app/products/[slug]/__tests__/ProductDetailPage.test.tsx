@@ -168,10 +168,10 @@ describe('ProductDetailPage - Add to Cart', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/quantity/i)).toBeInTheDocument();
+        expect(screen.getByLabelText('Quantity')).toBeInTheDocument();
       });
 
-      const quantityInput = screen.getByLabelText(/quantity/i);
+      const quantityInput = screen.getByLabelText('Quantity');
       expect(quantityInput).toHaveValue(1);
     });
 
@@ -198,10 +198,10 @@ describe('ProductDetailPage - Add to Cart', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/quantity/i)).toBeInTheDocument();
+        expect(screen.getByLabelText('Quantity')).toBeInTheDocument();
       });
 
-      const quantityInput = screen.getByLabelText(/quantity/i);
+      const quantityInput = screen.getByLabelText('Quantity');
       const incrementButton = quantityInput.parentElement?.querySelector('button:last-child');
 
       if (incrementButton) {
@@ -233,10 +233,10 @@ describe('ProductDetailPage - Add to Cart', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/quantity/i)).toBeInTheDocument();
+        expect(screen.getByLabelText('Quantity')).toBeInTheDocument();
       });
 
-      const quantityInput = screen.getByLabelText(/quantity/i) as HTMLInputElement;
+      const quantityInput = screen.getByLabelText('Quantity') as HTMLInputElement;
       const decrementButton = quantityInput.parentElement?.querySelector('button:first-child');
 
       if (decrementButton) {
@@ -244,6 +244,53 @@ describe('ProductDetailPage - Add to Cart', () => {
         // Should remain at 1, not go to 0
         expect(quantityInput.value).toBe('1');
       }
+    });
+
+    it('should have improved contrast for quantity controls with light blue styling', async () => {
+      const mocks = [
+        {
+          request: {
+            query: GET_PRODUCT_BY_SLUG,
+            variables: { slug: 'test-product' },
+          },
+          result: {
+            data: {
+              product: mockProduct,
+            },
+          },
+        },
+      ];
+
+      const { container } = render(
+        <MockedProvider mocks={mocks}>
+          <ProductDetailPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByLabelText('Quantity')).toBeInTheDocument();
+      });
+
+      const quantityInput = screen.getByLabelText('Quantity');
+      const quantityControl = quantityInput.closest('div[class*="flex"]');
+      expect(quantityControl).toBeInTheDocument();
+
+      // Verify the control has light blue styling for better contrast
+      const buttons = quantityControl?.querySelectorAll('button');
+      expect(buttons?.length).toBe(2); // Should have increment and decrement buttons
+      
+      if (buttons && buttons.length > 0) {
+        // Check that buttons have light blue background classes for better contrast
+        const buttonClasses = buttons[0].className;
+        // Should have blue-100 background for light blue contrast against white
+        expect(buttonClasses.includes('bg-blue-100')).toBe(true);
+        // Should have blue-800 text for good contrast
+        expect(buttonClasses.includes('text-blue-800')).toBe(true);
+      }
+
+      // Verify the container has blue border for better visibility
+      const containerClasses = quantityControl?.className || '';
+      expect(containerClasses.includes('border-blue-400')).toBe(true);
     });
   });
 
@@ -447,11 +494,11 @@ describe('ProductDetailPage - Add to Cart', () => {
       );
 
       await waitFor(() => {
-        expect(screen.getByLabelText(/quantity/i)).toBeInTheDocument();
+        expect(screen.getByLabelText('Quantity')).toBeInTheDocument();
       });
 
       // Set quantity to 3
-      const quantityInput = screen.getByLabelText(/quantity/i);
+      const quantityInput = screen.getByLabelText('Quantity');
       const incrementButton = quantityInput.parentElement?.querySelector('button:last-child');
 
       if (incrementButton) {

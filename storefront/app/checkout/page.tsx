@@ -93,17 +93,17 @@ export default function CheckoutPage() {
   );
 
   const [setShippingAddressMutation] = useMutation(SET_ORDER_SHIPPING_ADDRESS, {
-    refetchQueries: [{ query: GET_ACTIVE_ORDER }],
+    refetchQueries: ['GetActiveOrder'],
     awaitRefetchQueries: true,
   });
 
   const [setBillingAddressMutation] = useMutation(SET_ORDER_BILLING_ADDRESS, {
-    refetchQueries: [{ query: GET_ACTIVE_ORDER }],
+    refetchQueries: ['GetActiveOrder'],
     awaitRefetchQueries: true,
   });
 
   const [setShippingMethod] = useMutation(SET_ORDER_SHIPPING_METHOD, {
-    refetchQueries: [{ query: GET_ACTIVE_ORDER }],
+    refetchQueries: ['GetActiveOrder'],
     awaitRefetchQueries: true,
   });
 

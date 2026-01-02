@@ -32,6 +32,8 @@ interface AddressFormProps {
   onSubmit: (address: AddressInput) => Promise<void> | void;
   isLoading?: boolean;
   errors?: Record<string, string>;
+  onCancel?: () => void;
+  submitButtonText?: string;
 }
 
 const COUNTRIES = [
@@ -48,6 +50,8 @@ export function AddressForm({
   onSubmit,
   isLoading = false,
   errors = {},
+  onCancel,
+  submitButtonText = 'Continue',
 }: AddressFormProps) {
   const [formData, setFormData] = useState<AddressInput>({
     fullName: initialValues.fullName || '',
@@ -229,13 +233,25 @@ export function AddressForm({
           />
         </div>
 
-        <button
-          type="submit"
-          disabled={isLoading}
-          className="w-full rounded-md bg-blue-700 px-4 py-2 text-base font-semibold text-white shadow-lg hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-        >
-          {isLoading ? 'Processing...' : 'Continue'}
-        </button>
+        <div className="flex gap-4">
+          <button
+            type="submit"
+            disabled={isLoading}
+            className="flex-1 rounded-md bg-blue-700 px-4 py-2 text-base font-semibold text-white shadow-lg hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+          >
+            {isLoading ? 'Processing...' : submitButtonText}
+          </button>
+          {onCancel && (
+            <button
+              type="button"
+              onClick={onCancel}
+              disabled={isLoading}
+              className="px-4 py-2 bg-gray-200 text-black rounded-md hover:bg-gray-300 disabled:bg-gray-100 disabled:cursor-not-allowed"
+            >
+              Cancel
+            </button>
+          )}
+        </div>
       </form>
     </div>
   );

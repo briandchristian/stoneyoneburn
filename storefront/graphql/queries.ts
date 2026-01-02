@@ -538,37 +538,40 @@ export const TRANSITION_ORDER_TO_STATE = gql`
 
 /**
  * Query to get customer orders (order history)
+ * Orders are accessed through activeCustomer, not as a top-level query
  */
 export const GET_ORDERS = gql`
   query GetOrders($options: OrderListOptions) {
-    orders(options: $options) {
-      items {
-        id
-        code
-        state
-        orderPlacedAt
-        total
-        totalWithTax
-        currencyCode
-        lines {
+    activeCustomer {
+      orders(options: $options) {
+        items {
           id
-          quantity
-          productVariant {
+          code
+          state
+          orderPlacedAt
+          total
+          totalWithTax
+          currencyCode
+          lines {
             id
-            name
-            product {
+            quantity
+            productVariant {
               id
               name
-              slug
-              featuredAsset {
+              product {
                 id
-                preview
+                name
+                slug
+                featuredAsset {
+                  id
+                  preview
+                }
               }
             }
           }
         }
+        totalItems
       }
-      totalItems
     }
   }
 `;
@@ -669,6 +672,173 @@ export const GET_ORDER_BY_CODE = gql`
         createdAt
         updatedAt
       }
+    }
+  }
+`;
+
+/**
+ * Mutation to register a new customer account
+ */
+export const REGISTER_CUSTOMER_ACCOUNT = gql`
+  mutation RegisterCustomerAccount($input: RegisterCustomerInput!) {
+    registerCustomerAccount(input: $input) {
+      __typename
+      ... on Success {
+        success
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to verify customer email address
+ */
+export const VERIFY_CUSTOMER_ACCOUNT = gql`
+  mutation VerifyCustomerAccount($token: String!) {
+    verifyCustomerAccount(token: $token) {
+      __typename
+      ... on CurrentUser {
+        id
+        identifier
+      }
+      ... on VerificationTokenExpiredError {
+        errorCode
+        message
+      }
+      ... on VerificationTokenInvalidError {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Query to get the currently active customer
+ */
+export const GET_ACTIVE_CUSTOMER = gql`
+  query GetActiveCustomer {
+    activeCustomer {
+      id
+      firstName
+      lastName
+      emailAddress
+      phoneNumber
+      addresses {
+        id
+        fullName
+        streetLine1
+        streetLine2
+        city
+        province
+        postalCode
+        country {
+          code
+        }
+        phoneNumber
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to authenticate (login) a customer
+ */
+export const AUTHENTICATE = gql`
+  mutation Authenticate($input: AuthenticationInput!, $rememberMe: Boolean) {
+    authenticate(input: $input, rememberMe: $rememberMe) {
+      __typename
+      ... on CurrentUser {
+        id
+        identifier
+      }
+      ... on ErrorResult {
+        errorCode
+        message
+      }
+    }
+  }
+`;
+
+/**
+ * Mutation to logout the current customer
+ */
+export const LOGOUT = gql`
+  mutation Logout {
+    logout {
+      success
+    }
+  }
+`;
+
+/**
+ * Mutation to update the active customer's details
+ */
+export const UPDATE_ACTIVE_CUSTOMER = gql`
+  mutation UpdateActiveCustomer($input: UpdateActiveCustomerInput!) {
+    updateActiveCustomer(input: $input) {
+      id
+      firstName
+      lastName
+      emailAddress
+      phoneNumber
+    }
+  }
+`;
+
+/**
+ * Mutation to create a new customer address (shop API - for active customer)
+ */
+export const CREATE_CUSTOMER_ADDRESS = gql`
+  mutation CreateCustomerAddress($input: CreateAddressInput!) {
+    createCustomerAddress(input: $input) {
+      id
+      fullName
+      streetLine1
+      streetLine2
+      city
+      province
+      postalCode
+      country {
+        code
+      }
+      phoneNumber
+    }
+  }
+`;
+
+/**
+ * Mutation to update a customer address
+ */
+export const UPDATE_CUSTOMER_ADDRESS = gql`
+  mutation UpdateCustomerAddress($input: UpdateAddressInput!) {
+    updateCustomerAddress(input: $input) {
+      id
+      fullName
+      streetLine1
+      streetLine2
+      city
+      province
+      postalCode
+      country {
+        code
+      }
+      phoneNumber
+    }
+  }
+`;
+
+/**
+ * Mutation to delete a customer address
+ */
+export const DELETE_CUSTOMER_ADDRESS = gql`
+  mutation DeleteCustomerAddress($id: ID!) {
+    deleteCustomerAddress(id: $id) {
+      success
     }
   }
 `;

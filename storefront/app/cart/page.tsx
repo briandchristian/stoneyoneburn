@@ -66,12 +66,12 @@ export default function CartPage() {
   });
 
   const [adjustOrderLine] = useMutation(ADJUST_ORDER_LINE, {
-    refetchQueries: [{ query: GET_ACTIVE_ORDER }],
+    refetchQueries: ['GetActiveOrder'],
     awaitRefetchQueries: true,
   });
 
   const [removeOrderLine] = useMutation(REMOVE_ORDER_LINE, {
-    refetchQueries: [{ query: GET_ACTIVE_ORDER }],
+    refetchQueries: ['GetActiveOrder'],
     awaitRefetchQueries: true,
   });
 
@@ -251,7 +251,7 @@ export default function CartPage() {
                                 }
                               }}
                               disabled={isAdjusting || isRemoving}
-                              className="px-4 py-1 text-black font-medium min-w-[3rem] text-center border-0 focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed"
+                              className="px-4 py-1 text-black font-medium min-w-[3rem] text-center border-0 focus:outline-none focus:ring-0 disabled:opacity-50 disabled:cursor-not-allowed [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                               aria-label="Quantity"
                             />
                             <button

@@ -73,6 +73,8 @@ export default function ProductDetailPage() {
   });
 
   const [addItemToOrder] = useMutation(ADD_ITEM_TO_ORDER, {
+    // Use object format to ensure Header (which queries GET_ACTIVE_ORDER) gets updated
+    // even though this component doesn't directly query it
     refetchQueries: [{ query: GET_ACTIVE_ORDER }],
     awaitRefetchQueries: true,
   });
@@ -233,11 +235,13 @@ export default function ProductDetailPage() {
                   <label htmlFor="quantity" className="block text-sm font-medium text-black mb-2">
                     Quantity
                   </label>
-                  <div className="flex items-center border border-gray-300 rounded-md w-32">
+                  <div className="inline-flex items-center border-2 border-blue-400 rounded-md bg-white shadow-sm">
                     <button
                       type="button"
                       onClick={() => setQuantity(Math.max(1, quantity - 1))}
-                      className="px-3 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-center w-10 h-10 bg-blue-100 text-blue-800 hover:bg-blue-200 active:bg-blue-300 disabled:bg-gray-100 disabled:text-gray-400 transition-colors font-bold text-lg leading-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 disabled:cursor-not-allowed rounded-l-md"
+                      disabled={quantity <= 1}
+                      aria-label="Decrease quantity"
                     >
                       −
                     </button>
@@ -246,13 +250,30 @@ export default function ProductDetailPage() {
                       id="quantity"
                       min="1"
                       value={quantity}
-                      onChange={(e) => setQuantity(Math.max(1, parseInt(e.target.value) || 1))}
-                      className="flex-1 px-4 py-2 text-center text-black border-0 focus:ring-0 focus:outline-none"
+                      onChange={(e) => {
+                        const val = parseInt(e.target.value, 10);
+                        if (!isNaN(val) && val >= 1) {
+                          setQuantity(val);
+                        } else if (e.target.value === '') {
+                          // Allow empty temporarily for editing
+                          setQuantity(1);
+                        }
+                      }}
+                      onBlur={(e) => {
+                        // Ensure valid value on blur
+                        const val = parseInt(e.target.value, 10);
+                        if (isNaN(val) || val < 1) {
+                          setQuantity(1);
+                        }
+                      }}
+                      className="w-16 h-10 px-2 text-center text-black bg-white border-0 border-l-2 border-r-2 border-blue-300 focus:ring-2 focus:ring-blue-500 focus:outline-none font-semibold text-base [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                      aria-label="Quantity"
                     />
                     <button
                       type="button"
                       onClick={() => setQuantity(quantity + 1)}
-                      className="px-3 py-2 text-gray-700 hover:bg-gray-100 transition-colors"
+                      className="flex items-center justify-center w-10 h-10 bg-blue-100 text-blue-800 hover:bg-blue-200 active:bg-blue-300 transition-colors font-bold text-lg leading-none focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-1 rounded-r-md"
+                      aria-label="Increase quantity"
                     >
                       +
                     </button>

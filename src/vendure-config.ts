@@ -120,10 +120,10 @@ export const config: VendureConfig = {
           ),
           globalTemplateVars: {
             fromAddress: process.env.EMAIL_FROM || '"StoneyOneBurn Dev" <noreply@localhost>',
-            verifyEmailAddressUrl: process.env.STOREFRONT_URL || 'http://localhost:8080/verify',
-            passwordResetUrl: process.env.STOREFRONT_URL || 'http://localhost:8080/password-reset',
+            verifyEmailAddressUrl: process.env.STOREFRONT_URL || 'http://localhost:3001/verify',
+            passwordResetUrl: process.env.STOREFRONT_URL || 'http://localhost:3001/password-reset',
             changeEmailAddressUrl:
-              process.env.STOREFRONT_URL || 'http://localhost:8080/verify-email-address-change',
+              process.env.STOREFRONT_URL || 'http://localhost:3001/verify-email-address-change',
           },
         })
       : EmailPlugin.init({

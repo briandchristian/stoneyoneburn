@@ -121,10 +121,13 @@ describe('OrderHistoryPage', () => {
           },
           result: {
             data: {
-              orders: {
-                __typename: 'OrderList',
-                items: [],
-                totalItems: 0,
+              activeCustomer: {
+                __typename: 'Customer',
+                orders: {
+                  __typename: 'OrderList',
+                  items: [],
+                  totalItems: 0,
+                },
               },
             },
           },
@@ -160,10 +163,13 @@ describe('OrderHistoryPage', () => {
           },
           result: {
             data: {
-              orders: {
-                __typename: 'OrderList',
-                items: [mockOrder, mockOrder2],
-                totalItems: 2,
+              activeCustomer: {
+                __typename: 'Customer',
+                orders: {
+                  __typename: 'OrderList',
+                  items: [mockOrder, mockOrder2],
+                  totalItems: 2,
+                },
               },
             },
           },
@@ -197,10 +203,13 @@ describe('OrderHistoryPage', () => {
           },
           result: {
             data: {
-              orders: {
-                __typename: 'OrderList',
-                items: [mockOrder],
-                totalItems: 1,
+              activeCustomer: {
+                __typename: 'Customer',
+                orders: {
+                  __typename: 'OrderList',
+                  items: [mockOrder],
+                  totalItems: 1,
+                },
               },
             },
           },
@@ -232,10 +241,13 @@ describe('OrderHistoryPage', () => {
           },
           result: {
             data: {
-              orders: {
-                __typename: 'OrderList',
-                items: [mockOrder],
-                totalItems: 1,
+              activeCustomer: {
+                __typename: 'Customer',
+                orders: {
+                  __typename: 'OrderList',
+                  items: [mockOrder],
+                  totalItems: 1,
+                },
               },
             },
           },
@@ -268,10 +280,13 @@ describe('OrderHistoryPage', () => {
           },
           result: {
             data: {
-              orders: {
-                __typename: 'OrderList',
-                items: [mockOrder],
-                totalItems: 1,
+              activeCustomer: {
+                __typename: 'Customer',
+                orders: {
+                  __typename: 'OrderList',
+                  items: [mockOrder],
+                  totalItems: 1,
+                },
               },
             },
           },
@@ -303,10 +318,13 @@ describe('OrderHistoryPage', () => {
           },
           result: {
             data: {
-              orders: {
-                __typename: 'OrderList',
-                items: [mockOrder],
-                totalItems: 1,
+              activeCustomer: {
+                __typename: 'Customer',
+                orders: {
+                  __typename: 'OrderList',
+                  items: [mockOrder],
+                  totalItems: 1,
+                },
               },
             },
           },
@@ -338,10 +356,13 @@ describe('OrderHistoryPage', () => {
           },
           result: {
             data: {
-              orders: {
-                __typename: 'OrderList',
-                items: [mockOrder],
-                totalItems: 1,
+              activeCustomer: {
+                __typename: 'Customer',
+                orders: {
+                  __typename: 'OrderList',
+                  items: [mockOrder],
+                  totalItems: 1,
+                },
               },
             },
           },
@@ -406,10 +427,13 @@ describe('OrderHistoryPage', () => {
           },
           result: {
             data: {
-              orders: {
-                __typename: 'OrderList',
-                items: [mockOrder],
-                totalItems: 25,
+              activeCustomer: {
+                __typename: 'Customer',
+                orders: {
+                  __typename: 'OrderList',
+                  items: [mockOrder],
+                  totalItems: 25,
+                },
               },
             },
           },

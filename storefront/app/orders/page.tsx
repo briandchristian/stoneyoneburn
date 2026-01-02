@@ -44,16 +44,32 @@ interface Order {
 }
 
 interface OrdersData {
-  orders: {
-    items: Order[];
-    totalItems: number;
-  };
+  activeCustomer: {
+    orders: {
+      items: Order[];
+      totalItems: number;
+    };
+  } | null;
 }
 
 const ITEMS_PER_PAGE = 10;
 
 export default function OrderHistoryPage() {
   const [page, setPage] = useState(0);
+
+  // Ensure query is defined before using it
+  if (!GET_ORDERS) {
+    return (
+      <div className="flex min-h-screen flex-col bg-white">
+        <Header />
+        <main className="flex-1">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <p className="text-black font-medium">Loading...</p>
+          </div>
+        </main>
+      </div>
+    );
+  }
 
   const { data, loading, error } = useQuery<OrdersData>(GET_ORDERS, {
     variables: {
@@ -63,6 +79,7 @@ export default function OrderHistoryPage() {
       },
     },
     fetchPolicy: 'cache-and-network',
+    errorPolicy: 'all', // Return both data and errors to prevent error propagation
   });
 
   const formatDate = (dateString: string | null | undefined): string => {
@@ -125,8 +142,31 @@ export default function OrderHistoryPage() {
     );
   }
 
-  const orders = data?.orders?.items || [];
-  const totalItems = data?.orders?.totalItems || 0;
+  // Handle case where customer is not logged in
+  if (data && !data.activeCustomer) {
+    return (
+      <div className="flex min-h-screen flex-col bg-white">
+        <Header />
+        <main className="flex-1">
+          <div className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+            <div className="text-center">
+              <h1 className="text-3xl font-bold text-black mb-4">Please Log In</h1>
+              <p className="text-black mb-8">You must be logged in to view your order history.</p>
+              <Link
+                href="/login"
+                className="inline-block rounded-md bg-blue-700 px-4 py-3 text-base font-semibold text-white shadow-lg hover:bg-blue-800 transition-colors"
+              >
+                Log In
+              </Link>
+            </div>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  const orders = data?.activeCustomer?.orders?.items || [];
+  const totalItems = data?.activeCustomer?.orders?.totalItems || 0;
   const totalPages = Math.ceil(totalItems / ITEMS_PER_PAGE);
 
   if (orders.length === 0) {

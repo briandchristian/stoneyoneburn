@@ -123,8 +123,9 @@ export default function OrderDetailPage() {
     variables: {
       code: orderCode,
     },
-    skip: !orderCode,
+    skip: !orderCode || !GET_ORDER_BY_CODE, // Skip if query is undefined or orderCode is missing
     fetchPolicy: 'cache-and-network',
+    errorPolicy: 'all', // Return both data and errors to prevent error propagation
   });
 
   const formatDate = (dateString: string | null | undefined): string => {
