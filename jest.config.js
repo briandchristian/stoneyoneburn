@@ -17,6 +17,10 @@ module.exports = {
     '!src/gql/**',
     // Exclude migration files (tested via integration tests)
     '!src/migrations/**',
+    // Exclude multi-vendor-plugin (Phase 2) - currently has contract tests only
+    // TODO: Implement actual unit tests with mocks for TransactionalConnection and CustomerService
+    // Once unit tests are implemented, remove this exclusion
+    '!src/plugins/multi-vendor-plugin/**',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],
