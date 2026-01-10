@@ -1,13 +1,20 @@
-import { MigrationInterface, QueryRunner, Table, TableIndex, TableUnique, TableCheck, TableForeignKey } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableIndex,
+  TableUnique,
+  TableForeignKey,
+} from 'typeorm';
 
 /**
  * Migration: Create MarketplaceSeller Entity
- * 
+ *
  * This migration creates the marketplace_seller table for the multi-vendor marketplace.
  * Part of Phase 2.1: Seller Entity & Database Schema
- * 
+ *
  * NOTE: Table is named marketplace_seller to avoid conflict with Vendure's built-in seller table.
- * 
+ *
  * The marketplace_seller table includes:
  * - Base VendureEntity fields (id, createdAt, updatedAt)
  * - Customer relationship (foreign key)
@@ -238,8 +245,12 @@ export class CreateMarketplaceSellerEntity1768055512210 implements MigrationInte
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop trigger for updatedAt
-    await queryRunner.query(`DROP TRIGGER IF EXISTS update_marketplace_seller_updated_at ON "marketplace_seller"`);
-    await queryRunner.query(`DROP FUNCTION IF EXISTS update_marketplace_seller_updated_at_column()`);
+    await queryRunner.query(
+      `DROP TRIGGER IF EXISTS update_marketplace_seller_updated_at ON "marketplace_seller"`
+    );
+    await queryRunner.query(
+      `DROP FUNCTION IF EXISTS update_marketplace_seller_updated_at_column()`
+    );
 
     // Drop default value for verificationStatus
     await queryRunner.query(`
@@ -250,20 +261,31 @@ export class CreateMarketplaceSellerEntity1768055512210 implements MigrationInte
     // Drop foreign key
     const table = await queryRunner.getTable('marketplace_seller');
     if (table) {
-      const foreignKey = table.foreignKeys.find(fk => fk.name === 'FK_marketplace_seller_customerId');
+      const foreignKey = table.foreignKeys.find(
+        (fk) => fk.name === 'FK_marketplace_seller_customerId'
+      );
       if (foreignKey) {
         await queryRunner.dropForeignKey('marketplace_seller', foreignKey);
       }
     }
 
     // Drop check constraints
-    await queryRunner.query(`ALTER TABLE "marketplace_seller" DROP CONSTRAINT IF EXISTS "CHK_marketplace_seller_commissionRate"`);
-    await queryRunner.query(`ALTER TABLE "marketplace_seller" DROP CONSTRAINT IF EXISTS "CHK_marketplace_seller_shopSlug"`);
-    await queryRunner.query(`ALTER TABLE "marketplace_seller" DROP CONSTRAINT IF EXISTS "CHK_marketplace_seller_shopName"`);
+    await queryRunner.query(
+      `ALTER TABLE "marketplace_seller" DROP CONSTRAINT IF EXISTS "CHK_marketplace_seller_commissionRate"`
+    );
+    await queryRunner.query(
+      `ALTER TABLE "marketplace_seller" DROP CONSTRAINT IF EXISTS "CHK_marketplace_seller_shopSlug"`
+    );
+    await queryRunner.query(
+      `ALTER TABLE "marketplace_seller" DROP CONSTRAINT IF EXISTS "CHK_marketplace_seller_shopName"`
+    );
 
     // Drop unique constraints
     await queryRunner.dropUniqueConstraint('marketplace_seller', 'UQ_marketplace_seller_shopSlug');
-    await queryRunner.dropUniqueConstraint('marketplace_seller', 'UQ_marketplace_seller_customerId');
+    await queryRunner.dropUniqueConstraint(
+      'marketplace_seller',
+      'UQ_marketplace_seller_customerId'
+    );
 
     // Drop indexes
     await queryRunner.dropIndex('marketplace_seller', 'IDX_marketplace_seller_verificationStatus');

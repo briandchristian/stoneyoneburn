@@ -15,14 +15,6 @@ import { PluginCommonModule, VendurePlugin, LanguageCode } from '@vendure/core';
 import { MarketplaceSeller } from './entities/seller.entity';
 import { SellerService } from './services/seller.service';
 import { SellerResolver } from './resolvers/seller.resolver';
-import {
-  SellerRegistrationError,
-  SellerUpdateError,
-} from './errors/seller-errors';
-import {
-  RegisterSellerInput,
-  UpdateSellerProfileInput,
-} from './resolvers/seller.resolver';
 
 /**
  * Multi-Vendor Plugin
@@ -35,7 +27,7 @@ import {
   providers: [SellerService],
   shopApiExtensions: {
     resolvers: [SellerResolver],
-    // @ts-ignore - Vendure accepts string schemas at runtime, even though TypeScript expects DocumentNode
+    // @ts-expect-error - Vendure accepts string schemas at runtime, even though TypeScript expects DocumentNode
     schema: `
       extend type Mutation {
         registerAsSeller(input: RegisterSellerInput!): RegisterSellerResult!

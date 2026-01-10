@@ -59,7 +59,10 @@ describe('Payment Handler Configuration', () => {
       // Description is an array of translation objects
       expect(dummyPaymentHandler.description).toBeDefined();
       expect(Array.isArray(dummyPaymentHandler.description)).toBe(true);
-      if (Array.isArray(dummyPaymentHandler.description) && dummyPaymentHandler.description.length > 0) {
+      if (
+        Array.isArray(dummyPaymentHandler.description) &&
+        dummyPaymentHandler.description.length > 0
+      ) {
         expect(dummyPaymentHandler.description[0]).toHaveProperty('languageCode');
         expect(dummyPaymentHandler.description[0]).toHaveProperty('value');
       }
@@ -96,15 +99,19 @@ describe('Payment Handler Configuration', () => {
     it('should conditionally load StripePlugin when keys are configured', () => {
       // StripePlugin should be loaded when both secret and publishable keys are present
       const stripeConfig = getStripeConfig();
-      
+
       // Config should always have a plugins array
       expect(config.plugins).toBeDefined();
       expect(Array.isArray(config.plugins)).toBe(true);
-      
+
       // If Stripe keys are configured, StripePlugin should be in plugins array
       if (stripeConfig.secretKey && stripeConfig.publishableKey) {
-        const stripePlugin = config.plugins!.find(
-          (plugin) => plugin && typeof plugin === 'object' && 'code' in plugin && plugin.code === 'stripe-plugin'
+        config.plugins!.find(
+          (plugin) =>
+            plugin &&
+            typeof plugin === 'object' &&
+            'code' in plugin &&
+            plugin.code === 'stripe-plugin'
         );
         // Note: StripePlugin may not expose code directly, so we check differently
         // The plugin should be in the array if keys are configured
@@ -122,7 +129,7 @@ describe('Payment Handler Configuration', () => {
     it('should validate Stripe configuration when keys are present', () => {
       // Stripe config should be validated if any key is provided
       const stripeConfig = getStripeConfig();
-      
+
       if (stripeConfig.secretKey || stripeConfig.publishableKey) {
         // Config should have both keys if one is present (validation should catch partial config)
         // This is handled in vendure-config.ts
@@ -135,7 +142,7 @@ describe('Payment Handler Configuration', () => {
     it('should support payment creation', () => {
       // All payment handlers should support payment creation
       const handlers = config.paymentOptions.paymentMethodHandlers;
-      
+
       handlers.forEach((handler) => {
         expect(handler.createPayment).toBeDefined();
         expect(typeof handler.createPayment).toBe('function');
@@ -145,7 +152,7 @@ describe('Payment Handler Configuration', () => {
     it('should support payment settlement', () => {
       // All payment handlers should support payment settlement
       const handlers = config.paymentOptions.paymentMethodHandlers;
-      
+
       handlers.forEach((handler) => {
         expect(handler.settlePayment).toBeDefined();
         expect(typeof handler.settlePayment).toBe('function');
@@ -155,7 +162,7 @@ describe('Payment Handler Configuration', () => {
     it('should support payment cancellation', () => {
       // All payment handlers should support payment cancellation
       const handlers = config.paymentOptions.paymentMethodHandlers;
-      
+
       handlers.forEach((handler) => {
         expect(handler.cancelPayment).toBeDefined();
         expect(typeof handler.cancelPayment).toBe('function');
@@ -167,7 +174,7 @@ describe('Payment Handler Configuration', () => {
       const handlers = config.paymentOptions.paymentMethodHandlers;
       const codes = handlers.map((handler) => handler.code);
       const uniqueCodes = new Set(codes);
-      
+
       expect(uniqueCodes.size).toBe(codes.length);
     });
   });
@@ -176,7 +183,7 @@ describe('Payment Handler Configuration', () => {
     it('should handle payment creation errors gracefully', () => {
       // Payment handlers should handle errors in createPayment
       const handler = dummyPaymentHandler;
-      
+
       // The handler should exist and have error handling
       expect(handler.createPayment).toBeDefined();
       // Error handling is typically done via return values or exceptions
@@ -186,7 +193,7 @@ describe('Payment Handler Configuration', () => {
     it('should handle payment settlement errors gracefully', () => {
       // Payment handlers should handle errors in settlePayment
       const handler = dummyPaymentHandler;
-      
+
       expect(handler.settlePayment).toBeDefined();
       // Error handling is typically done via return values or exceptions
     });
@@ -194,7 +201,7 @@ describe('Payment Handler Configuration', () => {
     it('should handle payment cancellation errors gracefully', () => {
       // Payment handlers should handle errors in cancelPayment
       const handler = dummyPaymentHandler;
-      
+
       expect(handler.cancelPayment).toBeDefined();
       // Error handling is typically done via return values or exceptions
     });
@@ -217,7 +224,7 @@ describe('Payment Handler Configuration', () => {
     it('should have all handlers with required properties', () => {
       // All payment handlers should have required properties
       const handlers = config.paymentOptions.paymentMethodHandlers;
-      
+
       handlers.forEach((handler) => {
         expect(handler.code).toBeDefined();
         expect(handler.description).toBeDefined();

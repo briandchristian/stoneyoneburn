@@ -8,21 +8,10 @@
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { InputType, Field as GQLField, ID } from '@nestjs/graphql';
 import type { CustomerService, RequestContext } from '@vendure/core';
-import {
-  Ctx,
-  Allow,
-  Permission,
-} from '@vendure/core';
+import { Ctx, Allow, Permission } from '@vendure/core';
 import { MarketplaceSeller } from '../entities/seller.entity';
 import { SellerService } from '../services/seller.service';
-import type {
-  RegisterSellerInput as RegisterSellerInputType,
-  UpdateSellerProfileInput as UpdateSellerProfileInputType,
-} from '../services/seller.service';
-import type {
-  SellerRegistrationError,
-  SellerUpdateError,
-} from '../errors/seller-errors';
+import type { SellerRegistrationError, SellerUpdateError } from '../errors/seller-errors';
 import {
   SellerRegistrationError as SellerRegistrationErrorClass,
   SellerUpdateError as SellerUpdateErrorClass,
@@ -122,18 +111,14 @@ export class SellerResolver {
     @Args('input') input: UpdateSellerProfileInput
   ): Promise<UpdateSellerProfileResult> {
     try {
-      return await this.sellerService.updateSellerProfile(
-        ctx,
-        input.sellerId,
-        {
-          shopName: input.shopName,
-          shopDescription: input.shopDescription,
-          shopBannerAssetId: input.shopBannerAssetId,
-          shopLogoAssetId: input.shopLogoAssetId,
-          businessName: input.businessName,
-          taxId: input.taxId,
-        }
-      );
+      return await this.sellerService.updateSellerProfile(ctx, input.sellerId, {
+        shopName: input.shopName,
+        shopDescription: input.shopDescription,
+        shopBannerAssetId: input.shopBannerAssetId,
+        shopLogoAssetId: input.shopLogoAssetId,
+        businessName: input.businessName,
+        taxId: input.taxId,
+      });
     } catch (error) {
       if (error instanceof SellerUpdateErrorClass) {
         return error;
@@ -152,10 +137,7 @@ export class SellerResolver {
       return null;
     }
 
-    const customer = await this.customerService.findOneByUserId(
-      ctx,
-      ctx.activeUserId
-    );
+    const customer = await this.customerService.findOneByUserId(ctx, ctx.activeUserId);
 
     if (!customer) {
       return null;

@@ -9,7 +9,7 @@
  * Full end-to-end integration tests would require a Vendure test server setup.
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect } from '@jest/globals';
 
 /**
  * Order Creation Flow Documentation

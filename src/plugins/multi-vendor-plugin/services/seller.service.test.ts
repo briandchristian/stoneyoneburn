@@ -13,11 +13,14 @@
  * 1. Write tests first (RED) ✅
  * 2. Implement minimal code to pass (GREEN)
  * 3. Refactor while keeping tests passing
+ *
+ * NOTE: This file contains contract tests that document the API by defining
+ * variables that show the expected interface but may not be used in assertions.
+ * These variables are intentionally unused for documentation purposes.
  */
 
-import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { RequestContext, TransactionalConnection, Customer, ID } from '@vendure/core';
-import { MarketplaceSeller, SellerVerificationStatus } from '../entities/seller.entity';
+/* eslint-disable @typescript-eslint/no-unused-vars */
+import { describe, it } from '@jest/globals';
 
 /**
  * Seller Service Documentation

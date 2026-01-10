@@ -5,19 +5,11 @@
  * Each marketplace seller is associated with one Customer account and can manage products and orders.
  *
  * This entity is part of Phase 2.1: Multi-Vendor Core Plugin
- * 
+ *
  * NOTE: Named MarketplaceSeller to avoid conflict with Vendure's built-in Seller entity
  */
 
-import {
-  Entity,
-  Column,
-  ManyToOne,
-  OneToOne,
-  Index,
-  Unique,
-  Check,
-} from 'typeorm';
+import { Entity, Column, ManyToOne, Index, Unique, Check } from 'typeorm';
 import { ObjectType, Field, registerEnumType } from '@nestjs/graphql';
 import type { ID, DeepPartial } from '@vendure/core';
 import { VendureEntity } from '@vendure/core';

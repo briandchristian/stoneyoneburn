@@ -7,7 +7,11 @@
 export { MultiVendorPlugin } from './multi-vendor.plugin';
 export { MarketplaceSeller, SellerVerificationStatus } from './entities/seller.entity';
 export { SellerService } from './services/seller.service';
-export { SellerResolver, RegisterSellerInput, UpdateSellerProfileInput } from './resolvers/seller.resolver';
+export {
+  SellerResolver,
+  RegisterSellerInput,
+  UpdateSellerProfileInput,
+} from './resolvers/seller.resolver';
 export {
   SellerRegistrationError,
   SellerUpdateError,

@@ -7,11 +7,7 @@
 
 import { Injectable } from '@nestjs/common';
 import type { RequestContext, ID } from '@vendure/core';
-import {
-  TransactionalConnection,
-  Transaction,
-  CustomerService,
-} from '@vendure/core';
+import { TransactionalConnection, Transaction, CustomerService } from '@vendure/core';
 import { MarketplaceSeller, SellerVerificationStatus } from '../entities/seller.entity';
 import {
   SellerErrorCode,
@@ -69,15 +65,9 @@ export class SellerService {
     }
 
     // Get customer
-    const customer = await this.customerService.findOneByUserId(
-      ctx,
-      ctx.activeUserId
-    );
+    const customer = await this.customerService.findOneByUserId(ctx, ctx.activeUserId);
     if (!customer) {
-      throw new SellerRegistrationError(
-        SellerErrorCode.CUSTOMER_NOT_FOUND,
-        'Customer not found'
-      );
+      throw new SellerRegistrationError(SellerErrorCode.CUSTOMER_NOT_FOUND, 'Customer not found');
     }
 
     // Check email is verified
@@ -89,10 +79,7 @@ export class SellerService {
     }
 
     // Check if customer already has a seller account
-    const existingSeller = await this.findSellerByCustomerId(
-      ctx,
-      customer.id
-    );
+    const existingSeller = await this.findSellerByCustomerId(ctx, customer.id);
     if (existingSeller) {
       throw new SellerRegistrationError(
         SellerErrorCode.SELLER_ALREADY_EXISTS,
@@ -151,17 +138,11 @@ export class SellerService {
       .findOne({ where: { id: sellerId }, relations: ['customer'] });
 
     if (!seller) {
-      throw new SellerUpdateError(
-        SellerErrorCode.SELLER_NOT_FOUND,
-        'Seller not found'
-      );
+      throw new SellerUpdateError(SellerErrorCode.SELLER_NOT_FOUND, 'Seller not found');
     }
 
     // Verify ownership
-    const customer = await this.customerService.findOneByUserId(
-      ctx,
-      ctx.activeUserId
-    );
+    const customer = await this.customerService.findOneByUserId(ctx, ctx.activeUserId);
     if (!customer || seller.customerId !== customer.id) {
       throw new SellerUpdateError(
         SellerErrorCode.NOT_SELLER_OWNER,
@@ -275,7 +256,7 @@ export class SellerService {
     let slug = baseSlug;
     let counter = 2;
 
-      // Check uniqueness and append number if needed
+    // Check uniqueness and append number if needed
     while (true) {
       const existing = await this.connection
         .getRepository(ctx, MarketplaceSeller)
@@ -307,10 +288,7 @@ export class SellerService {
     const trimmed = shopName.trim();
 
     if (!trimmed || trimmed.length === 0) {
-      throw new SellerRegistrationError(
-        SellerErrorCode.INVALID_SHOP_NAME,
-        'Shop name is required'
-      );
+      throw new SellerRegistrationError(SellerErrorCode.INVALID_SHOP_NAME, 'Shop name is required');
     }
 
     if (trimmed.length < 3) {
