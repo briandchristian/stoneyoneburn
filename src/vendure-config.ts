@@ -15,6 +15,7 @@ import path from 'path';
 import { validateEnvironmentVariables } from './config/env-validation';
 import { getSecurityConfig, isProductionMode, validateSecurityConfig } from './config/security';
 import { getStripeConfig, validateStripeConfig } from './config/stripe-config';
+import { MultiVendorPlugin } from './plugins/multi-vendor-plugin/multi-vendor.plugin';
 
 // Validate critical environment variables on startup
 // Critical variables (authentication, security) are always required, even in development
@@ -169,6 +170,8 @@ export const config: VendureConfig = {
         ? path.join(__dirname, '../dist/dashboard')
         : path.join(__dirname, 'dashboard'),
     }),
+    // Multi-Vendor Plugin - Phase 2
+    MultiVendorPlugin,
   ],
 };
 
