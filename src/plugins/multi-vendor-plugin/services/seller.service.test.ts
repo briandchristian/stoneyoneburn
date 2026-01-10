@@ -21,6 +21,7 @@
 
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { describe, it } from '@jest/globals';
+import type { RequestContext, ID } from '@vendure/core';
 
 /**
  * Seller Service Documentation
