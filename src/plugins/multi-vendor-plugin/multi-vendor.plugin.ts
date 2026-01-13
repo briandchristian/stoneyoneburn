@@ -148,6 +148,71 @@ import { SellerProductResolver } from './resolvers/seller-product.resolver';
       `);
     },
   },
+  adminApiExtensions: {
+    // Register seller types in Admin API schema for custom field validation
+    // Types are needed even if not exposed via queries/mutations, as Vendure
+    // validates custom field relation types against the Admin API schema
+    schema: (): DocumentNode => {
+      return parse(`
+        # Seller types for Admin API schema validation
+        # These types are required for custom field relations even if not exposed via queries/mutations
+        
+        interface MarketplaceSellerBase {
+          id: ID!
+          name: String!
+          email: String!
+          isActive: Boolean!
+          verificationStatus: SellerVerificationStatus!
+          createdAt: DateTime!
+          updatedAt: DateTime!
+          sellerType: SellerType!
+          customerId: ID!
+        }
+
+        type IndividualSeller implements MarketplaceSellerBase {
+          id: ID!
+          name: String!
+          email: String!
+          isActive: Boolean!
+          verificationStatus: SellerVerificationStatus!
+          createdAt: DateTime!
+          updatedAt: DateTime!
+          sellerType: SellerType!
+          customerId: ID!
+          firstName: String!
+          lastName: String!
+          birthDate: DateTime
+        }
+
+        type CompanySeller implements MarketplaceSellerBase {
+          id: ID!
+          name: String!
+          email: String!
+          isActive: Boolean!
+          verificationStatus: SellerVerificationStatus!
+          createdAt: DateTime!
+          updatedAt: DateTime!
+          sellerType: SellerType!
+          customerId: ID!
+          companyName: String!
+          vatNumber: String!
+          legalForm: String
+        }
+
+        enum SellerType {
+          INDIVIDUAL
+          COMPANY
+        }
+
+        enum SellerVerificationStatus {
+          PENDING
+          VERIFIED
+          REJECTED
+          SUSPENDED
+        }
+      `);
+    },
+  },
   configuration: (config) => {
     // Add custom field to Customer entity to link to MarketplaceSeller
     // This allows bidirectional navigation: Customer <-> MarketplaceSeller
@@ -177,6 +242,9 @@ import { SellerProductResolver } from './resolvers/seller-product.resolver';
     config.customFields.Product = config.customFields.Product || [];
     // For polymorphic relations, we use IndividualSeller as the base entity type
     // TypeORM STI will handle the discriminator automatically
+    // Note: This field is internal (admin-only) because IndividualSeller type
+    // is only defined in Shop API schema. For Shop API access, seller info
+    // can be exposed through Product resolvers or separate queries.
     config.customFields.Product.push({
       name: 'seller',
       type: 'relation',
@@ -189,8 +257,8 @@ import { SellerProductResolver } from './resolvers/seller-product.resolver';
           value: 'The marketplace seller who owns this product',
         },
       ],
-      public: true, // Visible in Shop API for product pages
-      internal: false, // Not admin-only, customers can see who sells products
+      public: false, // Not exposed in Shop API (IndividualSeller type not in Admin API schema)
+      internal: true, // Admin-only for now; Shop API can access via resolvers/queries
     });
 
     return config;
