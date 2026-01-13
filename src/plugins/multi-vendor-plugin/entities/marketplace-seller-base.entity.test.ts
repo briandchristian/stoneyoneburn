@@ -6,7 +6,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import { MarketplaceSellerBase, SellerType, SellerVerificationStatus } from './marketplace-seller-base.entity';
+import { SellerType, SellerVerificationStatus } from './marketplace-seller-base.entity';
 import { IndividualSeller } from './individual-seller.entity';
 import { CompanySeller } from './company-seller.entity';
 
@@ -77,7 +77,7 @@ describe('MarketplaceSellerBase', () => {
       seller.lastName = 'Doe';
       seller.name = 'John Shop';
       seller.email = 'john@example.com';
-      
+
       expect(seller.firstName).toBe('John');
       expect(seller.lastName).toBe('Doe');
       expect(seller.birthDate).toBeUndefined(); // Optional field
@@ -96,7 +96,7 @@ describe('MarketplaceSellerBase', () => {
       seller.email = 'john@example.com';
       seller.isActive = true;
       seller.verificationStatus = SellerVerificationStatus.PENDING;
-      
+
       expect(seller.id).toBe('1');
       expect(seller.name).toBe('John Shop');
       expect(seller.email).toBe('john@example.com');
@@ -118,7 +118,7 @@ describe('MarketplaceSellerBase', () => {
       seller.legalForm = 'LLC';
       seller.name = 'Acme Shop';
       seller.email = 'contact@acme.com';
-      
+
       expect(seller.companyName).toBe('Acme Corp');
       expect(seller.vatNumber).toBe('US-123456789');
       expect(seller.legalForm).toBe('LLC');
@@ -137,7 +137,7 @@ describe('MarketplaceSellerBase', () => {
       seller.email = 'contact@acme.com';
       seller.isActive = true;
       seller.verificationStatus = SellerVerificationStatus.PENDING;
-      
+
       expect(seller.id).toBe('1');
       expect(seller.name).toBe('Acme Shop');
       expect(seller.email).toBe('contact@acme.com');

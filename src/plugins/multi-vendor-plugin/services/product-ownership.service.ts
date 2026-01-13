@@ -50,19 +50,13 @@ export class ProductOwnershipService {
    *
    * @throws ProductOwnershipError if seller cannot create products
    */
-  async validateSellerCanCreateProducts(
-    ctx: RequestContext,
-    sellerId: ID
-  ): Promise<void> {
+  async validateSellerCanCreateProducts(ctx: RequestContext, sellerId: ID): Promise<void> {
     const seller = await this.connection
       .getRepository(ctx, MarketplaceSeller)
       .findOne({ where: { id: sellerId } });
 
     if (!seller) {
-      throw new ProductOwnershipError(
-        SellerErrorCode.SELLER_NOT_FOUND,
-        'Seller not found'
-      );
+      throw new ProductOwnershipError(SellerErrorCode.SELLER_NOT_FOUND, 'Seller not found');
     }
 
     if (seller.verificationStatus !== SellerVerificationStatus.VERIFIED) {
@@ -73,10 +67,7 @@ export class ProductOwnershipService {
     }
 
     if (!seller.isActive) {
-      throw new ProductOwnershipError(
-        SellerErrorCode.SELLER_NOT_ACTIVE,
-        'Seller is not active'
-      );
+      throw new ProductOwnershipError(SellerErrorCode.SELLER_NOT_ACTIVE, 'Seller is not active');
     }
   }
 
@@ -85,23 +76,14 @@ export class ProductOwnershipService {
    *
    * @throws ProductOwnershipError if product does not belong to seller
    */
-  async validateProductOwnership(
-    ctx: RequestContext,
-    productId: ID,
-    sellerId: ID
-  ): Promise<void> {
-    const product = await this.connection
-      .getRepository(ctx, Product)
-      .findOne({
-        where: { id: productId },
-        relations: ['customFields'],
-      });
+  async validateProductOwnership(ctx: RequestContext, productId: ID, sellerId: ID): Promise<void> {
+    const product = await this.connection.getRepository(ctx, Product).findOne({
+      where: { id: productId },
+      relations: ['customFields'],
+    });
 
     if (!product) {
-      throw new ProductOwnershipError(
-        SellerErrorCode.PRODUCT_NOT_FOUND,
-        'Product not found'
-      );
+      throw new ProductOwnershipError(SellerErrorCode.PRODUCT_NOT_FOUND, 'Product not found');
     }
 
     // Check if product has a seller
@@ -128,18 +110,13 @@ export class ProductOwnershipService {
    * @throws ProductOwnershipError if product has no seller
    */
   async validateProductHasSeller(ctx: RequestContext, productId: ID): Promise<void> {
-    const product = await this.connection
-      .getRepository(ctx, Product)
-      .findOne({
-        where: { id: productId },
-        relations: ['customFields'],
-      });
+    const product = await this.connection.getRepository(ctx, Product).findOne({
+      where: { id: productId },
+      relations: ['customFields'],
+    });
 
     if (!product) {
-      throw new ProductOwnershipError(
-        SellerErrorCode.PRODUCT_NOT_FOUND,
-        'Product not found'
-      );
+      throw new ProductOwnershipError(SellerErrorCode.PRODUCT_NOT_FOUND, 'Product not found');
     }
 
     const productSellerId = (product.customFields as any)?.sellerId;
@@ -157,12 +134,10 @@ export class ProductOwnershipService {
    * @returns Seller ID if product has a seller, null otherwise
    */
   async getProductSellerId(ctx: RequestContext, productId: ID): Promise<ID | null> {
-    const product = await this.connection
-      .getRepository(ctx, Product)
-      .findOne({
-        where: { id: productId },
-        relations: ['customFields'],
-      });
+    const product = await this.connection.getRepository(ctx, Product).findOne({
+      where: { id: productId },
+      relations: ['customFields'],
+    });
 
     if (!product) {
       return null;
@@ -176,7 +151,7 @@ export class ProductOwnershipService {
    *
    * Admins bypass product ownership validation
    */
-  isAdmin(ctx: RequestContext): boolean {
+  isAdmin(_ctx: RequestContext): boolean {
     // In Vendure, admins have different user context
     // This is a simplified check - in practice, you'd check ctx.user?.roles
     // For now, we assume admins use Admin API and sellers use Shop API

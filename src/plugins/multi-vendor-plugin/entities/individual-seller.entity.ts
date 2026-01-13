@@ -8,7 +8,6 @@
 import { Column, ChildEntity, Index } from 'typeorm';
 import { ObjectType, Field } from '@nestjs/graphql';
 import type { ID, DeepPartial } from '@vendure/core';
-import { Customer } from '@vendure/core';
 import {
   MarketplaceSellerBase,
   SellerType,
@@ -50,7 +49,7 @@ export class IndividualSeller extends MarketplaceSellerSTIBase implements Market
   /**
    * Common fields inherited from MarketplaceSellerSTIBase (with @Column() decorators):
    * - sellerType, customer, customerId, name, email, verificationStatus, isActive, createdAt, updatedAt
-   * 
+   *
    * These are defined in the base class for TypeORM STI.
    * We add @Field() decorators here for GraphQL only (NOT @Column() - that would duplicate).
    */
@@ -100,5 +99,4 @@ export class IndividualSeller extends MarketplaceSellerSTIBase implements Market
     description: 'Date of birth for age verification and legal compliance',
   })
   birthDate?: Date;
-
 }

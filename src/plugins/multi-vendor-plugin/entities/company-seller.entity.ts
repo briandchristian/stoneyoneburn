@@ -8,7 +8,6 @@
 import { Column, ChildEntity, Index } from 'typeorm';
 import { ObjectType, Field, registerEnumType } from '@nestjs/graphql';
 import type { ID, DeepPartial } from '@vendure/core';
-import { Customer } from '@vendure/core';
 import {
   MarketplaceSellerBase,
   SellerType,
@@ -67,7 +66,7 @@ export class CompanySeller extends MarketplaceSellerSTIBase implements Marketpla
   /**
    * Common fields inherited from MarketplaceSellerSTIBase (with @Column() decorators):
    * - sellerType, customer, customerId, name, email, verificationStatus, isActive, createdAt, updatedAt
-   * 
+   *
    * These are defined in the base class for TypeORM STI.
    * We add @Field() decorators here for GraphQL only (NOT @Column() - that would duplicate).
    */
@@ -122,5 +121,4 @@ export class CompanySeller extends MarketplaceSellerSTIBase implements Marketpla
     description: 'Legal form of the company (LLC, INC, Corporation, etc.)',
   })
   legalForm?: string;
-
 }

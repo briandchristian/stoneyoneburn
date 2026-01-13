@@ -11,10 +11,10 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { RequestContext, ID } from '@vendure/core';
+import type { RequestContext } from '@vendure/core';
 import { MarketplaceSellerResolver } from './marketplace-seller.resolver';
 import { SellerService } from '../services/seller.service';
-import { MarketplaceSellerBase, SellerType } from '../entities/marketplace-seller-base.entity';
+import { SellerType } from '../entities/marketplace-seller-base.entity';
 import { IndividualSeller } from '../entities/individual-seller.entity';
 import { CompanySeller } from '../entities/company-seller.entity';
 
@@ -51,7 +51,7 @@ describe('MarketplaceSellerResolver', () => {
     // Using jest.fn() and casting for compatibility with Jest version
     const findByIdMock = jest.fn();
     const findAllMock = jest.fn();
-    
+
     mockSellerService = {
       findSellerById: findByIdMock,
       findAllSellers: findAllMock,
@@ -323,8 +323,10 @@ describe('MarketplaceSellerResolver', () => {
       };
 
       // Act - The resolveType function checks type-specific fields
-      const hasIndividualFields = plainIndividual.firstName !== undefined || plainIndividual.lastName !== undefined;
-      const hasCompanyFields = plainCompany.companyName !== undefined || plainCompany.vatNumber !== undefined;
+      const hasIndividualFields =
+        plainIndividual.firstName !== undefined || plainIndividual.lastName !== undefined;
+      const hasCompanyFields =
+        plainCompany.companyName !== undefined || plainCompany.vatNumber !== undefined;
 
       // Assert
       expect(hasIndividualFields).toBe(true);

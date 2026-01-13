@@ -21,10 +21,7 @@ export class AddSellerCustomFieldToProduct1768061000000 implements MigrationInte
   public async up(queryRunner: QueryRunner): Promise<void> {
     // Add seller custom field column to product table
     // Vendure uses camelCase naming: seller -> customFieldsSellerid
-    await queryRunner.query(
-      `ALTER TABLE "product" ADD "customFieldsSellerid" integer`,
-      undefined
-    );
+    await queryRunner.query(`ALTER TABLE "product" ADD "customFieldsSellerid" integer`, undefined);
 
     // Add workaround column for relational custom fields
     // This is a Vendure requirement when only relational custom fields are defined
@@ -56,10 +53,7 @@ export class AddSellerCustomFieldToProduct1768061000000 implements MigrationInte
 
   public async down(queryRunner: QueryRunner): Promise<void> {
     // Drop index
-    await queryRunner.query(
-      `DROP INDEX IF EXISTS "IDX_product_customFieldsSellerid"`,
-      undefined
-    );
+    await queryRunner.query(`DROP INDEX IF EXISTS "IDX_product_customFieldsSellerid"`, undefined);
 
     // Drop foreign key constraint
     await queryRunner.query(
