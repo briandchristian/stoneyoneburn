@@ -12,8 +12,8 @@
 
 import { Injectable } from '@nestjs/common';
 import type { RequestContext, ID } from '@vendure/core';
-import { TransactionalConnection, Product, SellerVerificationStatus } from '@vendure/core';
-import { MarketplaceSeller } from '../entities/seller.entity';
+import { TransactionalConnection, Product } from '@vendure/core';
+import { MarketplaceSeller, SellerVerificationStatus } from '../entities/seller.entity';
 import { SellerErrorCode } from '../errors/seller-errors';
 
 /**
