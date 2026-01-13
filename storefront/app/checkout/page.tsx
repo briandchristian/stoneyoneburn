@@ -24,6 +24,7 @@
 
 import { useState } from 'react';
 import { useQuery, useMutation } from '@apollo/client';
+import { apolloClient } from '@/lib/apollo-client';
 import {
   GET_ACTIVE_ORDER,
   GET_ELIGIBLE_SHIPPING_METHODS,
@@ -107,8 +108,14 @@ export default function CheckoutPage() {
     awaitRefetchQueries: true,
   });
 
-  const [addPayment] = useMutation(ADD_PAYMENT_TO_ORDER);
-  const [transitionOrder] = useMutation(TRANSITION_ORDER_TO_STATE);
+  const [addPayment] = useMutation(ADD_PAYMENT_TO_ORDER, {
+    refetchQueries: ['GetActiveOrder'],
+    awaitRefetchQueries: true,
+  });
+  const [transitionOrder] = useMutation(TRANSITION_ORDER_TO_STATE, {
+    refetchQueries: ['GetActiveOrder'],
+    awaitRefetchQueries: true,
+  });
 
   if (orderLoading) {
     return (
@@ -213,6 +220,13 @@ export default function CheckoutPage() {
       // Transition order to ArrangingPayment state
       await transitionOrder({
         variables: { state: 'ArrangingPayment' },
+      });
+
+      // Clear the Apollo cache for activeOrder after checkout completes
+      // This ensures the cart is empty when navigating back to other pages
+      // The order is now complete, so activeOrder should be null
+      await apolloClient.refetchQueries({
+        include: ['GetActiveOrder'],
       });
 
       setStep('complete');

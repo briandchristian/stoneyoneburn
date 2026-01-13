@@ -5,7 +5,7 @@
  * Following Vendure's ErrorResult pattern.
  */
 
-import { ObjectType, Field } from '@nestjs/graphql';
+import { ObjectType, Field, registerEnumType } from '@nestjs/graphql';
 
 /**
  * Error codes for seller registration
@@ -20,7 +20,17 @@ export enum SellerErrorCode {
   SHOP_SLUG_GENERATION_FAILED = 'SHOP_SLUG_GENERATION_FAILED',
   SELLER_NOT_FOUND = 'SELLER_NOT_FOUND',
   NOT_SELLER_OWNER = 'NOT_SELLER_OWNER',
+  PRODUCT_OWNERSHIP_REQUIRED = 'PRODUCT_OWNERSHIP_REQUIRED',
+  PRODUCT_NOT_OWNED_BY_SELLER = 'PRODUCT_NOT_OWNED_BY_SELLER',
+  SELLER_NOT_VERIFIED = 'SELLER_NOT_VERIFIED',
+  SELLER_NOT_ACTIVE = 'SELLER_NOT_ACTIVE',
+  PRODUCT_NOT_FOUND = 'PRODUCT_NOT_FOUND',
 }
+
+registerEnumType(SellerErrorCode, {
+  name: 'SellerErrorCode',
+  description: 'Error codes for seller operations',
+});
 
 /**
  * Seller Registration Error
@@ -29,8 +39,8 @@ export enum SellerErrorCode {
  */
 @ObjectType()
 export class SellerRegistrationError {
-  @Field(() => String)
-  errorCode!: string;
+  @Field(() => SellerErrorCode)
+  errorCode!: SellerErrorCode;
 
   @Field()
   message!: string;
@@ -48,8 +58,8 @@ export class SellerRegistrationError {
  */
 @ObjectType()
 export class SellerUpdateError {
-  @Field(() => String)
-  errorCode!: string;
+  @Field(() => SellerErrorCode)
+  errorCode!: SellerErrorCode;
 
   @Field()
   message!: string;

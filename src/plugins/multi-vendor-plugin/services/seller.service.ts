@@ -9,6 +9,9 @@ import { Injectable } from '@nestjs/common';
 import type { RequestContext, ID } from '@vendure/core';
 import { TransactionalConnection, Transaction, CustomerService } from '@vendure/core';
 import { MarketplaceSeller, SellerVerificationStatus } from '../entities/seller.entity';
+import { MarketplaceSellerBase, SellerType } from '../entities/marketplace-seller-base.entity';
+import { IndividualSeller } from '../entities/individual-seller.entity';
+import { CompanySeller } from '../entities/company-seller.entity';
 import {
   SellerErrorCode,
   SellerRegistrationError,
@@ -279,6 +282,74 @@ export class SellerService {
         );
       }
     }
+  }
+
+  /**
+   * Find seller by ID (for polymorphic resolver)
+   *
+   * Returns the seller as a polymorphic type (IndividualSeller or CompanySeller).
+   * Uses TypeORM's Single Table Inheritance to load the correct concrete type.
+   *
+   * @param ctx - Request context
+   * @param sellerId - Seller ID
+   * @returns MarketplaceSellerBase (IndividualSeller or CompanySeller) or null
+   */
+  async findSellerById(ctx: RequestContext, sellerId: ID): Promise<MarketplaceSellerBase | null> {
+    // Try IndividualSeller first
+    const individualRepo = this.connection.getRepository(ctx, IndividualSeller);
+    const individualSeller = await individualRepo.findOne({ where: { id: sellerId } });
+
+    if (individualSeller) {
+      return individualSeller;
+    }
+
+    // Try CompanySeller
+    const companyRepo = this.connection.getRepository(ctx, CompanySeller);
+    const companySeller = await companyRepo.findOne({ where: { id: sellerId } });
+
+    if (companySeller) {
+      return companySeller;
+    }
+
+    // Fallback: try legacy MarketplaceSeller (for backward compatibility during migration)
+    const legacyRepo = this.connection.getRepository(ctx, MarketplaceSeller);
+    const legacySeller = await legacyRepo.findOne({ where: { id: sellerId } });
+
+    if (legacySeller) {
+      // Convert legacy seller to IndividualSeller (default type during migration)
+      // In production, you'd want to migrate this data properly
+      const individualSeller = individualRepo.create({
+        ...legacySeller,
+        sellerType: SellerType.INDIVIDUAL,
+        firstName: legacySeller.shopName.split(' ')[0] || legacySeller.shopName,
+        lastName: legacySeller.shopName.split(' ').slice(1).join(' ') || '',
+        name: legacySeller.shopName,
+        email: legacySeller.customer?.emailAddress || '',
+      });
+      return individualSeller;
+    }
+
+    return null;
+  }
+
+  /**
+   * Find all sellers (for polymorphic resolver)
+   *
+   * Returns all sellers as polymorphic types.
+   *
+   * @param ctx - Request context
+   * @returns Array of MarketplaceSellerBase
+   */
+  async findAllSellers(ctx: RequestContext): Promise<MarketplaceSellerBase[]> {
+    const individualRepo = this.connection.getRepository(ctx, IndividualSeller);
+    const companyRepo = this.connection.getRepository(ctx, CompanySeller);
+
+    const [individualSellers, companySellers] = await Promise.all([
+      individualRepo.find(),
+      companyRepo.find(),
+    ]);
+
+    return [...individualSellers, ...companySellers];
   }
 
   /**

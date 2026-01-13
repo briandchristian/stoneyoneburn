@@ -7,15 +7,10 @@
 
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { InputType, Field as GQLField, ID } from '@nestjs/graphql';
-import type { CustomerService, RequestContext } from '@vendure/core';
-import { Ctx, Allow, Permission } from '@vendure/core';
+import type { RequestContext } from '@vendure/core';
+import { Ctx, Allow, Permission, CustomerService } from '@vendure/core';
 import { MarketplaceSeller } from '../entities/seller.entity';
 import { SellerService } from '../services/seller.service';
-import type { SellerRegistrationError, SellerUpdateError } from '../errors/seller-errors';
-import {
-  SellerRegistrationError as SellerRegistrationErrorClass,
-  SellerUpdateError as SellerUpdateErrorClass,
-} from '../errors/seller-errors';
 
 /**
  * GraphQL Input Types
@@ -56,15 +51,9 @@ export class UpdateSellerProfileInput {
   taxId?: string;
 }
 
-/**
- * GraphQL union type for seller registration result
- */
-export type RegisterSellerResult = MarketplaceSeller | SellerRegistrationError;
-
-/**
- * GraphQL union type for seller update result
- */
-export type UpdateSellerProfileResult = MarketplaceSeller | SellerUpdateError;
+// Note: Using standard GraphQL error handling (throwing errors) instead of union types
+// This avoids schema parsing issues where types aren't registered yet when Vendure parses the schema string
+// The service already throws SellerRegistrationError and SellerUpdateError which will be properly handled by GraphQL
 
 /**
  * Seller Resolver
@@ -80,51 +69,45 @@ export class SellerResolver {
 
   /**
    * Register the current customer as a seller
+   *
+   * Errors are thrown as SellerRegistrationError exceptions which GraphQL will handle
    */
-  @Mutation(() => MarketplaceSeller, { nullable: true })
+  @Mutation(() => MarketplaceSeller)
   @Allow(Permission.Authenticated)
   async registerAsSeller(
     @Ctx() ctx: RequestContext,
     @Args('input') input: RegisterSellerInput
-  ): Promise<RegisterSellerResult> {
-    try {
-      return await this.sellerService.registerSeller(ctx, {
-        shopName: input.shopName,
-        shopDescription: input.shopDescription,
-        businessName: input.businessName,
-      });
-    } catch (error) {
-      if (error instanceof SellerRegistrationErrorClass) {
-        return error;
-      }
-      throw error;
-    }
+  ): Promise<MarketplaceSeller> {
+    // Service throws SellerRegistrationError on validation failures
+    // GraphQL will automatically convert these to proper error responses
+    return await this.sellerService.registerSeller(ctx, {
+      shopName: input.shopName,
+      shopDescription: input.shopDescription,
+      businessName: input.businessName,
+    });
   }
 
   /**
    * Update seller profile
+   *
+   * Errors are thrown as SellerUpdateError exceptions which GraphQL will handle
    */
-  @Mutation(() => MarketplaceSeller, { nullable: true })
+  @Mutation(() => MarketplaceSeller)
   @Allow(Permission.Authenticated)
   async updateSellerProfile(
     @Ctx() ctx: RequestContext,
     @Args('input') input: UpdateSellerProfileInput
-  ): Promise<UpdateSellerProfileResult> {
-    try {
-      return await this.sellerService.updateSellerProfile(ctx, input.sellerId, {
-        shopName: input.shopName,
-        shopDescription: input.shopDescription,
-        shopBannerAssetId: input.shopBannerAssetId,
-        shopLogoAssetId: input.shopLogoAssetId,
-        businessName: input.businessName,
-        taxId: input.taxId,
-      });
-    } catch (error) {
-      if (error instanceof SellerUpdateErrorClass) {
-        return error;
-      }
-      throw error;
-    }
+  ): Promise<MarketplaceSeller> {
+    // Service throws SellerUpdateError on validation failures
+    // GraphQL will automatically convert these to proper error responses
+    return await this.sellerService.updateSellerProfile(ctx, input.sellerId, {
+      shopName: input.shopName,
+      shopDescription: input.shopDescription,
+      shopBannerAssetId: input.shopBannerAssetId,
+      shopLogoAssetId: input.shopLogoAssetId,
+      businessName: input.businessName,
+      taxId: input.taxId,
+    });
   }
 
   /**
