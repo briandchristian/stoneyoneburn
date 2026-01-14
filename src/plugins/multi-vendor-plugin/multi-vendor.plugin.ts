@@ -165,12 +165,17 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
           description: String
         }
 
+        type SellerProductDeletionResponse {
+          result: String!
+          message: String
+        }
+
         extend type Mutation {
           registerAsSeller(input: RegisterSellerInput!): MarketplaceSeller!
           updateSellerProfile(input: UpdateSellerProfileInput!): MarketplaceSeller!
           createSellerProduct(input: CreateSellerProductInput!): Product!
           updateSellerProduct(input: UpdateSellerProductInput!): Product!
-          deleteSellerProduct(productId: ID!): DeletionResponse!
+          deleteSellerProduct(productId: ID!): SellerProductDeletionResponse!
         }
 
         extend type Query {

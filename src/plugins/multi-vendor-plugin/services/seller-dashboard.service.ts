@@ -13,7 +13,6 @@
 import { Injectable } from '@nestjs/common';
 import type { RequestContext, ID } from '@vendure/core';
 import { TransactionalConnection, Order, OrderLine, Product, ProductVariant } from '@vendure/core';
-import { MarketplaceSeller } from '../entities/seller.entity';
 
 /**
  * Seller Dashboard Statistics
@@ -78,10 +77,7 @@ export class SellerDashboardService {
   /**
    * Get aggregated statistics for seller dashboard
    */
-  async getSellerDashboardStats(
-    ctx: RequestContext,
-    sellerId: ID
-  ): Promise<SellerDashboardStats> {
+  async getSellerDashboardStats(ctx: RequestContext, sellerId: ID): Promise<SellerDashboardStats> {
     // Get product statistics
     const productStats = await this.getProductStats(ctx, sellerId);
 
@@ -239,11 +235,12 @@ export class SellerDashboardService {
       const orderRevenue = await this.getOrderRevenueForSeller(ctx, order.id, sellerId);
       totalRevenue += orderRevenue;
 
-      // Categorize by order state
-      if (order.state === 'Fulfilled' || order.state === 'PaymentSettled') {
+      // Categorize by order state (order.state is a string)
+      const state = order.state as string;
+      if (state === 'Fulfilled' || state === 'PaymentSettled') {
         completedOrders++;
         completedRevenue += orderRevenue;
-      } else if (order.state === 'PaymentAuthorized' || order.state === 'ArrangingPayment') {
+      } else if (state === 'PaymentAuthorized' || state === 'ArrangingPayment') {
         pendingOrders++;
         pendingRevenue += orderRevenue;
       }
@@ -310,9 +307,10 @@ export class SellerDashboardService {
     for (const line of orderLines) {
       // proratedUnitPriceWithTax is a Money object, extract the value
       // Multiply by quantity to get total for this line
-      const unitPrice = typeof line.proratedUnitPriceWithTax === 'number'
-        ? line.proratedUnitPriceWithTax
-        : (line.proratedUnitPriceWithTax as any)?.value || 0;
+      const unitPrice =
+        typeof line.proratedUnitPriceWithTax === 'number'
+          ? line.proratedUnitPriceWithTax
+          : (line.proratedUnitPriceWithTax as any)?.value || 0;
       const lineTotal = unitPrice * line.quantity;
       revenue += lineTotal;
     }

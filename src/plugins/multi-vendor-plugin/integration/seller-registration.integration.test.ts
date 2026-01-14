@@ -42,16 +42,16 @@ async function makeGraphQLRequest(query: string, variables: any = {}, cookies: s
   });
 
   const data = await response.json();
-  
+
   // Handle cookie extraction - cookies might be in set-cookie header or already in cookies string
   let newCookies = cookies;
   const setCookieHeader = response.headers.get('set-cookie');
   if (setCookieHeader) {
     // Extract all cookies from set-cookie header
     // Vendure uses connect.sid for session cookies
-    const cookieParts = setCookieHeader.split(',').map(c => c.trim());
+    const cookieParts = setCookieHeader.split(',').map((c) => c.trim());
     const cookieStrings: string[] = [];
-    
+
     for (const cookiePart of cookieParts) {
       // Extract cookie name and value (before first semicolon)
       const match = cookiePart.match(/^([^=]+)=([^;]+)/);
@@ -59,7 +59,7 @@ async function makeGraphQLRequest(query: string, variables: any = {}, cookies: s
         cookieStrings.push(`${match[1]}=${match[2]}`);
       }
     }
-    
+
     if (cookieStrings.length > 0) {
       newCookies = cookieStrings.join('; ');
     } else {
@@ -67,7 +67,7 @@ async function makeGraphQLRequest(query: string, variables: any = {}, cookies: s
       newCookies = setCookieHeader.split(';')[0]; // Just the name=value part
     }
   }
-  
+
   return { data, cookies: newCookies };
 }
 
@@ -194,29 +194,33 @@ describe('Seller Registration Integration Tests', () => {
       }
 
       expect(result.data.data).toBeDefined();
-      
+
       // Login might return null if email verification is required
       if (!result.data.data || !result.data.data.login) {
         console.warn('Login returned null - email verification may be required');
         console.warn('Full response:', JSON.stringify(result.data, null, 2));
-        
+
         // Try to verify email if we have a token (in dev mode, check test-emails directory)
         // For now, we'll skip this test with a helpful message
         console.warn('⚠️  Skipping authenticated tests - customer email verification required');
         console.warn('   In development, check static/email/test-emails/ for verification token');
         console.warn('   Or use an already-verified customer account');
-        
+
         // Mark that we can't proceed with authenticated tests
         (global as any).__CUSTOMER_VERIFIED__ = false;
-        throw new Error('Login returned null - email verification required. Use a verified customer or verify email first.');
+        throw new Error(
+          'Login returned null - email verification required. Use a verified customer or verify email first.'
+        );
       }
-      
+
       // Mark customer as verified
       (global as any).__CUSTOMER_VERIFIED__ = true;
 
       // Check if login returned an error result
       if (result.data.data.login.errorCode) {
-        throw new Error(`Login error: ${result.data.data.login.message} (${result.data.data.login.errorCode})`);
+        throw new Error(
+          `Login error: ${result.data.data.login.message} (${result.data.data.login.errorCode})`
+        );
       }
 
       expect(result.data.data.login.id).toBeDefined();
@@ -224,7 +228,7 @@ describe('Seller Registration Integration Tests', () => {
 
       // Store cookies for authenticated requests
       customerCookies = result.cookies;
-      
+
       // Verify cookies were set
       if (!customerCookies) {
         console.warn('No cookies received from login - authentication may fail');
@@ -277,14 +281,13 @@ describe('Seller Registration Integration Tests', () => {
       expect(result.data.data.registerAsSeller).toBeDefined();
       expect(result.data.data.registerAsSeller.id).toBeDefined();
       expect(result.data.data.registerAsSeller.shopName).toBe('My Awesome Shop');
-      expect(result.data.data.registerAsSeller.shopDescription).toBe('I sell amazing handmade products');
+      expect(result.data.data.registerAsSeller.shopDescription).toBe(
+        'I sell amazing handmade products'
+      );
       expect(result.data.data.registerAsSeller.shopSlug).toBe('my-awesome-shop');
       expect(result.data.data.registerAsSeller.verificationStatus).toBe('PENDING');
       expect(result.data.data.registerAsSeller.isActive).toBe(true);
       expect(result.data.data.registerAsSeller.customer.emailAddress).toBe(customerEmail);
-
-      // Store seller ID for later tests
-      sellerId = result.data.data.registerAsSeller.id;
     });
 
     it('should generate unique shop slug', async () => {
@@ -497,12 +500,12 @@ describe('Seller Registration Integration Tests', () => {
       }
 
       expect(result.data.data).toBeDefined();
-      
+
       // activeSeller might be null if no seller account exists yet
       if (!result.data.data.activeSeller) {
         throw new Error('activeSeller returned null - seller registration may have failed');
       }
-      
+
       expect(result.data.data.activeSeller.id).toBeDefined();
       expect(result.data.data.activeSeller.shopName).toBe('My Awesome Shop');
       expect(result.data.data.activeSeller.shopSlug).toBe('my-awesome-shop');
@@ -541,11 +544,11 @@ describe('Seller Registration Integration Tests', () => {
       }
 
       expect(result.data.data).toBeDefined();
-      
+
       if (!result.data.data.sellerBySlug) {
         throw new Error('sellerBySlug returned null - seller may not exist or slug is incorrect');
       }
-      
+
       expect(result.data.data.sellerBySlug.id).toBeDefined();
       expect(result.data.data.sellerBySlug.shopName).toBe('My Awesome Shop');
       expect(result.data.data.sellerBySlug.shopSlug).toBe('my-awesome-shop');
@@ -608,11 +611,11 @@ describe('Seller Registration Integration Tests', () => {
 
       // First get the seller ID from activeSeller query
       const activeSellerResult = await makeGraphQLRequest(activeSellerQuery, {}, customerCookies);
-      
+
       if (activeSellerResult.data.errors || !activeSellerResult.data.data?.activeSeller) {
         throw new Error('Cannot update profile - activeSeller query failed or returned null');
       }
-      
+
       const activeSellerId = activeSellerResult.data.data.activeSeller.id;
 
       const variables = {

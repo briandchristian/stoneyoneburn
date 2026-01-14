@@ -96,10 +96,7 @@ async function getVerificationToken(email: string): Promise<string | null> {
     const customerEmailFile = emailFiles.find((file) => file.includes(email));
 
     if (customerEmailFile) {
-      const emailContent = fs.readFileSync(
-        path.join(TEST_EMAIL_PATH, customerEmailFile),
-        'utf8'
-      );
+      const emailContent = fs.readFileSync(path.join(TEST_EMAIL_PATH, customerEmailFile), 'utf8');
       const tokenMatch = emailContent.match(/token=([a-zA-Z0-9-_.]+)/);
       if (tokenMatch) {
         return tokenMatch[1];
@@ -377,7 +374,7 @@ describe('Seller Product Management Integration Tests', () => {
   });
 
   describe('Product Update', () => {
-    it('should update a seller\'s own product', async () => {
+    it("should update a seller's own product", async () => {
       if (!(global as any).__VENDURE_SERVER_RUNNING__) {
         console.log('⏭️  Skipping test - server not running');
         return;
@@ -506,7 +503,7 @@ describe('Seller Product Management Integration Tests', () => {
   });
 
   describe('Product Deletion', () => {
-    it('should delete a seller\'s own product', async () => {
+    it("should delete a seller's own product", async () => {
       if (!(global as any).__VENDURE_SERVER_RUNNING__) {
         console.log('⏭️  Skipping test - server not running');
         return;
@@ -609,7 +606,7 @@ describe('Seller Product Management Integration Tests', () => {
   });
 
   describe('Product Ownership Validation', () => {
-    it('should query sellerProducts to list seller\'s products', async () => {
+    it("should query sellerProducts to list seller's products", async () => {
       if (!(global as any).__VENDURE_SERVER_RUNNING__) {
         console.log('⏭️  Skipping test - server not running');
         return;

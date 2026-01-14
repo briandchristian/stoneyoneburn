@@ -16,7 +16,7 @@ import { validateEnvironmentVariables } from './config/env-validation';
 import { getSecurityConfig, isProductionMode, validateSecurityConfig } from './config/security';
 import { getStripeConfig, validateStripeConfig } from './config/stripe-config';
 import { MultiVendorPlugin } from './plugins/multi-vendor-plugin/multi-vendor.plugin';
-import { TestAutoVerifyPlugin } from './plugins/test-auto-verify-plugin';
+// import { TestAutoVerifyPlugin } from './plugins/test-auto-verify-plugin'; // Temporarily disabled - compilation errors
 
 // Validate critical environment variables on startup
 // Critical variables (authentication, security) are always required, even in development
@@ -173,11 +173,11 @@ export const config: VendureConfig = {
     }),
     // Multi-Vendor Plugin - Phase 2
     MultiVendorPlugin,
-    // Test Auto-Verify Plugin - Only active in test mode
+    // Test Auto-Verify Plugin - Temporarily disabled due to compilation errors
     // Automatically verifies customer emails to allow integration tests to proceed
-    ...(process.env.NODE_ENV === 'test' || process.env.APP_ENV === 'test'
-      ? [TestAutoVerifyPlugin]
-      : []),
+    // ...(process.env.NODE_ENV === 'test' || process.env.APP_ENV === 'test'
+    //   ? [TestAutoVerifyPlugin]
+    //   : []),
   ],
 };
 

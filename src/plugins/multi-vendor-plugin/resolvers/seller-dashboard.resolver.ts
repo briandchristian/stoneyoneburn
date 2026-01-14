@@ -14,11 +14,7 @@ import { Resolver, Query, Args, ID, ObjectType, Field, Int } from '@nestjs/graph
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission } from '@vendure/core';
 import { SellerDashboardService } from '../services/seller-dashboard.service';
-import type {
-  SellerDashboardStats,
-  SellerOrderSummary,
-  SellerProductSummary,
-} from '../services/seller-dashboard.service';
+import type { SellerDashboardStats } from '../services/seller-dashboard.service';
 
 /**
  * GraphQL Types for Seller Dashboard
@@ -72,7 +68,7 @@ export class RecentOrderType {
 }
 
 @ObjectType()
-export class SellerOrderSummaryType implements SellerOrderSummary {
+export class SellerOrderSummaryType {
   @Field(() => ID)
   sellerId!: string;
 
@@ -93,7 +89,7 @@ export class SellerOrderSummaryType implements SellerOrderSummary {
 }
 
 @ObjectType()
-export class SellerProductSummaryType implements SellerProductSummary {
+export class SellerProductSummaryType {
   @Field(() => ID)
   sellerId!: string;
 
@@ -149,11 +145,7 @@ export class SellerDashboardResolver {
     @Args('sellerId', { type: () => ID }) sellerId: string,
     @Args('limit', { type: () => Int, nullable: true, defaultValue: 10 }) limit?: number
   ): Promise<SellerOrderSummaryType> {
-    const summary = await this.sellerDashboardService.getSellerOrderSummary(
-      ctx,
-      sellerId,
-      limit
-    );
+    const summary = await this.sellerDashboardService.getSellerOrderSummary(ctx, sellerId, limit);
 
     // Convert objects to JSON strings for GraphQL
     return {

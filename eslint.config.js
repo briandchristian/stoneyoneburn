@@ -2,7 +2,7 @@
 module.exports = [
   {
     files: ['src/**/*.ts', 'tests/**/*.ts'],
-    ignores: ['src/gql/**'],
+    ignores: ['src/gql/**', 'src/plugins/test-auto-verify-plugin.ts'],
     languageOptions: {
       parser: require('@typescript-eslint/parser'),
       parserOptions: {

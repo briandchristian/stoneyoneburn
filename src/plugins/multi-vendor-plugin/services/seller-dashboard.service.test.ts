@@ -16,7 +16,7 @@
  */
 
 import { describe, it, expect } from '@jest/globals';
-import type { ID, RequestContext } from '@vendure/core';
+import type { ID } from '@vendure/core';
 
 /**
  * Seller Dashboard Statistics
@@ -82,7 +82,6 @@ describe('Seller Dashboard Service', () => {
   describe('getSellerDashboardStats', () => {
     it('should return aggregated statistics for seller dashboard', () => {
       // Contract test: Documents the expected return structure
-      const sellerId: ID = '10';
       const expectedStats: SellerDashboardStats = {
         totalProducts: 25,
         activeProducts: 20,
@@ -200,7 +199,7 @@ describe('Seller Dashboard Service', () => {
     it('should return recent activity for a seller', () => {
       // Contract test: Documents recent activity structure
       const sellerId: ID = '10';
-      const limit = 10;
+      const _limit = 10;
 
       const expectedActivity = {
         sellerId: sellerId,

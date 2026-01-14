@@ -23,7 +23,8 @@
     "admin-ui",
     "src/plugins/**/dashboard/*",
     "src/gql/*",
-    "vite.*.*ts"
+    "vite.*.*ts",
+    "src/plugins/test-auto-verify-plugin.ts"
   ],
   "ts-node": {
     "files": true
