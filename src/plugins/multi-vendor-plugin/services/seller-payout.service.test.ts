@@ -34,7 +34,7 @@ describe('SellerPayoutService', () => {
     mockConnection = {
       getRepository: jest.fn(),
     } as any;
-    
+
     sellerPayoutService = new SellerPayoutService(mockConnection);
   });
 
@@ -161,7 +161,8 @@ describe('SellerPayoutService', () => {
       // Note: This test uses a legacy utility method that no longer exists.
       // The current implementation uses async getPayoutsForSeller(ctx, sellerId).
       // This test is skipped and needs to be updated.
-      const result = (sellerPayoutService as any).getPayoutsForSeller?.(payouts as any, sellerId) || [];
+      const result =
+        (sellerPayoutService as any).getPayoutsForSeller?.(payouts as any, sellerId) || [];
 
       expect(result).toHaveLength(2);
       expect(result[0]?.sellerId).toBe(sellerId);
@@ -173,7 +174,8 @@ describe('SellerPayoutService', () => {
       const payouts: MockPayout[] = [];
 
       // Note: This test uses a legacy utility method that no longer exists.
-      const result = (sellerPayoutService as any).getPayoutsForSeller?.(payouts as any, sellerId) || [];
+      const result =
+        (sellerPayoutService as any).getPayoutsForSeller?.(payouts as any, sellerId) || [];
 
       expect(result).toHaveLength(0);
     });

@@ -12,10 +12,14 @@
  */
 
 import { Injectable } from '@nestjs/common';
-import type { ID, RequestContext, Order, OrderLine } from '@vendure/core';
+import type { ID, RequestContext, Order } from '@vendure/core';
 import { Product, ProductVariant } from '@vendure/core';
 import { TransactionalConnection } from '@vendure/core';
-import { SplitPaymentService, OrderForSplitPayment, OrderLineForSplitPayment } from './split-payment.service';
+import {
+  SplitPaymentService,
+  OrderForSplitPayment,
+  OrderLineForSplitPayment,
+} from './split-payment.service';
 import { SellerPayoutService, PayoutStatus } from './seller-payout.service';
 import { SellerPayout } from '../entities/seller-payout.entity';
 import { CommissionService, DEFAULT_COMMISSION_RATE } from './commission.service';
@@ -59,12 +63,10 @@ export class OrderPaymentHandlerService {
     // Collect all unique seller IDs from order lines and their commission rates
     for (const line of order.lines) {
       // Get product from order line
-      const productVariant = await this.connection
-        .getRepository(ctx, ProductVariant)
-        .findOne({
-          where: { id: line.productVariantId },
-          relations: ['product'],
-        });
+      const productVariant = await this.connection.getRepository(ctx, ProductVariant).findOne({
+        where: { id: line.productVariantId },
+        relations: ['product'],
+      });
 
       if (!productVariant || !productVariant.product) {
         continue; // Skip lines without products

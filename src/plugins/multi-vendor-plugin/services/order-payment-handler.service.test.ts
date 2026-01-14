@@ -39,12 +39,12 @@ describe('OrderPaymentHandlerService', () => {
   beforeEach(() => {
     commissionService = new CommissionService();
     splitPaymentService = new SplitPaymentService(commissionService);
-    
+
     // Mock TransactionalConnection
     mockConnection = {
       getRepository: jest.fn(),
     } as any;
-    
+
     sellerPayoutService = new SellerPayoutService(mockConnection);
     orderPaymentHandlerService = new OrderPaymentHandlerService(
       mockConnection,
@@ -74,7 +74,10 @@ describe('OrderPaymentHandlerService', () => {
       const defaultCommissionRate = 0.15; // 15%
 
       // Note: processOrderPayment now requires ctx and Order entity
-      const result = (orderPaymentHandlerService as any).processOrderPayment?.(order, defaultCommissionRate) || { orderId: order.id, payouts: [], totalCommission: 0 };
+      const result = (orderPaymentHandlerService as any).processOrderPayment?.(
+        order,
+        defaultCommissionRate
+      ) || { orderId: order.id, payouts: [], totalCommission: 0 };
 
       expect((result as any).orderId).toBe(order.id);
       expect((result as any).payouts).toHaveLength(1);
@@ -105,7 +108,10 @@ describe('OrderPaymentHandlerService', () => {
       const defaultCommissionRate = 0.15; // 15%
 
       // Note: processOrderPayment now requires ctx and Order entity
-      const result = (orderPaymentHandlerService as any).processOrderPayment?.(order, defaultCommissionRate) || { orderId: order.id, payouts: [], totalCommission: 0 };
+      const result = (orderPaymentHandlerService as any).processOrderPayment?.(
+        order,
+        defaultCommissionRate
+      ) || { orderId: order.id, payouts: [], totalCommission: 0 };
 
       expect((result as any).orderId).toBe(order.id);
       expect((result as any).payouts).toHaveLength(2);
@@ -140,7 +146,10 @@ describe('OrderPaymentHandlerService', () => {
       ]);
 
       // Note: processOrderPaymentWithRates no longer exists - use processOrderPayment with Order entity
-      const result = (orderPaymentHandlerService as any).processOrderPaymentWithRates?.(order, sellerCommissionRates) || { orderId: order.id, payouts: [], totalCommission: 0 };
+      const result = (orderPaymentHandlerService as any).processOrderPaymentWithRates?.(
+        order,
+        sellerCommissionRates
+      ) || { orderId: order.id, payouts: [], totalCommission: 0 };
 
       expect(result.orderId).toBe(order.id);
       expect((result as any).payouts).toHaveLength(2);
@@ -165,7 +174,10 @@ describe('OrderPaymentHandlerService', () => {
 
       // Note: processOrderPayment now requires ctx and Order entity, not OrderForSplitPayment
       // This test is skipped and needs to be updated
-      const result = (orderPaymentHandlerService as any).processOrderPayment?.(order, defaultCommissionRate) || { orderId: order.id, payouts: [], totalCommission: 0 };
+      const result = (orderPaymentHandlerService as any).processOrderPayment?.(
+        order,
+        defaultCommissionRate
+      ) || { orderId: order.id, payouts: [], totalCommission: 0 };
 
       expect((result as any).orderId).toBe(order.id);
       expect((result as any).payouts).toHaveLength(0);

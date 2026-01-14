@@ -185,10 +185,7 @@ describe('CommissionService', () => {
       // Total: $80.00, Commission: $12.00
       const expectedCommission = 1200; // $12.00 in cents
 
-      const result = commissionService.calculateCommissionForOrderLines(
-        orderLines,
-        commissionRate
-      );
+      const result = commissionService.calculateCommissionForOrderLines(orderLines, commissionRate);
 
       expect(result.totalOrderValue).toBe(8000); // $80.00
       expect(result.commission).toBe(expectedCommission);
@@ -199,10 +196,7 @@ describe('CommissionService', () => {
       const orderLines: Array<{ linePrice: number; sellerId: string }> = [];
       const commissionRate = 0.15;
 
-      const result = commissionService.calculateCommissionForOrderLines(
-        orderLines,
-        commissionRate
-      );
+      const result = commissionService.calculateCommissionForOrderLines(orderLines, commissionRate);
 
       expect(result.totalOrderValue).toBe(0);
       expect(result.commission).toBe(0);
@@ -218,10 +212,7 @@ describe('CommissionService', () => {
       ];
       const commissionRate = 0.15;
 
-      const result = commissionService.calculateCommissionForOrderLines(
-        orderLines,
-        commissionRate
-      );
+      const result = commissionService.calculateCommissionForOrderLines(orderLines, commissionRate);
 
       expect(result.totalOrderValue).toBe(0);
       expect(result.commission).toBe(0);

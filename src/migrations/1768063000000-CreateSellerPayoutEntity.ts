@@ -11,13 +11,7 @@
  * - Support escrow/holding funds until fulfillment
  */
 
-import {
-  MigrationInterface,
-  QueryRunner,
-  Table,
-  TableForeignKey,
-  TableIndex,
-} from 'typeorm';
+import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex } from 'typeorm';
 
 export class CreateSellerPayoutEntity1768063000000 implements MigrationInterface {
   name = 'CreateSellerPayoutEntity1768063000000';
@@ -164,9 +158,7 @@ export class CreateSellerPayoutEntity1768063000000 implements MigrationInterface
     // Drop foreign key
     const table = await queryRunner.getTable('seller_payout');
     if (table) {
-      const foreignKey = table.foreignKeys.find(
-        (fk) => fk.columnNames.indexOf('sellerId') !== -1
-      );
+      const foreignKey = table.foreignKeys.find((fk) => fk.columnNames.indexOf('sellerId') !== -1);
       if (foreignKey) {
         await queryRunner.dropForeignKey('seller_payout', foreignKey);
       }

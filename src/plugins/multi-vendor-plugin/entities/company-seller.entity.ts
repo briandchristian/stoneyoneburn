@@ -95,7 +95,8 @@ export class CompanySeller extends MarketplaceSellerSTIBase implements Marketpla
 
   @Field(() => Number, {
     nullable: true,
-    description: 'Commission rate for this seller (0.0 to 1.0, e.g., 0.15 = 15%). If null, uses default rate.',
+    description:
+      'Commission rate for this seller (0.0 to 1.0, e.g., 0.15 = 15%). If null, uses default rate.',
   })
   declare commissionRate?: number;
 

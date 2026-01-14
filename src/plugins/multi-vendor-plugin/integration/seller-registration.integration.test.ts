@@ -95,7 +95,7 @@ async function checkServerConnection(): Promise<boolean> {
 describe('Seller Registration Integration Tests', () => {
   let customerCookies: string = '';
   let customerEmail: string = '';
-  let sellerId: string = '';
+  let _sellerId: string = '';
 
   beforeAll(async () => {
     // Check if server is running
