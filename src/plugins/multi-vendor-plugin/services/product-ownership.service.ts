@@ -77,18 +77,20 @@ export class ProductOwnershipService {
    * @throws ProductOwnershipError if product does not belong to seller
    */
   async validateProductOwnership(ctx: RequestContext, productId: ID, sellerId: ID): Promise<void> {
-    const product = await this.connection.getRepository(ctx, Product).findOne({
-      where: { id: productId },
-      relations: ['customFields'],
-    });
+    // Query product seller ID directly from the custom field column
+    // Column name: customFieldsSellerid (Vendure naming convention)
+    const result = await this.connection
+      .getRepository(ctx, Product)
+      .createQueryBuilder('product')
+      .select('product.customFieldsSellerid', 'sellerId')
+      .where('product.id = :productId', { productId: parseInt(productId.toString(), 10) })
+      .getRawOne();
 
-    if (!product) {
+    if (!result) {
       throw new ProductOwnershipError(SellerErrorCode.PRODUCT_NOT_FOUND, 'Product not found');
     }
 
-    // Check if product has a seller
-    const productSellerId = (product.customFields as any)?.sellerId;
-    if (!productSellerId) {
+    if (!result.sellerId) {
       throw new ProductOwnershipError(
         SellerErrorCode.PRODUCT_OWNERSHIP_REQUIRED,
         'Product must belong to a seller'
@@ -96,7 +98,7 @@ export class ProductOwnershipService {
     }
 
     // Check if product belongs to the specified seller
-    if (productSellerId.toString() !== sellerId.toString()) {
+    if (result.sellerId.toString() !== sellerId.toString()) {
       throw new ProductOwnershipError(
         SellerErrorCode.PRODUCT_NOT_OWNED_BY_SELLER,
         'Product does not belong to this seller'
@@ -110,17 +112,19 @@ export class ProductOwnershipService {
    * @throws ProductOwnershipError if product has no seller
    */
   async validateProductHasSeller(ctx: RequestContext, productId: ID): Promise<void> {
-    const product = await this.connection.getRepository(ctx, Product).findOne({
-      where: { id: productId },
-      relations: ['customFields'],
-    });
+    // Query product seller ID directly from the custom field column
+    const result = await this.connection
+      .getRepository(ctx, Product)
+      .createQueryBuilder('product')
+      .select('product.customFieldsSellerid', 'sellerId')
+      .where('product.id = :productId', { productId: parseInt(productId.toString(), 10) })
+      .getRawOne();
 
-    if (!product) {
+    if (!result) {
       throw new ProductOwnershipError(SellerErrorCode.PRODUCT_NOT_FOUND, 'Product not found');
     }
 
-    const productSellerId = (product.customFields as any)?.sellerId;
-    if (!productSellerId) {
+    if (!result.sellerId) {
       throw new ProductOwnershipError(
         SellerErrorCode.PRODUCT_OWNERSHIP_REQUIRED,
         'Product must belong to a seller'
@@ -134,16 +138,20 @@ export class ProductOwnershipService {
    * @returns Seller ID if product has a seller, null otherwise
    */
   async getProductSellerId(ctx: RequestContext, productId: ID): Promise<ID | null> {
-    const product = await this.connection.getRepository(ctx, Product).findOne({
-      where: { id: productId },
-      relations: ['customFields'],
-    });
+    // Query product - use raw query to get seller ID directly from column
+    // This is more efficient than loading the full relation
+    const result = await this.connection
+      .getRepository(ctx, Product)
+      .createQueryBuilder('product')
+      .select('product.customFieldsSellerid', 'sellerId')
+      .where('product.id = :productId', { productId: parseInt(productId.toString(), 10) })
+      .getRawOne();
 
-    if (!product) {
+    if (!result || !result.sellerId) {
       return null;
     }
 
-    return (product.customFields as any)?.sellerId || null;
+    return result.sellerId.toString();
   }
 
   /**

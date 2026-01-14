@@ -18,9 +18,12 @@ import { CompanySeller } from './entities/company-seller.entity';
 import { MarketplaceSellerSTIBase } from './entities/marketplace-seller-sti-base.entity';
 import { SellerService } from './services/seller.service';
 import { ProductOwnershipService } from './services/product-ownership.service';
+import { SellerDashboardService } from './services/seller-dashboard.service';
 import { SellerResolver } from './resolvers/seller.resolver';
 import { MarketplaceSellerResolver } from './resolvers/marketplace-seller.resolver';
 import { SellerProductResolver } from './resolvers/seller-product.resolver';
+import { SellerProductManagementResolver } from './resolvers/seller-product-management.resolver';
+import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
 
 /**
  * Multi-Vendor Plugin
@@ -33,10 +36,15 @@ import { SellerProductResolver } from './resolvers/seller-product.resolver';
   // CRITICAL: Base class MUST be registered for TypeORM metadata reflection during migrations
   // Order matters: base class must be processed before children to build complete metadata
   entities: [MarketplaceSellerSTIBase, IndividualSeller, CompanySeller],
-  providers: [SellerService, ProductOwnershipService],
+  providers: [SellerService, ProductOwnershipService, SellerDashboardService],
   shopApiExtensions: {
     // Register both resolvers: legacy SellerResolver and new polymorphic MarketplaceSellerResolver
-    resolvers: [SellerResolver, MarketplaceSellerResolver, SellerProductResolver],
+    resolvers: [
+      SellerResolver,
+      MarketplaceSellerResolver,
+      SellerProductResolver,
+      SellerProductManagementResolver,
+    ],
     // Hybrid schema-first + code-first: Define types and queries in schema string (required by Vendure)
     // This is necessary because Vendure parses schema extensions before NestJS GraphQL decorators register types
     // The schema string defines the GraphQL types, while decorators provide the TypeScript types and resolvers
@@ -133,9 +141,36 @@ import { SellerProductResolver } from './resolvers/seller-product.resolver';
           taxId: String
         }
 
+        input CreateSellerProductInput {
+          translations: [ProductTranslationInput!]!
+          enabled: Boolean
+          featuredAssetId: ID
+          assetIds: [ID!]
+          facetValueIds: [ID!]
+        }
+
+        input UpdateSellerProductInput {
+          productId: ID!
+          translations: [ProductTranslationInput!]
+          enabled: Boolean
+          featuredAssetId: ID
+          assetIds: [ID!]
+          facetValueIds: [ID!]
+        }
+
+        input ProductTranslationInput {
+          languageCode: String!
+          name: String!
+          slug: String!
+          description: String
+        }
+
         extend type Mutation {
           registerAsSeller(input: RegisterSellerInput!): MarketplaceSeller!
           updateSellerProfile(input: UpdateSellerProfileInput!): MarketplaceSeller!
+          createSellerProduct(input: CreateSellerProductInput!): Product!
+          updateSellerProduct(input: UpdateSellerProductInput!): Product!
+          deleteSellerProduct(productId: ID!): DeletionResponse!
         }
 
         extend type Query {
@@ -149,11 +184,54 @@ import { SellerProductResolver } from './resolvers/seller-product.resolver';
     },
   },
   adminApiExtensions: {
-    // Register seller types in Admin API schema for custom field validation
-    // Types are needed even if not exposed via queries/mutations, as Vendure
-    // validates custom field relation types against the Admin API schema
+    resolvers: [SellerDashboardResolver],
     schema: (): DocumentNode => {
       return parse(`
+        # Seller Dashboard Types (Phase 2.4)
+        type SellerDashboardStats {
+          totalProducts: Int!
+          activeProducts: Int!
+          totalOrders: Int!
+          pendingOrders: Int!
+          completedOrders: Int!
+          totalRevenue: Int!
+          pendingRevenue: Int!
+          completedRevenue: Int!
+          averageOrderValue: Int!
+        }
+
+        type RecentOrder {
+          id: ID!
+          orderNumber: String!
+          total: Int!
+          status: String!
+          createdAt: DateTime!
+        }
+
+        type SellerOrderSummary {
+          sellerId: ID!
+          totalOrders: Int!
+          ordersByStatus: String!
+          totalRevenue: Int!
+          revenueByStatus: String!
+          recentOrders: [RecentOrder!]!
+        }
+
+        type SellerProductSummary {
+          sellerId: ID!
+          totalProducts: Int!
+          activeProducts: Int!
+          inactiveProducts: Int!
+          productsByStatus: String!
+          lowStockProducts: Int!
+        }
+
+        extend type Query {
+          sellerDashboardStats(sellerId: ID!): SellerDashboardStats!
+          sellerOrderSummary(sellerId: ID!, limit: Int): SellerOrderSummary!
+          sellerProductSummary(sellerId: ID!): SellerProductSummary!
+        }
+
         # Seller types for Admin API schema validation
         # These types are required for custom field relations even if not exposed via queries/mutations
         
