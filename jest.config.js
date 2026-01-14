@@ -21,6 +21,8 @@ module.exports = {
     // TODO: Implement actual unit tests with mocks for TransactionalConnection and CustomerService
     // Once unit tests are implemented, remove this exclusion
     '!src/plugins/multi-vendor-plugin/**',
+    // Exclude test-auto-verify-plugin (disabled, not in tsconfig)
+    '!src/plugins/test-auto-verify-plugin.ts',
   ],
   coverageDirectory: 'coverage',
   coverageReporters: ['text', 'lcov', 'html'],

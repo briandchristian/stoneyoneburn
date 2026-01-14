@@ -31,8 +31,7 @@ export class TestAutoVerifyPlugin implements OnVendureBootstrap {
     private connection: TransactionalConnection
   ) {
     // Check if we're in test mode
-    this.isTestMode =
-      process.env.NODE_ENV === 'test' || process.env.APP_ENV === 'test';
+    this.isTestMode = process.env.NODE_ENV === 'test' || process.env.APP_ENV === 'test';
   }
 
   async onVendureBootstrap() {
@@ -51,11 +50,9 @@ export class TestAutoVerifyPlugin implements OnVendureBootstrap {
         const ctx = event.ctx;
 
         // Get the customer with verification token
-        const customerWithToken = await this.connection
-          .getRepository(ctx, Customer)
-          .findOne({
-            where: { id: customer.id },
-          });
+        const customerWithToken = await this.connection.getRepository(ctx, Customer).findOne({
+          where: { id: customer.id },
+        });
 
         if (customerWithToken && customerWithToken.verificationToken) {
           // Verify the customer using the verification token
