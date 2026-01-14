@@ -93,6 +93,14 @@ export class MarketplaceSellerSTIBase extends VendureEntity {
   isActive!: boolean;
 
   /**
+   * Commission rate for this seller (0.0 to 1.0, e.g., 0.15 = 15%)
+   * If null, uses the default commission rate
+   * Part of Phase 3.1: Commission Configuration
+   */
+  @Column({ type: 'float', nullable: true })
+  commissionRate?: number;
+
+  /**
    * Timestamps (inherited from VendureEntity but need explicit columns for STI)
    */
   @Column({ type: 'timestamp', default: () => 'CURRENT_TIMESTAMP' })

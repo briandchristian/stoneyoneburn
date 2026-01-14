@@ -15,10 +15,15 @@ import { PluginCommonModule, VendurePlugin, LanguageCode } from '@vendure/core';
 import { parse, DocumentNode } from 'graphql';
 import { IndividualSeller } from './entities/individual-seller.entity';
 import { CompanySeller } from './entities/company-seller.entity';
+import { SellerPayout } from './entities/seller-payout.entity';
 import { MarketplaceSellerSTIBase } from './entities/marketplace-seller-sti-base.entity';
 import { SellerService } from './services/seller.service';
 import { ProductOwnershipService } from './services/product-ownership.service';
 import { SellerDashboardService } from './services/seller-dashboard.service';
+import { CommissionService } from './services/commission.service';
+import { SplitPaymentService } from './services/split-payment.service';
+import { SellerPayoutService } from './services/seller-payout.service';
+import { OrderPaymentHandlerService } from './services/order-payment-handler.service';
 import { SellerResolver } from './resolvers/seller.resolver';
 import { MarketplaceSellerResolver } from './resolvers/marketplace-seller.resolver';
 import { SellerProductResolver } from './resolvers/seller-product.resolver';
@@ -35,8 +40,16 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
   // Register base STI entity FIRST, then child entities for TypeORM Single Table Inheritance
   // CRITICAL: Base class MUST be registered for TypeORM metadata reflection during migrations
   // Order matters: base class must be processed before children to build complete metadata
-  entities: [MarketplaceSellerSTIBase, IndividualSeller, CompanySeller],
-  providers: [SellerService, ProductOwnershipService, SellerDashboardService],
+  entities: [MarketplaceSellerSTIBase, IndividualSeller, CompanySeller, SellerPayout],
+  providers: [
+    SellerService,
+    ProductOwnershipService,
+    SellerDashboardService,
+    CommissionService,
+    SplitPaymentService,
+    SellerPayoutService,
+    OrderPaymentHandlerService,
+  ],
   shopApiExtensions: {
     // Register both resolvers: legacy SellerResolver and new polymorphic MarketplaceSellerResolver
     resolvers: [
@@ -80,6 +93,7 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
           updatedAt: DateTime!
           sellerType: SellerType!
           customerId: ID!
+          commissionRate: Float
         }
 
         type IndividualSeller implements MarketplaceSellerBase {
@@ -95,6 +109,7 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
           firstName: String!
           lastName: String!
           birthDate: DateTime
+          commissionRate: Float
         }
 
         type CompanySeller implements MarketplaceSellerBase {
@@ -110,6 +125,7 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
           companyName: String!
           vatNumber: String!
           legalForm: String
+          commissionRate: Float
         }
 
         enum SellerType {
@@ -202,7 +218,7 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
           totalRevenue: Int!
           pendingRevenue: Int!
           completedRevenue: Int!
-          averageOrderValue: Int!
+          averageOrderValue: Float!
         }
 
         type RecentOrder {

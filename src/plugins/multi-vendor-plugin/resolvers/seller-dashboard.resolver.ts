@@ -10,7 +10,7 @@
  * - sellerProductSummary: Product statistics
  */
 
-import { Resolver, Query, Args, ID, ObjectType, Field, Int } from '@nestjs/graphql';
+import { Resolver, Query, Args, ID, ObjectType, Field, Int, Float } from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission } from '@vendure/core';
 import { SellerDashboardService } from '../services/seller-dashboard.service';
@@ -45,7 +45,7 @@ export class SellerDashboardStatsType implements SellerDashboardStats {
   @Field(() => Int)
   completedRevenue!: number;
 
-  @Field(() => Int)
+  @Field(() => Float)
   averageOrderValue!: number;
 }
 

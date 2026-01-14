@@ -271,7 +271,10 @@ export class SellerDashboardService {
       .where('product.customFieldsSellerid = :sellerId', {
         sellerId: parseInt(sellerId.toString(), 10),
       })
-      .andWhere('order.active = :active', { active: false }) // Only completed orders
+      // Note: We don't filter by active flag here because:
+      // - active: false means order is no longer in draft, but could be in various states
+      // - active: true means order is still in draft/modification state
+      // We filter by order state later in getOrderStats() to categorize orders correctly
       .getMany();
 
     // Remove duplicates (an order can have multiple lines from the same seller)

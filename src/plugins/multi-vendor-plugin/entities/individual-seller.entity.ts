@@ -76,6 +76,12 @@ export class IndividualSeller extends MarketplaceSellerSTIBase implements Market
   @Field(() => Date, { description: 'Last update timestamp' })
   declare updatedAt: Date;
 
+  @Field(() => Number, {
+    nullable: true,
+    description: 'Commission rate for this seller (0.0 to 1.0, e.g., 0.15 = 15%). If null, uses default rate.',
+  })
+  declare commissionRate?: number;
+
   /**
    * First name of the individual seller
    */

@@ -90,7 +90,8 @@ export class ProductOwnershipService {
       throw new ProductOwnershipError(SellerErrorCode.PRODUCT_NOT_FOUND, 'Product not found');
     }
 
-    if (!result.sellerId) {
+    // Use explicit null/undefined check to avoid treating 0 as falsy
+    if (result.sellerId === null || result.sellerId === undefined) {
       throw new ProductOwnershipError(
         SellerErrorCode.PRODUCT_OWNERSHIP_REQUIRED,
         'Product must belong to a seller'
@@ -124,7 +125,8 @@ export class ProductOwnershipService {
       throw new ProductOwnershipError(SellerErrorCode.PRODUCT_NOT_FOUND, 'Product not found');
     }
 
-    if (!result.sellerId) {
+    // Use explicit null/undefined check to avoid treating 0 as falsy
+    if (result.sellerId === null || result.sellerId === undefined) {
       throw new ProductOwnershipError(
         SellerErrorCode.PRODUCT_OWNERSHIP_REQUIRED,
         'Product must belong to a seller'
@@ -147,7 +149,8 @@ export class ProductOwnershipService {
       .where('product.id = :productId', { productId: parseInt(productId.toString(), 10) })
       .getRawOne();
 
-    if (!result || !result.sellerId) {
+    // Use explicit null/undefined check to avoid treating 0 as falsy
+    if (!result || result.sellerId === null || result.sellerId === undefined) {
       return null;
     }
 
