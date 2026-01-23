@@ -88,11 +88,15 @@ export class SellerPayoutService {
       throw new Error(`Payout with ID ${payoutId} not found`);
     }
 
+    // Capture original status before reassignment to detect transitions
+    const originalStatus = payout.status;
+    
     payout.status = status;
     if (status === PayoutStatus.COMPLETED) {
       payout.completedAt = new Date();
     }
-    if (status === PayoutStatus.PENDING && payout.status === PayoutStatus.HOLD) {
+    // Check original status to detect HOLD-to-PENDING transition
+    if (status === PayoutStatus.PENDING && originalStatus === PayoutStatus.HOLD) {
       payout.releasedAt = new Date();
     } else if (status === PayoutStatus.PENDING && !payout.releasedAt) {
       payout.releasedAt = new Date();
@@ -175,5 +179,37 @@ export class SellerPayoutService {
    */
   async releasePayout(ctx: RequestContext, payoutId: ID): Promise<SellerPayout> {
     return this.updatePayoutStatus(ctx, payoutId, PayoutStatus.PENDING);
+  }
+
+  /**
+   * Get total pending payout amount for a seller
+   * Includes both PENDING and HOLD status payouts
+   *
+   * @param ctx RequestContext
+   * @param sellerId Seller ID
+   * @returns Total pending payout amount in cents
+   */
+  async getPendingPayoutTotal(ctx: RequestContext, sellerId: ID): Promise<number> {
+    const payouts = await this.connection.getRepository(ctx, SellerPayout).find({
+      where: {
+        sellerId: parseInt(sellerId.toString(), 10),
+        status: PayoutStatus.PENDING,
+      },
+    });
+
+    return payouts.reduce((total, payout) => total + payout.amount, 0);
+  }
+
+  /**
+   * Check if seller can request a payout based on minimum threshold
+   *
+   * @param ctx RequestContext
+   * @param sellerId Seller ID
+   * @param minimumThreshold Minimum payout threshold in cents
+   * @returns True if pending payout total meets or exceeds threshold
+   */
+  async canRequestPayout(ctx: RequestContext, sellerId: ID, minimumThreshold: number): Promise<boolean> {
+    const pendingTotal = await this.getPendingPayoutTotal(ctx, sellerId);
+    return pendingTotal >= minimumThreshold;
   }
 }

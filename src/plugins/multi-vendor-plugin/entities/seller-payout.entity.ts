@@ -15,7 +15,7 @@ import { Entity, Column, ManyToOne, Index } from 'typeorm';
 import { VendureEntity } from '@vendure/core';
 import type { ID } from '@vendure/core';
 import { ObjectType, Field, ID as GraphQLID } from '@nestjs/graphql';
-import { MarketplaceSellerSTIBase } from './marketplace-seller-sti-base.entity';
+import { MarketplaceSeller } from './seller.entity';
 
 /**
  * Payout status enum
@@ -47,8 +47,8 @@ export class SellerPayout extends VendureEntity {
   /**
    * Associated seller
    */
-  @ManyToOne(() => MarketplaceSellerSTIBase, { nullable: false, onDelete: 'CASCADE' })
-  seller!: MarketplaceSellerSTIBase;
+  @ManyToOne(() => MarketplaceSeller, { nullable: false, onDelete: 'CASCADE' })
+  seller!: MarketplaceSeller;
 
   @Column({ type: 'int' })
   @Field(() => GraphQLID)

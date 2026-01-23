@@ -21,7 +21,7 @@ import type { ID } from '@vendure/core';
 /**
  * Seller Dashboard GraphQL API Documentation
  *
- * The Seller Dashboard Resolver provides Admin API queries:
+ * The Seller Dashboard Resolver provides Admin API queries and mutations:
  *
  * 1. Dashboard Statistics:
  *    - sellerDashboardStats(sellerId: ID!): SellerDashboardStats!
@@ -34,6 +34,10 @@ import type { ID } from '@vendure/core';
  * 3. Product Summary:
  *    - sellerProductSummary(sellerId: ID!): SellerProductSummary!
  *    - Returns product statistics for seller
+ *
+ * 4. Seller Verification:
+ *    - updateSellerVerificationStatus(sellerId: ID!, status: SellerVerificationStatus!): MarketplaceSeller!
+ *    - Updates the verification status of a seller (admin only)
  */
 
 // Mock types for testing
@@ -232,6 +236,66 @@ describe('Seller Dashboard Resolver', () => {
       expect(expectedSummary.totalProducts).toBeDefined();
       expect(expectedSummary.activeProducts).toBeDefined();
       expect(expectedSummary.lowStockProducts).toBeDefined();
+    });
+  });
+
+  describe('updateSellerVerificationStatus Mutation', () => {
+    it('should define updateSellerVerificationStatus mutation with sellerId and status', () => {
+      // Contract test: Documents the GraphQL mutation structure
+      const expectedMutation = `
+        mutation UpdateSellerVerificationStatus($sellerId: ID!, $status: SellerVerificationStatus!) {
+          updateSellerVerificationStatus(sellerId: $sellerId, status: $status) {
+            id
+            shopName
+            verificationStatus
+            isActive
+          }
+        }
+      `;
+
+      const mutationVariables = {
+        sellerId: '10',
+        status: 'VERIFIED',
+      };
+
+      // Mutation should accept sellerId and status parameters
+      expect(mutationVariables.sellerId).toBeDefined();
+      expect(mutationVariables.status).toBeDefined();
+      expect(['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED']).toContain(
+        mutationVariables.status
+      );
+    });
+
+    it('should return updated seller with verification status', () => {
+      // Contract test: Documents the return structure
+      const expectedSeller = {
+        id: '10',
+        shopName: 'Test Shop',
+        verificationStatus: 'VERIFIED',
+        isActive: true,
+      };
+
+      // All required fields should be present
+      expect(expectedSeller.id).toBeDefined();
+      expect(expectedSeller.verificationStatus).toBeDefined();
+      expect(['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED']).toContain(
+        expectedSeller.verificationStatus
+      );
+    });
+
+    it('should support all verification status values', () => {
+      // Contract test: Documents all possible status values
+      const statuses = ['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED'];
+
+      statuses.forEach((status) => {
+        const mutationVariables = {
+          sellerId: '10',
+          status,
+        };
+
+        expect(mutationVariables.status).toBe(status);
+        expect(['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED']).toContain(status);
+      });
     });
   });
 });

@@ -16,11 +16,14 @@ import { parse, DocumentNode } from 'graphql';
 import { IndividualSeller } from './entities/individual-seller.entity';
 import { CompanySeller } from './entities/company-seller.entity';
 import { SellerPayout } from './entities/seller-payout.entity';
+import { CommissionHistory } from './entities/commission-history.entity';
 import { MarketplaceSellerSTIBase } from './entities/marketplace-seller-sti-base.entity';
+import { MarketplaceSeller } from './entities/seller.entity';
 import { SellerService } from './services/seller.service';
 import { ProductOwnershipService } from './services/product-ownership.service';
 import { SellerDashboardService } from './services/seller-dashboard.service';
 import { CommissionService } from './services/commission.service';
+import { CommissionHistoryService } from './services/commission-history.service';
 import { SplitPaymentService } from './services/split-payment.service';
 import { SellerPayoutService } from './services/seller-payout.service';
 import { OrderPaymentHandlerService } from './services/order-payment-handler.service';
@@ -29,6 +32,8 @@ import { MarketplaceSellerResolver } from './resolvers/marketplace-seller.resolv
 import { SellerProductResolver } from './resolvers/seller-product.resolver';
 import { SellerProductManagementResolver } from './resolvers/seller-product-management.resolver';
 import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
+import { CommissionHistoryResolver } from './resolvers/commission-history.resolver';
+import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
 
 /**
  * Multi-Vendor Plugin
@@ -37,18 +42,27 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
  */
 @VendurePlugin({
   imports: [PluginCommonModule],
-  // Register base STI entity FIRST, then child entities for TypeORM Single Table Inheritance
-  // CRITICAL: Base class MUST be registered for TypeORM metadata reflection during migrations
-  // Order matters: base class must be processed before children to build complete metadata
-  entities: [MarketplaceSellerSTIBase, IndividualSeller, CompanySeller, SellerPayout],
+  // Register entities for TypeORM
+  // NOTE: MarketplaceSeller (non-STI) is used by most resolvers and custom fields
+  // STI entities (MarketplaceSellerSTIBase, IndividualSeller, CompanySeller) are kept
+  // for future polymorphic support but use a different table to avoid conflicts
+  // For now, we register MarketplaceSeller as the primary entity
+  entities: [MarketplaceSeller, SellerPayout, CommissionHistory],
+  // STI entities commented out to avoid table name conflict with MarketplaceSeller
+  // Both use 'marketplace_seller' table which causes TypeORM metadata issues
+  // TODO: Migrate to STI by updating all resolvers to use IndividualSeller/CompanySeller
+  // or use different table names for STI entities
+  // entities: [MarketplaceSellerSTIBase, IndividualSeller, CompanySeller, SellerPayout],
   providers: [
     SellerService,
     ProductOwnershipService,
     SellerDashboardService,
     CommissionService,
+    CommissionHistoryService,
     SplitPaymentService,
     SellerPayoutService,
     OrderPaymentHandlerService,
+    OrderPaymentSubscriber,
   ],
   shopApiExtensions: {
     // Register both resolvers: legacy SellerResolver and new polymorphic MarketplaceSellerResolver
@@ -199,13 +213,13 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
           sellerBySlug(slug: String!): MarketplaceSeller
           seller(id: ID!): MarketplaceSellerBase
           sellers: [MarketplaceSellerBase!]!
-          sellerProducts(sellerId: ID!): [Product!]!
+          sellerProducts(sellerId: ID!, options: ProductListOptions): ProductList!
         }
       `);
     },
   },
   adminApiExtensions: {
-    resolvers: [SellerDashboardResolver],
+    resolvers: [SellerDashboardResolver, CommissionHistoryResolver],
     schema: (): DocumentNode => {
       return parse(`
         # Seller Dashboard Types (Phase 2.4)
@@ -247,14 +261,87 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
           lowStockProducts: Int!
         }
 
+        # Commission History Types (Phase 3.1)
+        type CommissionHistory implements Node {
+          id: ID!
+          createdAt: DateTime!
+          updatedAt: DateTime!
+          orderId: ID!
+          sellerId: ID!
+          commissionRate: Float!
+          orderTotal: Int!
+          commissionAmount: Int!
+          sellerPayout: Int!
+          status: CommissionHistoryStatus!
+        }
+
+        enum CommissionHistoryStatus {
+          CALCULATED
+          PAID
+          REFUNDED
+        }
+
+        type CommissionHistoryList implements PaginatedList {
+          items: [CommissionHistory!]!
+          totalItems: Int!
+        }
+
+        input CommissionHistoryFilterInput {
+          orderId: ID
+          status: CommissionHistoryStatus
+          startDate: DateTime
+          endDate: DateTime
+        }
+
+        input CommissionHistoryListOptions {
+          skip: Int
+          take: Int
+          filter: CommissionHistoryFilterInput
+        }
+
+        type SellerCommissionSummary {
+          sellerId: ID!
+          totalCommissions: Int!
+          totalPayouts: Int!
+          totalOrders: Int!
+          commissionsByStatus: String!
+        }
+
+        input DateRangeInput {
+          startDate: DateTime
+          endDate: DateTime
+        }
+
         extend type Query {
           sellerDashboardStats(sellerId: ID!): SellerDashboardStats!
           sellerOrderSummary(sellerId: ID!, limit: Int): SellerOrderSummary!
           sellerProductSummary(sellerId: ID!): SellerProductSummary!
+          commissionHistory(sellerId: ID!, options: CommissionHistoryListOptions): CommissionHistoryList!
+          sellerCommissionSummary(sellerId: ID!, dateRange: DateRangeInput): SellerCommissionSummary!
+        }
+
+        extend type Mutation {
+          updateSellerVerificationStatus(sellerId: ID!, status: SellerVerificationStatus!): MarketplaceSeller!
         }
 
         # Seller types for Admin API schema validation
         # These types are required for custom field relations even if not exposed via queries/mutations
+        
+        type MarketplaceSeller {
+          id: ID!
+          shopName: String!
+          shopDescription: String
+          shopSlug: String!
+          shopBannerAssetId: Int
+          shopLogoAssetId: Int
+          businessName: String
+          taxId: String
+          verificationStatus: SellerVerificationStatus!
+          isActive: Boolean!
+          createdAt: DateTime!
+          updatedAt: DateTime!
+          customerId: ID!
+        }
         
         interface MarketplaceSellerBase {
           id: ID!
@@ -316,19 +403,17 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
     // Add custom field to Customer entity to link to MarketplaceSeller
     // This allows bidirectional navigation: Customer <-> MarketplaceSeller
     config.customFields.Customer = config.customFields.Customer || [];
-    // For polymorphic relations, we use IndividualSeller as the base entity type
-    // TypeORM STI will handle the discriminator automatically
+    // Use MarketplaceSeller entity (non-STI) to match resolver implementations
     config.customFields.Customer.push({
       name: 'marketplaceSeller',
       type: 'relation',
-      entity: IndividualSeller, // Use one of the concrete implementations for TypeORM
+      entity: MarketplaceSeller, // Use MarketplaceSeller to match resolver implementations
       nullable: true,
       label: [{ languageCode: LanguageCode.en, value: 'Marketplace Seller Account' }],
       description: [
         {
           languageCode: LanguageCode.en,
-          value:
-            'The marketplace seller account (IndividualSeller or CompanySeller) associated with this customer',
+          value: 'The marketplace seller account associated with this customer',
         },
       ],
       public: false,
@@ -339,15 +424,13 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
     // Phase 2.3: Seller-Product Association
     // This enables products to be owned by sellers in the marketplace
     config.customFields.Product = config.customFields.Product || [];
-    // For polymorphic relations, we use IndividualSeller as the base entity type
-    // TypeORM STI will handle the discriminator automatically
-    // Note: This field is internal (admin-only) because IndividualSeller type
-    // is only defined in Shop API schema. For Shop API access, seller info
+    // Use MarketplaceSeller entity (non-STI) to match resolver implementations
+    // Note: This field is internal (admin-only). For Shop API access, seller info
     // can be exposed through Product resolvers or separate queries.
     config.customFields.Product.push({
       name: 'seller',
       type: 'relation',
-      entity: IndividualSeller, // Use one of the concrete implementations for TypeORM
+      entity: MarketplaceSeller, // Use MarketplaceSeller to match resolver implementations
       nullable: true, // Initially nullable to allow existing products; can be made required later
       label: [{ languageCode: LanguageCode.en, value: 'Seller' }],
       description: [
@@ -356,7 +439,7 @@ import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
           value: 'The marketplace seller who owns this product',
         },
       ],
-      public: false, // Not exposed in Shop API (IndividualSeller type not in Admin API schema)
+      public: false, // Not exposed in Shop API
       internal: true, // Admin-only for now; Shop API can access via resolvers/queries
     });
 

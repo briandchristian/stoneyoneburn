@@ -10,11 +10,14 @@
  * - sellerProductSummary: Product statistics
  */
 
-import { Resolver, Query, Args, ID, ObjectType, Field, Int, Float } from '@nestjs/graphql';
+import { Resolver, Query, Mutation, Args, ID, ObjectType, Field, Int, Float, InputType } from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission } from '@vendure/core';
 import { SellerDashboardService } from '../services/seller-dashboard.service';
 import type { SellerDashboardStats } from '../services/seller-dashboard.service';
+import { SellerService } from '../services/seller.service';
+import { MarketplaceSeller } from '../entities/seller.entity';
+import { SellerVerificationStatus } from '../entities/seller.entity';
 
 /**
  * GraphQL Types for Seller Dashboard
@@ -110,13 +113,28 @@ export class SellerProductSummaryType {
 }
 
 /**
+ * Input type for updating seller verification status
+ */
+@InputType()
+export class UpdateSellerVerificationStatusInput {
+  @Field(() => ID)
+  sellerId!: string;
+
+  @Field(() => String)
+  status!: SellerVerificationStatus;
+}
+
+/**
  * Seller Dashboard Resolver
  *
- * Handles Admin API queries for seller dashboard data
+ * Handles Admin API queries and mutations for seller dashboard data
  */
 @Resolver()
 export class SellerDashboardResolver {
-  constructor(private sellerDashboardService: SellerDashboardService) {}
+  constructor(
+    private sellerDashboardService: SellerDashboardService,
+    private sellerService: SellerService
+  ) {}
 
   /**
    * Get aggregated statistics for seller dashboard
@@ -173,5 +191,23 @@ export class SellerDashboardResolver {
       ...summary,
       productsByStatus: JSON.stringify(summary.productsByStatus),
     } as SellerProductSummaryType;
+  }
+
+  /**
+   * Update seller verification status
+   * 
+   * Admin-only mutation to verify, reject, or suspend sellers.
+   * This is used for seller onboarding and account management.
+   */
+  @Mutation(() => MarketplaceSeller, {
+    description: 'Update the verification status of a seller (admin only)',
+  })
+  @Allow(Permission.UpdateAdministrator) // Admin-only operation
+  async updateSellerVerificationStatus(
+    @Ctx() ctx: RequestContext,
+    @Args('sellerId', { type: () => ID }) sellerId: string,
+    @Args('status', { type: () => String }) status: SellerVerificationStatus
+  ): Promise<MarketplaceSeller> {
+    return await this.sellerService.updateVerificationStatus(ctx, sellerId, status);
   }
 }

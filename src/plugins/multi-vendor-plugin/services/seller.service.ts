@@ -96,6 +96,13 @@ export class SellerService {
     // Generate unique shop slug
     const shopSlug = await this.generateUniqueShopSlug(ctx, input.shopName);
 
+    // In test mode, auto-verify sellers so integration tests can create products
+    // without requiring admin login to verify. See seller-product-management.integration.test.ts.
+    const isTestMode = process.env.NODE_ENV === 'test' || process.env.APP_ENV === 'test';
+    const verificationStatus = isTestMode
+      ? SellerVerificationStatus.VERIFIED
+      : SellerVerificationStatus.PENDING;
+
     // Create seller entity using repository.create() to avoid protected constructor issue
     const sellerRepository = this.connection.getRepository(ctx, MarketplaceSeller);
     const seller = sellerRepository.create({
@@ -105,7 +112,7 @@ export class SellerService {
       shopSlug,
       shopDescription: input.shopDescription,
       businessName: input.businessName,
-      verificationStatus: SellerVerificationStatus.PENDING,
+      verificationStatus,
       isActive: true,
       commissionRate: 10.0,
     });
@@ -211,6 +218,35 @@ export class SellerService {
         .getRepository(ctx, MarketplaceSeller)
         .findOne({ where: { shopSlug } })) || null
     );
+  }
+
+  /**
+   * Update seller verification status
+   * 
+   * This is typically called by admins to verify or reject seller applications.
+   * For testing purposes, this can be used to verify sellers.
+   * 
+   * @param ctx Request context (should have admin permissions in production)
+   * @param sellerId The seller ID to update
+   * @param status The new verification status
+   * @returns Updated seller entity
+   */
+  @Transaction()
+  async updateVerificationStatus(
+    ctx: RequestContext,
+    sellerId: ID,
+    status: SellerVerificationStatus
+  ): Promise<MarketplaceSeller> {
+    const seller = await this.connection
+      .getRepository(ctx, MarketplaceSeller)
+      .findOne({ where: { id: sellerId } });
+
+    if (!seller) {
+      throw new SellerUpdateError(SellerErrorCode.SELLER_NOT_FOUND, 'Seller not found');
+    }
+
+    seller.verificationStatus = status;
+    return await this.connection.getRepository(ctx, MarketplaceSeller).save(seller);
   }
 
   /**

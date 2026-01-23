@@ -16,6 +16,12 @@ import { validateEnvironmentVariables } from './config/env-validation';
 import { getSecurityConfig, isProductionMode, validateSecurityConfig } from './config/security';
 import { getStripeConfig, validateStripeConfig } from './config/stripe-config';
 import { MultiVendorPlugin } from './plugins/multi-vendor-plugin/multi-vendor.plugin';
+
+// Get the project root directory
+// process.cwd() returns the current working directory (project root when run from npm scripts)
+// __dirname points to the directory of the current file (src/ when running with ts-node, dist/ when compiled)
+// We use process.cwd() as the base, but fall back to __dirname/.. if needed
+const PROJECT_ROOT = process.cwd() || path.resolve(__dirname, '..');
 // import { TestAutoVerifyPlugin } from './plugins/test-auto-verify-plugin'; // Temporarily disabled - compilation errors
 
 // Validate critical environment variables on startup
@@ -87,7 +93,11 @@ export const config: VendureConfig = {
     // In dev mode, synchronize can be used for rapid development, but migrations
     // should still be available for schema changes that need to be tracked
     // Note: Using brace expansion format compatible with TypeORM's tinyglobby
-    migrations: [path.join(__dirname, 'migrations/*.{ts,js}')],
+    migrations: [
+      // When running with ts-node (dev), migrations are in src/migrations
+      // When running compiled code (prod), migrations are in dist/migrations
+      path.join(__dirname, 'migrations/*.{ts,js}'),
+    ],
   },
   paymentOptions: {
     paymentMethodHandlers: [dummyPaymentHandler],
@@ -99,7 +109,7 @@ export const config: VendureConfig = {
     GraphiqlPlugin.init(),
     AssetServerPlugin.init({
       route: 'assets',
-      assetUploadDir: path.join(__dirname, '../static/assets'),
+      assetUploadDir: path.join(PROJECT_ROOT, 'static/assets'),
       // For local dev, the correct value for assetUrlPrefix should
       // be guessed correctly, but for production it will usually need
       // to be set manually to match your production url.
@@ -114,11 +124,11 @@ export const config: VendureConfig = {
     IS_DEV
       ? EmailPlugin.init({
           devMode: true,
-          outputPath: path.join(__dirname, '../static/email/test-emails'),
+          outputPath: path.join(PROJECT_ROOT, 'static/email/test-emails'),
           route: 'mailbox',
           handlers: defaultEmailHandlers,
           templateLoader: new FileBasedTemplateLoader(
-            path.join(__dirname, '../static/email/templates')
+            path.join(PROJECT_ROOT, 'static/email/templates')
           ),
           globalTemplateVars: {
             fromAddress: process.env.EMAIL_FROM || '"StoneyOneBurn Dev" <noreply@localhost>',
@@ -141,7 +151,7 @@ export const config: VendureConfig = {
           },
           handlers: defaultEmailHandlers,
           templateLoader: new FileBasedTemplateLoader(
-            path.join(__dirname, '../static/email/templates')
+            path.join(PROJECT_ROOT, 'static/email/templates')
           ),
           globalTemplateVars: {
             fromAddress: process.env.EMAIL_FROM || '"StoneyOneBurn" <noreply@stoneyoneburn.com>',
@@ -168,8 +178,8 @@ export const config: VendureConfig = {
     DashboardPlugin.init({
       route: 'dashboard',
       appDir: IS_DEV
-        ? path.join(__dirname, '../dist/dashboard')
-        : path.join(__dirname, 'dashboard'),
+        ? path.join(PROJECT_ROOT, 'dist/dashboard')
+        : path.join(PROJECT_ROOT, 'dist/dashboard'),
     }),
     // Multi-Vendor Plugin - Phase 2
     MultiVendorPlugin,

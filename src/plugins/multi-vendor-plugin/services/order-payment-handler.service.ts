@@ -19,11 +19,12 @@ import {
   SplitPaymentService,
   OrderForSplitPayment,
   OrderLineForSplitPayment,
+  OrderSplitPaymentResult,
 } from './split-payment.service';
 import { SellerPayoutService, PayoutStatus } from './seller-payout.service';
 import { SellerPayout } from '../entities/seller-payout.entity';
 import { CommissionService, DEFAULT_COMMISSION_RATE } from './commission.service';
-import { MarketplaceSellerSTIBase } from '../entities/marketplace-seller-sti-base.entity';
+import { MarketplaceSeller } from '../entities/seller.entity';
 
 /**
  * Order payment processing result
@@ -54,9 +55,12 @@ export class OrderPaymentHandlerService {
    *
    * @param ctx RequestContext
    * @param order Vendure Order entity
-   * @returns Promise that resolves when payouts are created
+   * @returns Promise that resolves with split payment result (for commission history creation)
    */
-  async processOrderPayment(ctx: RequestContext, order: Order): Promise<void> {
+  async processOrderPayment(
+    ctx: RequestContext,
+    order: Order
+  ): Promise<OrderSplitPaymentResult | null> {
     const orderLinesForSplit: OrderLineForSplitPayment[] = [];
     const sellerCommissionRates = new Map<ID, number>();
 
@@ -95,7 +99,7 @@ export class OrderPaymentHandlerService {
         // Fetch seller's custom commission rate if not already fetched
         if (!sellerCommissionRates.has(sellerId.toString())) {
           const seller = await this.connection
-            .getRepository(ctx, MarketplaceSellerSTIBase)
+            .getRepository(ctx, MarketplaceSeller)
             .findOne({ where: { id: sellerId } });
           if (seller && seller.commissionRate !== null && seller.commissionRate !== undefined) {
             sellerCommissionRates.set(sellerId.toString(), seller.commissionRate);
@@ -106,7 +110,7 @@ export class OrderPaymentHandlerService {
 
     if (orderLinesForSplit.length === 0) {
       // No seller products in this order, no payouts needed
-      return;
+      return null;
     }
 
     // Convert to OrderForSplitPayment format
@@ -123,8 +127,14 @@ export class OrderPaymentHandlerService {
       DEFAULT_COMMISSION_RATE
     );
 
-    // Create payout records for each seller
+    // Add commission rate to each seller split for commission history tracking
+    // This ensures we store the actual rate used, not a calculated approximation
     for (const sellerSplit of splitResult.sellerSplits) {
+      const sellerIdStr = sellerSplit.sellerId.toString();
+      const commissionRate = sellerCommissionRates.get(sellerIdStr) ?? DEFAULT_COMMISSION_RATE;
+      // Add commission rate to the split for commission history creation
+      (sellerSplit as any).commissionRate = commissionRate;
+
       await this.sellerPayoutService.createPayout(
         ctx,
         sellerSplit.sellerId,
@@ -134,5 +144,8 @@ export class OrderPaymentHandlerService {
         PayoutStatus.HOLD // Payouts are initially on HOLD
       );
     }
+
+    // Return split result for commission history creation
+    return splitResult;
   }
 }
