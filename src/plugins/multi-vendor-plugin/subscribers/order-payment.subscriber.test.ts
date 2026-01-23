@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { RequestContext, Order, Payment } from '@vendure/core';
+import type { RequestContext, Order, Payment, ID } from '@vendure/core';
 import { EventBus, OrderPlacedEvent, PaymentStateTransitionEvent } from '@vendure/core';
 import { OrderPaymentHandlerService } from '../services/order-payment-handler.service';
 import { CommissionHistoryService } from '../services/commission-history.service';
@@ -48,8 +48,11 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       createCommissionHistory: jest.fn(),
     } as any;
 
+    const hasPayoutsForOrderMock = jest.fn<(ctx: RequestContext, orderId: ID) => Promise<boolean>>();
+    hasPayoutsForOrderMock.mockResolvedValue(false);
+    
     mockSellerPayoutService = {
-      hasPayoutsForOrder: jest.fn().mockResolvedValue(false),
+      hasPayoutsForOrder: hasPayoutsForOrderMock,
     } as any;
 
     // Create mock observable that supports pipe and subscribe
