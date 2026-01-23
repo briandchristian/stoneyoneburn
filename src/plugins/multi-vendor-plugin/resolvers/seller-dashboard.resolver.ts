@@ -10,7 +10,18 @@
  * - sellerProductSummary: Product statistics
  */
 
-import { Resolver, Query, Mutation, Args, ID, ObjectType, Field, Int, Float, InputType } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Mutation,
+  Args,
+  ID,
+  ObjectType,
+  Field,
+  Int,
+  Float,
+  InputType,
+} from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission } from '@vendure/core';
 import { SellerDashboardService } from '../services/seller-dashboard.service';
@@ -195,7 +206,7 @@ export class SellerDashboardResolver {
 
   /**
    * Update seller verification status
-   * 
+   *
    * Admin-only mutation to verify, reject, or suspend sellers.
    * This is used for seller onboarding and account management.
    */

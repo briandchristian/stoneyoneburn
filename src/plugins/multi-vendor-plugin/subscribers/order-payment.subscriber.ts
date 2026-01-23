@@ -8,17 +8,13 @@
  * Part of Phase 3.2: Split Payment Processing Integration
  */
 
-import { Injectable, OnModuleInit } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
 import type { RequestContext, Order, Payment } from '@vendure/core';
-import {
-  EventBus,
-  OrderPlacedEvent,
-  PaymentStateTransitionEvent,
-  OnVendureBootstrap,
-} from '@vendure/core';
+import { EventBus, OrderPlacedEvent, PaymentStateTransitionEvent } from '@vendure/core';
 import { filter } from 'rxjs/operators';
 import { OrderPaymentHandlerService } from '../services/order-payment-handler.service';
 import { CommissionHistoryService } from '../services/commission-history.service';
+import { SellerPayoutService } from '../services/seller-payout.service';
 import { CommissionHistoryStatus } from '../entities/commission-history.entity';
 import type { OrderSplitPaymentResult } from '../services/split-payment.service';
 
@@ -26,25 +22,26 @@ import type { OrderSplitPaymentResult } from '../services/split-payment.service'
  * Order Payment Event Subscriber
  *
  * Listens to order and payment events to process split payments
+ * Implements OnApplicationBootstrap to register event subscriptions when the application starts
  */
 @Injectable()
-export class OrderPaymentSubscriber implements OnVendureBootstrap {
+export class OrderPaymentSubscriber implements OnApplicationBootstrap {
   constructor(
     private eventBus: EventBus,
     private orderPaymentHandlerService: OrderPaymentHandlerService,
-    private commissionHistoryService: CommissionHistoryService
+    private commissionHistoryService: CommissionHistoryService,
+    private sellerPayoutService: SellerPayoutService
   ) {}
 
   /**
-   * Subscribe to events when Vendure bootstraps
+   * Subscribe to events when the application bootstraps
+   * This is called automatically by NestJS when the application starts
    */
-  async onVendureBootstrap() {
+  async onApplicationBootstrap() {
     // Subscribe to OrderPlacedEvent - fires when order transitions to PaymentAuthorized or PaymentSettled
-    this.eventBus
-      .ofType(OrderPlacedEvent)
-      .subscribe(async (event) => {
-        await this.handleOrderPlaced(event.ctx, event.entity);
-      });
+    this.eventBus.ofType(OrderPlacedEvent).subscribe(async (event) => {
+      await this.handleOrderPlaced(event.ctx, event.order);
+    });
 
     // Subscribe to PaymentStateTransitionEvent - fires when payment state changes
     // We specifically want to handle when payment transitions to "Settled"
@@ -52,18 +49,27 @@ export class OrderPaymentSubscriber implements OnVendureBootstrap {
       .ofType(PaymentStateTransitionEvent)
       .pipe(filter((event) => event.toState === 'Settled'))
       .subscribe(async (event) => {
-        await this.handlePaymentSettled(event.ctx, event.entity);
+        await this.handlePaymentSettled(event.ctx, event.payment);
       });
   }
 
   /**
    * Handle OrderPlacedEvent
    * Creates seller payouts and commission history when an order is placed
+   * Includes deduplication check to prevent duplicate payouts when both events fire
    */
   private async handleOrderPlaced(ctx: RequestContext, order: Order): Promise<void> {
     try {
+      // Check if payouts already exist for this order to prevent duplicates
+      // This can happen if PaymentStateTransitionEvent fires before OrderPlacedEvent
+      const hasPayouts = await this.sellerPayoutService.hasPayoutsForOrder(ctx, order.id);
+      if (hasPayouts) {
+        // Payouts already created, skip processing
+        return;
+      }
+
       const splitResult = await this.orderPaymentHandlerService.processOrderPayment(ctx, order);
-      
+
       // Create commission history records if split payment was processed
       if (splitResult) {
         await this.createCommissionHistoryRecords(ctx, splitResult);
@@ -77,6 +83,7 @@ export class OrderPaymentSubscriber implements OnVendureBootstrap {
   /**
    * Handle PaymentStateTransitionEvent when payment is settled
    * Creates seller payouts and commission history when payment is settled
+   * Includes deduplication check to prevent duplicate payouts when both events fire
    */
   private async handlePaymentSettled(ctx: RequestContext, payment: Payment): Promise<void> {
     try {
@@ -86,8 +93,19 @@ export class OrderPaymentSubscriber implements OnVendureBootstrap {
         return;
       }
 
-      const splitResult = await this.orderPaymentHandlerService.processOrderPayment(ctx, payment.order);
-      
+      // Check if payouts already exist for this order to prevent duplicates
+      // This can happen if OrderPlacedEvent fires before PaymentStateTransitionEvent
+      const hasPayouts = await this.sellerPayoutService.hasPayoutsForOrder(ctx, payment.order.id);
+      if (hasPayouts) {
+        // Payouts already created, skip processing
+        return;
+      }
+
+      const splitResult = await this.orderPaymentHandlerService.processOrderPayment(
+        ctx,
+        payment.order
+      );
+
       // Create commission history records if split payment was processed
       if (splitResult) {
         await this.createCommissionHistoryRecords(ctx, splitResult);
@@ -125,10 +143,7 @@ export class OrderPaymentSubscriber implements OnVendureBootstrap {
       }
     } catch (error) {
       // Log error but don't throw - commission history is for tracking, not critical path
-      console.error(
-        `Failed to create commission history for order ${splitResult.orderId}:`,
-        error
-      );
+      console.error(`Failed to create commission history for order ${splitResult.orderId}:`, error);
     }
   }
 }

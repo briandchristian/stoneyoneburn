@@ -12,7 +12,11 @@
 import { Resolver, Query, Args, ID, ObjectType, Field, Int, InputType } from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission } from '@vendure/core';
-import { CommissionHistoryService, type CommissionHistoryRecord, type SellerCommissionSummary } from '../services/commission-history.service';
+import {
+  CommissionHistoryService,
+  type CommissionHistoryRecord,
+  type SellerCommissionSummary,
+} from '../services/commission-history.service';
 import { CommissionHistory, CommissionHistoryStatus } from '../entities/commission-history.entity';
 
 /**
@@ -136,7 +140,8 @@ export class CommissionHistoryResolver {
   async commissionHistory(
     @Ctx() ctx: RequestContext,
     @Args('sellerId', { type: () => ID }) sellerId: string,
-    @Args('options', { type: () => CommissionHistoryListOptionsInput, nullable: true }) options?: CommissionHistoryListOptionsInput
+    @Args('options', { type: () => CommissionHistoryListOptionsInput, nullable: true })
+    options?: CommissionHistoryListOptionsInput
   ): Promise<CommissionHistoryListType> {
     const result = await this.commissionHistoryService.getCommissionHistory(ctx, sellerId, {
       skip: options?.skip,

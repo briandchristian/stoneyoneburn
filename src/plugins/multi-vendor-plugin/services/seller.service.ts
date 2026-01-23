@@ -222,10 +222,10 @@ export class SellerService {
 
   /**
    * Update seller verification status
-   * 
+   *
    * This is typically called by admins to verify or reject seller applications.
    * For testing purposes, this can be used to verify sellers.
-   * 
+   *
    * @param ctx Request context (should have admin permissions in production)
    * @param sellerId The seller ID to update
    * @param status The new verification status

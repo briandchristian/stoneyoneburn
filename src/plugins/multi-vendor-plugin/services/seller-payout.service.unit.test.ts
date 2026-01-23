@@ -18,7 +18,7 @@ import { SellerPayout } from '../entities/seller-payout.entity';
 
 // Mock TransactionalConnection
 jest.mock('@vendure/core', () => {
-  const actual = jest.requireActual('@vendure/core');
+  const actual = jest.requireActual('@vendure/core') as any;
   return {
     ...actual,
     TransactionalConnection: jest.fn(),
@@ -37,6 +37,7 @@ describe('SellerPayoutService - Unit Tests', () => {
       save: jest.fn(),
       findOne: jest.fn(),
       find: jest.fn(),
+      count: jest.fn(),
     };
 
     // Create mock connection
@@ -131,7 +132,14 @@ describe('SellerPayoutService - Unit Tests', () => {
       mockRepository.save.mockResolvedValue(mockPayout);
 
       // Act
-      const result = await service.createPayout(mockCtx, sellerId, orderId, amount, commission, status);
+      const result = await service.createPayout(
+        mockCtx,
+        sellerId,
+        orderId,
+        amount,
+        commission,
+        status
+      );
 
       // Assert
       expect(result.status).toBe(PayoutStatus.PENDING);
@@ -145,9 +153,9 @@ describe('SellerPayoutService - Unit Tests', () => {
       const commission = 0;
 
       // Act & Assert
-      await expect(service.createPayout(mockCtx, sellerId, orderId, amount, commission)).rejects.toThrow(
-        'Payout amount must be greater than zero'
-      );
+      await expect(
+        service.createPayout(mockCtx, sellerId, orderId, amount, commission)
+      ).rejects.toThrow('Payout amount must be greater than zero');
     });
 
     it('should reject negative payout amount', async () => {
@@ -158,9 +166,9 @@ describe('SellerPayoutService - Unit Tests', () => {
       const commission = 0;
 
       // Act & Assert
-      await expect(service.createPayout(mockCtx, sellerId, orderId, amount, commission)).rejects.toThrow(
-        'Payout amount must be greater than zero'
-      );
+      await expect(
+        service.createPayout(mockCtx, sellerId, orderId, amount, commission)
+      ).rejects.toThrow('Payout amount must be greater than zero');
     });
 
     it('should store failure reason when provided', async () => {
@@ -212,7 +220,11 @@ describe('SellerPayoutService - Unit Tests', () => {
       });
       existingPayout.id = 1;
 
-      const updatedPayout = { ...existingPayout, status: PayoutStatus.PENDING, releasedAt: new Date() };
+      const updatedPayout = {
+        ...existingPayout,
+        status: PayoutStatus.PENDING,
+        releasedAt: new Date(),
+      };
 
       mockRepository.findOne.mockResolvedValue(existingPayout);
       mockRepository.save.mockResolvedValue(updatedPayout);
@@ -238,7 +250,11 @@ describe('SellerPayoutService - Unit Tests', () => {
       });
       existingPayout.id = 1;
 
-      const updatedPayout = { ...existingPayout, status: PayoutStatus.COMPLETED, completedAt: new Date() };
+      const updatedPayout = {
+        ...existingPayout,
+        status: PayoutStatus.COMPLETED,
+        completedAt: new Date(),
+      };
 
       mockRepository.findOne.mockResolvedValue(existingPayout);
       mockRepository.save.mockResolvedValue(updatedPayout);
@@ -265,10 +281,10 @@ describe('SellerPayoutService - Unit Tests', () => {
       existingPayout.releasedAt = undefined; // Not yet released
 
       // Mock save to capture what was actually saved
-      let savedPayout: SellerPayout | null = null;
+      const savedPayouts: SellerPayout[] = [];
       mockRepository.findOne.mockResolvedValue(existingPayout);
-      mockRepository.save.mockImplementation((payout) => {
-        savedPayout = payout;
+      mockRepository.save.mockImplementation((payout: any) => {
+        savedPayouts.push(payout as SellerPayout);
         return Promise.resolve(payout);
       });
 
@@ -277,8 +293,9 @@ describe('SellerPayoutService - Unit Tests', () => {
 
       // Assert: releasedAt should be set because original status was HOLD
       expect(result.status).toBe(PayoutStatus.PENDING);
-      expect(savedPayout?.releasedAt).toBeDefined();
-      expect(savedPayout?.releasedAt).toBeInstanceOf(Date);
+      expect(savedPayouts).toHaveLength(1);
+      expect(savedPayouts[0].releasedAt).toBeDefined();
+      expect(savedPayouts[0].releasedAt).toBeInstanceOf(Date);
     });
 
     it('should set releasedAt when updating to PENDING if not already set (even if not from HOLD)', async () => {
@@ -295,10 +312,10 @@ describe('SellerPayoutService - Unit Tests', () => {
       existingPayout.releasedAt = undefined; // Not yet released
 
       // Mock save to capture what was actually saved
-      let savedPayout: SellerPayout | null = null;
+      const savedPayouts: SellerPayout[] = [];
       mockRepository.findOne.mockResolvedValue(existingPayout);
-      mockRepository.save.mockImplementation((payout) => {
-        savedPayout = payout;
+      mockRepository.save.mockImplementation((payout: any) => {
+        savedPayouts.push(payout as SellerPayout);
         return Promise.resolve(payout);
       });
 
@@ -307,8 +324,9 @@ describe('SellerPayoutService - Unit Tests', () => {
 
       // Assert: releasedAt should be set via the else branch
       expect(result.status).toBe(PayoutStatus.PENDING);
-      expect(savedPayout?.releasedAt).toBeDefined();
-      expect(savedPayout?.releasedAt).toBeInstanceOf(Date);
+      expect(savedPayouts).toHaveLength(1);
+      expect(savedPayouts[0].releasedAt).toBeDefined();
+      expect(savedPayouts[0].releasedAt).toBeInstanceOf(Date);
     });
 
     it('should update payout status to FAILED and store failure reason', async () => {
@@ -330,7 +348,12 @@ describe('SellerPayoutService - Unit Tests', () => {
       mockRepository.save.mockResolvedValue(updatedPayout);
 
       // Act
-      const result = await service.updatePayoutStatus(mockCtx, payoutId, PayoutStatus.FAILED, failureReason);
+      const result = await service.updatePayoutStatus(
+        mockCtx,
+        payoutId,
+        PayoutStatus.FAILED,
+        failureReason
+      );
 
       // Assert
       expect(result.status).toBe(PayoutStatus.FAILED);
@@ -343,9 +366,9 @@ describe('SellerPayoutService - Unit Tests', () => {
       mockRepository.findOne.mockResolvedValue(null);
 
       // Act & Assert
-      await expect(service.updatePayoutStatus(mockCtx, payoutId, PayoutStatus.PENDING)).rejects.toThrow(
-        `Payout with ID ${payoutId} not found`
-      );
+      await expect(
+        service.updatePayoutStatus(mockCtx, payoutId, PayoutStatus.PENDING)
+      ).rejects.toThrow(`Payout with ID ${payoutId} not found`);
     });
   });
 
@@ -641,7 +664,11 @@ describe('SellerPayoutService - Unit Tests', () => {
       });
       existingPayout.id = 1;
 
-      const updatedPayout = { ...existingPayout, status: PayoutStatus.PENDING, releasedAt: new Date() };
+      const updatedPayout = {
+        ...existingPayout,
+        status: PayoutStatus.PENDING,
+        releasedAt: new Date(),
+      };
 
       mockRepository.findOne.mockResolvedValue(existingPayout);
       mockRepository.save.mockResolvedValue(updatedPayout);
@@ -657,10 +684,10 @@ describe('SellerPayoutService - Unit Tests', () => {
   });
 
   describe('getPendingPayoutTotal', () => {
-    it('should calculate total pending payouts for a seller', async () => {
+    it('should calculate total pending payouts for a seller (includes both PENDING and HOLD)', async () => {
       // Arrange
       const sellerId = '5';
-      // Only PENDING payouts are returned by the query (HOLD payouts are filtered out)
+      // Both PENDING and HOLD payouts are included in the total
       const mockPayouts = [
         new SellerPayout({
           sellerId: 5,
@@ -676,6 +703,13 @@ describe('SellerPayoutService - Unit Tests', () => {
           commission: 2000,
           status: PayoutStatus.PENDING,
         }),
+        new SellerPayout({
+          sellerId: 5,
+          orderId: '102',
+          amount: 5000,
+          commission: 1000,
+          status: PayoutStatus.HOLD,
+        }),
       ];
 
       mockRepository.find.mockResolvedValue(mockPayouts);
@@ -683,17 +717,20 @@ describe('SellerPayoutService - Unit Tests', () => {
       // Act
       const total = await service.getPendingPayoutTotal(mockCtx, sellerId);
 
-      // Assert
+      // Assert: Verify query includes both PENDING and HOLD statuses
       expect(mockRepository.find).toHaveBeenCalledWith({
         where: {
           sellerId: 5,
-          status: PayoutStatus.PENDING,
+          status: expect.objectContaining({
+            _type: 'in',
+            _value: [PayoutStatus.PENDING, PayoutStatus.HOLD],
+          }),
         },
       });
-      expect(total).toBe(20500); // $205.00 (8500 + 12000)
+      expect(total).toBe(25500); // $255.00 (8500 + 12000 + 5000)
     });
 
-    it('should return zero if seller has no pending payouts', async () => {
+    it('should return zero if seller has no pending or hold payouts', async () => {
       // Arrange
       const sellerId = '5';
       mockRepository.find.mockResolvedValue([]);
@@ -703,6 +740,36 @@ describe('SellerPayoutService - Unit Tests', () => {
 
       // Assert
       expect(total).toBe(0);
+    });
+
+    it('should include HOLD payouts in the total', async () => {
+      // Arrange
+      const sellerId = '5';
+      // Only HOLD payouts (funds in escrow)
+      const mockPayouts = [
+        new SellerPayout({
+          sellerId: 5,
+          orderId: '100',
+          amount: 10000,
+          commission: 1500,
+          status: PayoutStatus.HOLD,
+        }),
+        new SellerPayout({
+          sellerId: 5,
+          orderId: '101',
+          amount: 5000,
+          commission: 750,
+          status: PayoutStatus.HOLD,
+        }),
+      ];
+
+      mockRepository.find.mockResolvedValue(mockPayouts);
+
+      // Act
+      const total = await service.getPendingPayoutTotal(mockCtx, sellerId);
+
+      // Assert: HOLD payouts should be included
+      expect(total).toBe(15000); // $150.00 (10000 + 5000)
     });
   });
 
@@ -781,6 +848,42 @@ describe('SellerPayoutService - Unit Tests', () => {
 
       // Assert
       expect(canRequest).toBe(true); // Total equals threshold
+    });
+  });
+
+  describe('hasPayoutsForOrder', () => {
+    it('should return true if payouts exist for an order', async () => {
+      // Arrange
+      const orderId = '100';
+      mockRepository.count.mockResolvedValue(2); // 2 payouts exist
+
+      // Act
+      const hasPayouts = await service.hasPayoutsForOrder(mockCtx, orderId);
+
+      // Assert
+      expect(mockRepository.count).toHaveBeenCalledWith({
+        where: {
+          orderId: orderId.toString(),
+        },
+      });
+      expect(hasPayouts).toBe(true);
+    });
+
+    it('should return false if no payouts exist for an order', async () => {
+      // Arrange
+      const orderId = '100';
+      mockRepository.count.mockResolvedValue(0); // No payouts exist
+
+      // Act
+      const hasPayouts = await service.hasPayoutsForOrder(mockCtx, orderId);
+
+      // Assert
+      expect(mockRepository.count).toHaveBeenCalledWith({
+        where: {
+          orderId: orderId.toString(),
+        },
+      });
+      expect(hasPayouts).toBe(false);
     });
   });
 });

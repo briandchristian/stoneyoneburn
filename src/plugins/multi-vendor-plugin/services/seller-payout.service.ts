@@ -14,6 +14,7 @@
 import { Injectable } from '@nestjs/common';
 import type { ID, RequestContext } from '@vendure/core';
 import { TransactionalConnection } from '@vendure/core';
+import { In } from 'typeorm';
 import { SellerPayout, PayoutStatus } from '../entities/seller-payout.entity';
 
 // Re-export the entity and enum for convenience
@@ -90,7 +91,7 @@ export class SellerPayoutService {
 
     // Capture original status before reassignment to detect transitions
     const originalStatus = payout.status;
-    
+
     payout.status = status;
     if (status === PayoutStatus.COMPLETED) {
       payout.completedAt = new Date();
@@ -193,7 +194,7 @@ export class SellerPayoutService {
     const payouts = await this.connection.getRepository(ctx, SellerPayout).find({
       where: {
         sellerId: parseInt(sellerId.toString(), 10),
-        status: PayoutStatus.PENDING,
+        status: In([PayoutStatus.PENDING, PayoutStatus.HOLD]),
       },
     });
 
@@ -208,8 +209,29 @@ export class SellerPayoutService {
    * @param minimumThreshold Minimum payout threshold in cents
    * @returns True if pending payout total meets or exceeds threshold
    */
-  async canRequestPayout(ctx: RequestContext, sellerId: ID, minimumThreshold: number): Promise<boolean> {
+  async canRequestPayout(
+    ctx: RequestContext,
+    sellerId: ID,
+    minimumThreshold: number
+  ): Promise<boolean> {
     const pendingTotal = await this.getPendingPayoutTotal(ctx, sellerId);
     return pendingTotal >= minimumThreshold;
+  }
+
+  /**
+   * Check if payouts already exist for an order
+   * Used to prevent duplicate payout creation when multiple events fire
+   *
+   * @param ctx RequestContext
+   * @param orderId Order ID
+   * @returns True if payouts exist for this order
+   */
+  async hasPayoutsForOrder(ctx: RequestContext, orderId: ID): Promise<boolean> {
+    const count = await this.connection.getRepository(ctx, SellerPayout).count({
+      where: {
+        orderId: orderId.toString(),
+      },
+    });
+    return count > 0;
   }
 }

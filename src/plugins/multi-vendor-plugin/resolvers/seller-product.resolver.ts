@@ -86,7 +86,8 @@ export class SellerProductResolver {
   async sellerProducts(
     @Ctx() ctx: RequestContext,
     @Args('sellerId', { type: () => ID }) sellerId: string,
-    @Args('options', { type: () => 'ProductListOptions' as any, nullable: true }) options?: ProductListOptions
+    @Args('options', { type: () => 'ProductListOptions' as any, nullable: true })
+    options?: ProductListOptions
   ): Promise<ProductList> {
     const sellerIdNum = parseInt(sellerId, 10);
 
@@ -108,10 +109,7 @@ export class SellerProductResolver {
     this.applyFiltering(countQuery, options);
 
     // Execute both queries in parallel
-    const [items, totalItems] = await Promise.all([
-      itemsQuery.getMany(),
-      countQuery.getCount(),
-    ]);
+    const [items, totalItems] = await Promise.all([itemsQuery.getMany(), countQuery.getCount()]);
 
     return {
       items,

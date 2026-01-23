@@ -11,7 +11,14 @@
  * - Add check constraints for data integrity
  */
 
-import { MigrationInterface, QueryRunner, Table, TableForeignKey, TableIndex, TableCheck } from 'typeorm';
+import {
+  MigrationInterface,
+  QueryRunner,
+  Table,
+  TableForeignKey,
+  TableIndex,
+  TableCheck,
+} from 'typeorm';
 
 export class CreateCommissionHistoryEntity1768064000000 implements MigrationInterface {
   name = 'CreateCommissionHistoryEntity1768064000000';
@@ -208,10 +215,22 @@ export class CreateCommissionHistoryEntity1768064000000 implements MigrationInte
 
     // Drop check constraints
     await queryRunner.dropCheckConstraint('commission_history', 'CHK_commission_history_amounts');
-    await queryRunner.dropCheckConstraint('commission_history', 'CHK_commission_history_sellerPayout');
-    await queryRunner.dropCheckConstraint('commission_history', 'CHK_commission_history_commissionAmount');
-    await queryRunner.dropCheckConstraint('commission_history', 'CHK_commission_history_orderTotal');
-    await queryRunner.dropCheckConstraint('commission_history', 'CHK_commission_history_commissionRate');
+    await queryRunner.dropCheckConstraint(
+      'commission_history',
+      'CHK_commission_history_sellerPayout'
+    );
+    await queryRunner.dropCheckConstraint(
+      'commission_history',
+      'CHK_commission_history_commissionAmount'
+    );
+    await queryRunner.dropCheckConstraint(
+      'commission_history',
+      'CHK_commission_history_orderTotal'
+    );
+    await queryRunner.dropCheckConstraint(
+      'commission_history',
+      'CHK_commission_history_commissionRate'
+    );
 
     // Drop foreign key
     const table = await queryRunner.getTable('commission_history');

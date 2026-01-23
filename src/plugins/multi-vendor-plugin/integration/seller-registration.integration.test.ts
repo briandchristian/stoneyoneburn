@@ -50,7 +50,8 @@ import * as path from 'path';
 // Get server port from env var (set by server when using auto-detection) or default to 3000
 const SERVER_PORT = process.env.PORT || '3000';
 const SHOP_API_URL = process.env.VENDURE_SHOP_API_URL || `http://localhost:${SERVER_PORT}/shop-api`;
-const ADMIN_API_URL = process.env.VENDURE_ADMIN_API_URL || `http://localhost:${SERVER_PORT}/admin-api`;
+const ADMIN_API_URL =
+  process.env.VENDURE_ADMIN_API_URL || `http://localhost:${SERVER_PORT}/admin-api`;
 const TEST_EMAIL_PATH = path.join(__dirname, '../../../../static/email/test-emails');
 
 /**
@@ -80,7 +81,9 @@ async function makeGraphQLRequest(query: string, variables: any = {}, cookies: s
   try {
     data = text ? JSON.parse(text) : {};
   } catch (parseError) {
-    throw new Error(`Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`);
+    throw new Error(
+      `Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`
+    );
   }
 
   // Handle cookie extraction - cookies might be in set-cookie header or already in cookies string
@@ -163,7 +166,8 @@ async function getVerificationTokenFromFiles(email: string): Promise<string | nu
 
     // Get ALL email files (not just verification ones) and check by recipient
     // This is more reliable than filename matching
-    const allEmailFiles = fs.readdirSync(TEST_EMAIL_PATH)
+    const allEmailFiles = fs
+      .readdirSync(TEST_EMAIL_PATH)
       .filter((file) => file.endsWith('.json'))
       .map((file) => {
         const filePath = path.join(TEST_EMAIL_PATH, file);
@@ -180,9 +184,9 @@ async function getVerificationTokenFromFiles(email: string): Promise<string | nu
     // Check files created in the last 10 minutes first (most likely to contain our email)
     const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
     const recentFiles = allEmailFiles.filter((f) => f.mtime > tenMinutesAgo);
-    
+
     // Also check verification files specifically
-    const verificationFiles = allEmailFiles.filter((f) => 
+    const verificationFiles = allEmailFiles.filter((f) =>
       f.file.includes('please_verify_your_email_address')
     );
 
@@ -190,7 +194,9 @@ async function getVerificationTokenFromFiles(email: string): Promise<string | nu
     const filesToCheck = [
       ...recentFiles,
       ...verificationFiles.filter((f) => !recentFiles.includes(f)),
-      ...allEmailFiles.slice(0, 100).filter((f) => !recentFiles.includes(f) && !verificationFiles.includes(f)),
+      ...allEmailFiles
+        .slice(0, 100)
+        .filter((f) => !recentFiles.includes(f) && !verificationFiles.includes(f)),
     ];
 
     for (const fileInfo of filesToCheck) {
@@ -307,7 +313,9 @@ async function loginAsAdmin(): Promise<string> {
   try {
     data = text ? JSON.parse(text) : {};
   } catch (parseError) {
-    throw new Error(`Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`);
+    throw new Error(
+      `Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`
+    );
   }
 
   if (data.errors || data.data?.login?.errorCode) {
@@ -357,7 +365,9 @@ async function makeAdminGraphQLRequest(
   try {
     data = text ? JSON.parse(text) : {};
   } catch (parseError) {
-    throw new Error(`Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`);
+    throw new Error(
+      `Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`
+    );
   }
   return data;
 }
@@ -385,18 +395,14 @@ async function verifyCustomerViaAdmin(email: string): Promise<boolean> {
       }
     `;
 
-    const findResult = await makeAdminGraphQLRequest(
-      findCustomerQuery,
-      { email },
-      adminCookies
-    );
+    const findResult = await makeAdminGraphQLRequest(findCustomerQuery, { email }, adminCookies);
 
     if (findResult.errors || !findResult.data?.customers?.items?.length) {
       return false;
     }
 
     const customer = findResult.data.customers.items[0];
-    
+
     // If already verified, return true
     if (customer.user?.verified) {
       return true;
@@ -408,7 +414,7 @@ async function verifyCustomerViaAdmin(email: string): Promise<boolean> {
     // For now, we'll just check if they exist and assume verification
     // In integration tests, we can work around this by using the token if available,
     // or by accepting that unverified customers can't login (which is expected behavior)
-    
+
     return false; // Can't directly verify via Admin API without token
   } catch (error) {
     console.warn('Could not verify customer via Admin API:', error);
@@ -420,7 +426,9 @@ async function verifyCustomerViaAdmin(email: string): Promise<boolean> {
  * Helper function to register and verify a customer account
  * Returns the email and cookies after successful registration and verification
  */
-async function registerAndVerifyCustomer(emailPrefix: string = 'seller-test'): Promise<{ email: string; cookies: string }> {
+async function registerAndVerifyCustomer(
+  emailPrefix: string = 'seller-test'
+): Promise<{ email: string; cookies: string }> {
   const email = `${emailPrefix}-${Date.now()}@example.com`;
 
   // Register customer
@@ -471,15 +479,17 @@ async function registerAndVerifyCustomer(emailPrefix: string = 'seller-test'): P
   if (!token) {
     console.warn(
       `⚠️  Could not find verification token for ${email}. ` +
-      `Skipping verification (expected in devMode when emails aren't written to files). ` +
-      `Login will require email verification.`
+        `Skipping verification (expected in devMode when emails aren't written to files). ` +
+        `Login will require email verification.`
     );
     // Continue without verification - login test will handle it
   } else {
     // Verify the account using the token
     const verifyResult = await verifyCustomerAccount(token);
     if (verifyResult?.errorCode) {
-      throw new Error(`Email verification failed: ${verifyResult.errorCode} - ${verifyResult.message}`);
+      throw new Error(
+        `Email verification failed: ${verifyResult.errorCode} - ${verifyResult.message}`
+      );
     }
   }
 
@@ -607,29 +617,33 @@ describe('Seller Registration Integration Tests', () => {
       if (!token) {
         console.warn(
           `⚠️  Could not find verification token for ${customerEmail}. ` +
-          `In devMode, emails may not be written to files. ` +
-          `Customer registration succeeded. Email verification will be required for login.`
+            `In devMode, emails may not be written to files. ` +
+            `Customer registration succeeded. Email verification will be required for login.`
         );
         // Don't throw - registration was successful
         // The next test (login) will handle the verification requirement
         return;
       }
-      
+
       if (!token) {
         // Debug: List available email files to help diagnose
         try {
           if (fs.existsSync(TEST_EMAIL_PATH)) {
             const allFiles = fs.readdirSync(TEST_EMAIL_PATH);
-            const verificationFiles = allFiles.filter((f) => 
-              f.includes('please_verify') && f.endsWith('.json')
+            const verificationFiles = allFiles.filter(
+              (f) => f.includes('please_verify') && f.endsWith('.json')
             );
             console.error(`Email directory: ${TEST_EMAIL_PATH}`);
             console.error(`Total files in directory: ${allFiles.length}`);
             console.error(`Verification email files found: ${verificationFiles.length}`);
-            console.error(`Most recent verification files: ${verificationFiles.slice(-5).join(', ')}`);
+            console.error(
+              `Most recent verification files: ${verificationFiles.slice(-5).join(', ')}`
+            );
             console.error(`Looking for email containing: ${customerEmail}`);
-            console.error(`Email prefix: ${customerEmail.split('@')[0]}, domain: ${customerEmail.split('@')[1]?.replace('.', '')}`);
-            
+            console.error(
+              `Email prefix: ${customerEmail.split('@')[0]}, domain: ${customerEmail.split('@')[1]?.replace('.', '')}`
+            );
+
             // Check if any recent files match by reading their content
             const recentFiles = verificationFiles.slice(0, 10);
             for (const file of recentFiles) {
@@ -645,14 +659,16 @@ describe('Seller Registration Integration Tests', () => {
             }
           } else {
             console.error(`Email directory does not exist: ${TEST_EMAIL_PATH}`);
-            console.error(`Make sure the email plugin is configured to write test emails to this directory.`);
+            console.error(
+              `Make sure the email plugin is configured to write test emails to this directory.`
+            );
           }
         } catch (e) {
           console.error(`Error checking email directory: ${e}`);
         }
         throw new Error(
           `Failed to get verification token for ${customerEmail} after ${maxAttempts} attempts. ` +
-          `Make sure the Vendure server is running and the email plugin is configured to write test emails to: ${TEST_EMAIL_PATH}`
+            `Make sure the Vendure server is running and the email plugin is configured to write test emails to: ${TEST_EMAIL_PATH}`
         );
       }
 
@@ -660,11 +676,15 @@ describe('Seller Registration Integration Tests', () => {
       if (token) {
         const verifyResult = await verifyCustomerAccount(token);
         if (verifyResult?.errorCode) {
-          throw new Error(`Email verification failed: ${verifyResult.errorCode} - ${verifyResult.message}`);
+          throw new Error(
+            `Email verification failed: ${verifyResult.errorCode} - ${verifyResult.message}`
+          );
         }
         console.log('Customer registered and email verified via token.');
       } else {
-        console.log('Customer registered (verification handled via Admin API or skipped for devMode).');
+        console.log(
+          'Customer registered (verification handled via Admin API or skipped for devMode).'
+        );
       }
     });
 
@@ -711,7 +731,9 @@ describe('Seller Registration Integration Tests', () => {
         // In devMode, email verification may not be possible if emails aren't written to files
         // This is expected behavior - document it and skip authenticated tests
         console.warn('Login returned null - email verification required');
-        console.warn('In devMode, if emails are not written to files, verification cannot be automated.');
+        console.warn(
+          'In devMode, if emails are not written to files, verification cannot be automated.'
+        );
         console.warn('Skipping authenticated tests that require verified customers.');
         (global as any).__CUSTOMER_VERIFIED__ = false;
         return; // Skip this test - customer needs manual verification
@@ -814,7 +836,8 @@ describe('Seller Registration Integration Tests', () => {
       `;
 
       // Create a second customer and verify email
-      const { email: customerEmail2, cookies: customerCookies2 } = await registerAndVerifyCustomer('seller-test-2');
+      const { email: customerEmail2, cookies: customerCookies2 } =
+        await registerAndVerifyCustomer('seller-test-2');
 
       // Try to register with same shop name
       const variables = {
@@ -852,7 +875,8 @@ describe('Seller Registration Integration Tests', () => {
       `;
 
       // Create third customer and verify email
-      const { email: customerEmail3, cookies: customerCookies3 } = await registerAndVerifyCustomer('seller-test-3');
+      const { email: customerEmail3, cookies: customerCookies3 } =
+        await registerAndVerifyCustomer('seller-test-3');
 
       const variables = {
         input: {
@@ -1127,7 +1151,8 @@ describe('Seller Registration Integration Tests', () => {
       `;
 
       // Create new customer for this test and verify email
-      const { email: validationEmail, cookies: validationCookies } = await registerAndVerifyCustomer('validation-test');
+      const { email: validationEmail, cookies: validationCookies } =
+        await registerAndVerifyCustomer('validation-test');
 
       // Try with very short shop name (should fail validation)
       const variables = {

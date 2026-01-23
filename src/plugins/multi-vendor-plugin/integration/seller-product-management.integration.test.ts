@@ -30,7 +30,8 @@ import * as path from 'path';
 // Get server port from env var (set by server when using auto-detection) or default to 3000
 const SERVER_PORT = process.env.PORT || '3000';
 const SHOP_API_URL = process.env.VENDURE_SHOP_API_URL || `http://localhost:${SERVER_PORT}/shop-api`;
-const ADMIN_API_URL = process.env.VENDURE_ADMIN_API_URL || `http://localhost:${SERVER_PORT}/admin-api`;
+const ADMIN_API_URL =
+  process.env.VENDURE_ADMIN_API_URL || `http://localhost:${SERVER_PORT}/admin-api`;
 const TEST_EMAIL_PATH = path.join(__dirname, '../../../../static/email/test-emails');
 
 /**
@@ -60,7 +61,9 @@ async function makeGraphQLRequest(query: string, variables: any = {}, cookies: s
   try {
     data = text ? JSON.parse(text) : {};
   } catch (parseError) {
-    throw new Error(`Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`);
+    throw new Error(
+      `Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`
+    );
   }
 
   // Handle cookie extraction
@@ -121,7 +124,12 @@ async function checkServerConnection(): Promise<boolean> {
       }
       // Connection refused or other errors - server not running
       if (attempt === maxRetries) {
-        console.error('Server connection check failed after', maxRetries, 'attempts:', error.message);
+        console.error(
+          'Server connection check failed after',
+          maxRetries,
+          'attempts:',
+          error.message
+        );
       }
       return false;
     }
@@ -136,7 +144,10 @@ async function checkServerConnection(): Promise<boolean> {
  * @param email - The email address to find token for
  * @param afterTimestamp - Optional timestamp to only check files created after this time
  */
-async function getVerificationToken(email: string, afterTimestamp?: number): Promise<string | null> {
+async function getVerificationToken(
+  email: string,
+  afterTimestamp?: number
+): Promise<string | null> {
   try {
     if (!fs.existsSync(TEST_EMAIL_PATH)) {
       return null;
@@ -144,7 +155,8 @@ async function getVerificationToken(email: string, afterTimestamp?: number): Pro
 
     // Get ALL email files (not just verification ones) and check by recipient
     // This is more reliable than filename matching
-    const allEmailFiles = fs.readdirSync(TEST_EMAIL_PATH)
+    const allEmailFiles = fs
+      .readdirSync(TEST_EMAIL_PATH)
       .filter((file) => file.endsWith('.json'))
       .map((file) => {
         const filePath = path.join(TEST_EMAIL_PATH, file);
@@ -167,9 +179,9 @@ async function getVerificationToken(email: string, afterTimestamp?: number): Pro
     // Check files created recently first (most likely to contain our email)
     const tenMinutesAgo = Date.now() - 10 * 60 * 1000;
     const recentFiles = filteredFiles.filter((f) => f.mtime > tenMinutesAgo);
-    
+
     // Also check verification files specifically
-    const verificationFiles = filteredFiles.filter((f) => 
+    const verificationFiles = filteredFiles.filter((f) =>
       f.file.includes('please_verify_your_email_address')
     );
 
@@ -177,7 +189,9 @@ async function getVerificationToken(email: string, afterTimestamp?: number): Pro
     const filesToCheck = [
       ...recentFiles,
       ...verificationFiles.filter((f) => !recentFiles.includes(f)),
-      ...filteredFiles.slice(0, 100).filter((f) => !recentFiles.includes(f) && !verificationFiles.includes(f)),
+      ...filteredFiles
+        .slice(0, 100)
+        .filter((f) => !recentFiles.includes(f) && !verificationFiles.includes(f)),
     ];
 
     for (const fileInfo of filesToCheck) {
@@ -287,7 +301,9 @@ async function loginAsAdmin(): Promise<string> {
   try {
     data = text ? JSON.parse(text) : {};
   } catch (parseError) {
-    throw new Error(`Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`);
+    throw new Error(
+      `Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`
+    );
   }
 
   if (data.errors || data.data?.login?.errorCode) {
@@ -342,7 +358,9 @@ async function makeAdminGraphQLRequest(
   try {
     data = text ? JSON.parse(text) : {};
   } catch (parseError) {
-    throw new Error(`Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`);
+    throw new Error(
+      `Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`
+    );
   }
 
   if (data.errors) {
@@ -373,7 +391,7 @@ function safeLog(level: 'warn' | 'error' | 'log', message: string) {
 
 /**
  * Helper function to verify a seller via Admin API
- * 
+ *
  * This logs in as admin and then verifies the seller.
  * Uses superadmin credentials from environment variables.
  */
@@ -406,7 +424,10 @@ async function verifySellerViaAdmin(
     );
 
     if (result.errors) {
-      safeLog('warn', `⚠️  Failed to verify seller ${sellerId} via Admin API: ${JSON.stringify(result.errors)}`);
+      safeLog(
+        'warn',
+        `⚠️  Failed to verify seller ${sellerId} via Admin API: ${JSON.stringify(result.errors)}`
+      );
       return null;
     }
 
@@ -425,7 +446,7 @@ async function setupVerifiedSeller(
   emailPrefix: string = 'seller-product-test'
 ): Promise<{ cookies: string; sellerId: string; email: string }> {
   const email = `${emailPrefix}-${Date.now()}@example.com`;
-  
+
   // Record timestamp before registration to filter email files
   // Use a wider window (5 seconds before) to account for any clock drift or delays
   const registrationTimestamp = Date.now() - 5000;
@@ -467,10 +488,13 @@ async function setupVerifiedSeller(
       token = await getVerificationToken(email);
     }
     attempts++;
-    
+
     // Debug: Log progress every 10 attempts
     if (attempts % 10 === 0 && !token) {
-      safeLog('log', `Waiting for verification email for ${email}... (attempt ${attempts}/${maxAttempts})`);
+      safeLog(
+        'log',
+        `Waiting for verification email for ${email}... (attempt ${attempts}/${maxAttempts})`
+      );
     }
   }
 
@@ -479,10 +503,13 @@ async function setupVerifiedSeller(
     try {
       if (fs.existsSync(TEST_EMAIL_PATH)) {
         const allFiles = fs.readdirSync(TEST_EMAIL_PATH);
-        const verificationFiles = allFiles.filter((f) => 
-          f.includes('please_verify') && f.endsWith('.json')
+        const verificationFiles = allFiles.filter(
+          (f) => f.includes('please_verify') && f.endsWith('.json')
         );
-        safeLog('error', `Available verification email files: ${verificationFiles.slice(-5).join(', ')}`);
+        safeLog(
+          'error',
+          `Available verification email files: ${verificationFiles.slice(-5).join(', ')}`
+        );
         safeLog('error', `Looking for email containing: ${email}`);
       } else {
         safeLog('error', `Email directory does not exist: ${TEST_EMAIL_PATH}`);
@@ -492,10 +519,11 @@ async function setupVerifiedSeller(
     }
     // In test environments, emails may not be written to files
     // Try to continue without verification - login may still work if verification isn't strictly required
-    safeLog('warn',
+    safeLog(
+      'warn',
       `⚠️  Could not find verification token for ${email} after ${maxAttempts} attempts. ` +
-      `This may be expected if the EmailPlugin isn't writing files during tests. ` +
-      `Attempting to continue without email verification - login may fail if verification is required.`
+        `This may be expected if the EmailPlugin isn't writing files during tests. ` +
+        `Attempting to continue without email verification - login may fail if verification is required.`
     );
     // Don't throw - let's try to continue and see if login works anyway
     // If login fails due to verification, the error will be caught below
@@ -503,7 +531,9 @@ async function setupVerifiedSeller(
     // Verify the account using the token
     const verifyResult = await verifyCustomerAccount(token);
     if (verifyResult?.errorCode) {
-      throw new Error(`Email verification failed: ${verifyResult.errorCode} - ${verifyResult.message}`);
+      throw new Error(
+        `Email verification failed: ${verifyResult.errorCode} - ${verifyResult.message}`
+      );
     }
   }
 
@@ -524,18 +554,18 @@ async function setupVerifiedSeller(
   if (loginResult.data.errors || loginResult.data.data?.login?.errorCode) {
     const error = loginResult.data.errors?.[0] || loginResult.data.data?.login;
     const errorMessage = error.message || error.errorCode;
-    
+
     // If login fails due to missing verification and we couldn't find the email token,
     // provide a helpful error message
     if (!token && (errorMessage.includes('verify') || errorMessage.includes('VERIFICATION'))) {
       throw new Error(
         `Login failed because email verification is required, but verification emails are not being written to files. ` +
-        `This test requires the EmailPlugin to be configured to write emails to ${TEST_EMAIL_PATH}. ` +
-        `Please ensure the Vendure server is configured with EmailPlugin's file-based email handling for tests. ` +
-        `Original error: ${errorMessage}`
+          `This test requires the EmailPlugin to be configured to write emails to ${TEST_EMAIL_PATH}. ` +
+          `Please ensure the Vendure server is configured with EmailPlugin's file-based email handling for tests. ` +
+          `Original error: ${errorMessage}`
       );
     }
-    
+
     throw new Error(`Login failed: ${errorMessage}`);
   }
 
@@ -572,16 +602,16 @@ async function setupVerifiedSeller(
     if (error.message?.includes('No metadata for "MarketplaceSeller"')) {
       throw new Error(
         'Server configuration error: MarketplaceSeller entity not found. ' +
-        'Make sure the MultiVendorPlugin is properly loaded in vendure-config.ts'
+          'Make sure the MultiVendorPlugin is properly loaded in vendure-config.ts'
       );
     }
-    throw new Error(
-      `Seller registration failed: ${JSON.stringify(sellerResult.data.errors)}`
-    );
+    throw new Error(`Seller registration failed: ${JSON.stringify(sellerResult.data.errors)}`);
   }
 
   if (!sellerResult.data.data?.registerAsSeller) {
-    throw new Error('Seller registration returned null - check authorization and email verification');
+    throw new Error(
+      'Seller registration returned null - check authorization and email verification'
+    );
   }
 
   const sellerId = sellerResult.data.data.registerAsSeller.id;
@@ -603,7 +633,7 @@ async function setupVerifiedSeller(
   );
 
   const currentStatus = statusCheck.data.data?.activeSeller?.verificationStatus;
-  
+
   // If seller is not verified, attempt to verify them via Admin API
   // Note: This requires admin authentication. In a test environment, you may need to
   // provide admin credentials or configure the test to auto-verify sellers.
@@ -611,15 +641,16 @@ async function setupVerifiedSeller(
     // Attempt to verify the seller via Admin API
     // Note: This may fail if admin authentication is required
     const verifiedSeller = await verifySellerViaAdmin(sellerId, 'VERIFIED');
-    
+
     if (verifiedSeller) {
       safeLog('log', `✓ Seller ${sellerId} verified via Admin API`);
     } else {
-      safeLog('warn',
+      safeLog(
+        'warn',
         `⚠️  Could not verify seller ${sellerId} via Admin API. ` +
-        `Product creation tests require VERIFIED status. ` +
-        `The test may fail with SELLER_NOT_VERIFIED error. ` +
-        `Consider providing admin credentials or configuring auto-verification for tests.`
+          `Product creation tests require VERIFIED status. ` +
+          `The test may fail with SELLER_NOT_VERIFIED error. ` +
+          `Consider providing admin credentials or configuring auto-verification for tests.`
       );
     }
   }
@@ -649,25 +680,23 @@ describe('Seller Product Management Integration Tests', () => {
   }, 15000);
 
   describe('Seller Setup', () => {
-    it(
-      'should set up a verified seller for product management tests',
-      async () => {
-        if (!(global as any).__VENDURE_SERVER_RUNNING__) {
-          console.log('⏭️  Skipping test - server not running');
-          return;
-        }
+    it('should set up a verified seller for product management tests', async () => {
+      if (!(global as any).__VENDURE_SERVER_RUNNING__) {
+        console.log('⏭️  Skipping test - server not running');
+        return;
+      }
 
-        const setup = await setupVerifiedSeller('product-test');
-        sellerCookies = setup.cookies;
-        sellerId = setup.sellerId;
-        sellerEmail = setup.email;
+      const setup = await setupVerifiedSeller('product-test');
+      sellerCookies = setup.cookies;
+      sellerId = setup.sellerId;
+      sellerEmail = setup.email;
 
-        expect(sellerCookies).toBeDefined();
-        expect(sellerId).toBeDefined();
-        expect(sellerEmail).toBeDefined();
+      expect(sellerCookies).toBeDefined();
+      expect(sellerId).toBeDefined();
+      expect(sellerEmail).toBeDefined();
 
-        // Verify seller exists
-        const activeSellerQuery = `
+      // Verify seller exists
+      const activeSellerQuery = `
         query ActiveSeller {
           activeSeller {
             id
@@ -676,22 +705,21 @@ describe('Seller Product Management Integration Tests', () => {
           }
         }
       `;
-        const result = await makeGraphQLRequest(activeSellerQuery, {}, sellerCookies);
-        expect(result.data.data.activeSeller).toBeDefined();
-        expect(result.data.data.activeSeller.id).toBe(sellerId);
-        
-        // Check if seller is verified - if not, tests requiring verification will fail
-        const verificationStatus = result.data.data.activeSeller.verificationStatus;
-        if (verificationStatus !== 'VERIFIED') {
-          safeLog('warn',
-            `⚠️  Seller ${sellerId} is ${verificationStatus}, not VERIFIED. ` +
+      const result = await makeGraphQLRequest(activeSellerQuery, {}, sellerCookies);
+      expect(result.data.data.activeSeller).toBeDefined();
+      expect(result.data.data.activeSeller.id).toBe(sellerId);
+
+      // Check if seller is verified - if not, tests requiring verification will fail
+      const verificationStatus = result.data.data.activeSeller.verificationStatus;
+      if (verificationStatus !== 'VERIFIED') {
+        safeLog(
+          'warn',
+          `⚠️  Seller ${sellerId} is ${verificationStatus}, not VERIFIED. ` +
             `Product creation tests may fail. ` +
             `Start the server with APP_ENV=test to auto-verify sellers, or verify manually via Admin API.`
-          );
-        }
-      },
-      30000
-    ); // 30 second timeout to allow for email file creation
+        );
+      }
+    }, 30000); // 30 second timeout to allow for email file creation
   });
 
   describe('Product Creation', () => {
@@ -712,7 +740,10 @@ describe('Seller Product Management Integration Tests', () => {
         sellerCookies
       );
       if (statusCheck.data.data?.activeSeller?.verificationStatus !== 'VERIFIED') {
-        safeLog('warn', '⏭️  Skipping test - seller is not verified. Start server with APP_ENV=test or verify seller manually.');
+        safeLog(
+          'warn',
+          '⏭️  Skipping test - seller is not verified. Start server with APP_ENV=test or verify seller manually.'
+        );
         return;
       }
 
@@ -745,9 +776,7 @@ describe('Seller Product Management Integration Tests', () => {
 
       // Check for GraphQL errors first
       if (result.data.errors) {
-        throw new Error(
-          `Product creation failed: ${JSON.stringify(result.data.errors)}`
-        );
+        throw new Error(`Product creation failed: ${JSON.stringify(result.data.errors)}`);
       }
 
       expect(result.data.data).toBeDefined();
@@ -767,7 +796,7 @@ describe('Seller Product Management Integration Tests', () => {
 
       // Create a new seller that will be in PENDING status (unverified)
       const unverifiedSeller = await setupVerifiedSeller('unverified-seller-test');
-      
+
       // Verify the seller is in PENDING status (new sellers start as PENDING)
       const activeSellerQuery = `
         query ActiveSeller {
@@ -778,11 +807,14 @@ describe('Seller Product Management Integration Tests', () => {
         }
       `;
       const sellerCheck = await makeGraphQLRequest(activeSellerQuery, {}, unverifiedSeller.cookies);
-      
+
       // New sellers should be in PENDING status, not VERIFIED
       // If they're already verified (e.g., server running with APP_ENV=test), we can't test this scenario
       if (sellerCheck.data.data?.activeSeller?.verificationStatus === 'VERIFIED') {
-        safeLog('warn', '⚠️  Seller is already verified - cannot test unverified seller scenario. This is expected when server runs with APP_ENV=test.');
+        safeLog(
+          'warn',
+          '⚠️  Seller is already verified - cannot test unverified seller scenario. This is expected when server runs with APP_ENV=test.'
+        );
         // In this case, the test passes because verification happened automatically
         return;
       }
@@ -808,32 +840,43 @@ describe('Seller Product Management Integration Tests', () => {
       };
 
       // Try to create a product with an unverified seller - this should fail
-      const result = await makeGraphQLRequest(createProductMutation, variables, unverifiedSeller.cookies);
+      const result = await makeGraphQLRequest(
+        createProductMutation,
+        variables,
+        unverifiedSeller.cookies
+      );
 
       // Should get an error because seller is not verified
       expect(result.data.errors).toBeDefined();
       expect(result.data.errors.length).toBeGreaterThan(0);
-      
+
       // The error code should be SELLER_NOT_VERIFIED
       // However, if the error is FORBIDDEN, it might be because the seller doesn't exist
       // or there's an authentication issue
       const firstError = result.data.errors[0];
       const errorCode = firstError.extensions?.code;
       const errorMessage = firstError.message || '';
-      
+
       // Check if error message contains expected text or if error code matches
-      const isSellerNotVerified = errorCode === 'SELLER_NOT_VERIFIED' || 
-                                  errorMessage.includes('verified') || 
-                                  errorMessage.includes('SELLER_NOT_VERIFIED');
-      const isForbidden = errorCode === 'FORBIDDEN' || errorMessage.includes('authorized') || errorMessage.includes('FORBIDDEN');
-      
+      const isSellerNotVerified =
+        errorCode === 'SELLER_NOT_VERIFIED' ||
+        errorMessage.includes('verified') ||
+        errorMessage.includes('SELLER_NOT_VERIFIED');
+      const isForbidden =
+        errorCode === 'FORBIDDEN' ||
+        errorMessage.includes('authorized') ||
+        errorMessage.includes('FORBIDDEN');
+
       // Product creation should be rejected - either with SELLER_NOT_VERIFIED or FORBIDDEN
       expect(isSellerNotVerified || isForbidden).toBe(true);
-      
+
       // If we get FORBIDDEN, it might be a different issue, but the important thing
       // is that product creation was rejected for an unverified seller
       if (isForbidden && !isSellerNotVerified) {
-        safeLog('warn', '⚠️  Got FORBIDDEN instead of SELLER_NOT_VERIFIED - seller may not exist or auth failed');
+        safeLog(
+          'warn',
+          '⚠️  Got FORBIDDEN instead of SELLER_NOT_VERIFIED - seller may not exist or auth failed'
+        );
       }
     }, 30000);
 
@@ -888,7 +931,10 @@ describe('Seller Product Management Integration Tests', () => {
         sellerCookies
       );
       if (statusCheck.data.data?.activeSeller?.verificationStatus !== 'VERIFIED') {
-        safeLog('warn', '⏭️  Skipping test - seller is not verified. Start server with APP_ENV=test or verify seller manually.');
+        safeLog(
+          'warn',
+          '⏭️  Skipping test - seller is not verified. Start server with APP_ENV=test or verify seller manually.'
+        );
         return;
       }
 
@@ -914,9 +960,7 @@ describe('Seller Product Management Integration Tests', () => {
           sellerCookies
         );
         if (createResult.data.errors) {
-          throw new Error(
-            `Product creation failed: ${JSON.stringify(createResult.data.errors)}`
-          );
+          throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
         }
         productId = createResult.data.data?.createSellerProduct?.id;
         if (!productId) {
@@ -955,9 +999,7 @@ describe('Seller Product Management Integration Tests', () => {
       const result = await makeGraphQLRequest(updateProductMutation, variables, sellerCookies);
 
       if (result.data.errors) {
-        throw new Error(
-          `Product update failed: ${JSON.stringify(result.data.errors)}`
-        );
+        throw new Error(`Product update failed: ${JSON.stringify(result.data.errors)}`);
       }
 
       expect(result.data.data).toBeDefined();
@@ -987,7 +1029,10 @@ describe('Seller Product Management Integration Tests', () => {
         seller2.cookies
       );
       if (seller2StatusCheck.data.data?.activeSeller?.verificationStatus !== 'VERIFIED') {
-        safeLog('warn', '⏭️  Skipping test - seller2 is not verified. Start server with APP_ENV=test or verify seller manually.');
+        safeLog(
+          'warn',
+          '⏭️  Skipping test - seller2 is not verified. Start server with APP_ENV=test or verify seller manually.'
+        );
         return;
       }
 
@@ -1013,9 +1058,7 @@ describe('Seller Product Management Integration Tests', () => {
       );
 
       if (createResult.data.errors) {
-        throw new Error(
-          `Product creation failed: ${JSON.stringify(createResult.data.errors)}`
-        );
+        throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
       }
 
       const seller2ProductId = createResult.data.data?.createSellerProduct?.id;
@@ -1070,7 +1113,10 @@ describe('Seller Product Management Integration Tests', () => {
         sellerCookies
       );
       if (statusCheck.data.data?.activeSeller?.verificationStatus !== 'VERIFIED') {
-        safeLog('warn', '⏭️  Skipping test - seller is not verified. Start server with APP_ENV=test or verify seller manually.');
+        safeLog(
+          'warn',
+          '⏭️  Skipping test - seller is not verified. Start server with APP_ENV=test or verify seller manually.'
+        );
         return;
       }
 
@@ -1096,9 +1142,7 @@ describe('Seller Product Management Integration Tests', () => {
       );
 
       if (createResult.data.errors) {
-        throw new Error(
-          `Product creation failed: ${JSON.stringify(createResult.data.errors)}`
-        );
+        throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
       }
 
       const productToDeleteId = createResult.data.data?.createSellerProduct?.id;
@@ -1123,9 +1167,7 @@ describe('Seller Product Management Integration Tests', () => {
       const result = await makeGraphQLRequest(deleteProductMutation, variables, sellerCookies);
 
       if (result.data.errors) {
-        throw new Error(
-          `Product deletion failed: ${JSON.stringify(result.data.errors)}`
-        );
+        throw new Error(`Product deletion failed: ${JSON.stringify(result.data.errors)}`);
       }
 
       expect(result.data.data).toBeDefined();
@@ -1153,7 +1195,10 @@ describe('Seller Product Management Integration Tests', () => {
         seller2.cookies
       );
       if (seller2StatusCheck.data.data?.activeSeller?.verificationStatus !== 'VERIFIED') {
-        safeLog('warn', '⏭️  Skipping test - seller2 is not verified. Start server with APP_ENV=test or verify seller manually.');
+        safeLog(
+          'warn',
+          '⏭️  Skipping test - seller2 is not verified. Start server with APP_ENV=test or verify seller manually.'
+        );
         return;
       }
 
@@ -1179,9 +1224,7 @@ describe('Seller Product Management Integration Tests', () => {
       );
 
       if (createResult.data.errors) {
-        throw new Error(
-          `Product creation failed: ${JSON.stringify(createResult.data.errors)}`
-        );
+        throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
       }
 
       const seller2ProductId = createResult.data.data?.createSellerProduct?.id;
@@ -1227,7 +1270,10 @@ describe('Seller Product Management Integration Tests', () => {
         sellerCookies
       );
       if (statusCheck.data.data?.activeSeller?.verificationStatus !== 'VERIFIED') {
-        safeLog('warn', '⏭️  Skipping test - seller is not verified. Start server with APP_ENV=test or verify seller manually.');
+        safeLog(
+          'warn',
+          '⏭️  Skipping test - seller is not verified. Start server with APP_ENV=test or verify seller manually.'
+        );
         return;
       }
 
@@ -1254,9 +1300,7 @@ describe('Seller Product Management Integration Tests', () => {
       );
 
       if (createResult.data.errors) {
-        throw new Error(
-          `Product creation failed: ${JSON.stringify(createResult.data.errors)}`
-        );
+        throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
       }
 
       const createdProductId = createResult.data.data?.createSellerProduct?.id;
@@ -1287,9 +1331,7 @@ describe('Seller Product Management Integration Tests', () => {
       const result = await makeGraphQLRequest(sellerProductsQuery, variables, sellerCookies);
 
       if (result.data.errors) {
-        throw new Error(
-          `sellerProducts query failed: ${JSON.stringify(result.data.errors)}`
-        );
+        throw new Error(`sellerProducts query failed: ${JSON.stringify(result.data.errors)}`);
       }
 
       expect(result.data.data).toBeDefined();

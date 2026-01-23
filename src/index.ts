@@ -30,7 +30,9 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
       return port;
     }
   }
-  throw new Error(`Could not find an available port starting from ${startPort} after ${maxAttempts} attempts`);
+  throw new Error(
+    `Could not find an available port starting from ${startPort} after ${maxAttempts} attempts`
+  );
 }
 
 /**
@@ -39,14 +41,14 @@ async function findAvailablePort(startPort: number, maxAttempts: number = 10): P
 async function startServer() {
   try {
     await runMigrations(config);
-    
+
     // Get the configured port (from env var or config default)
     const configuredPort = config.apiOptions.port || 3000;
-    
+
     // Check if configured port is available
     const portAvailable = await isPortAvailable(configuredPort);
     let availablePort: number;
-    
+
     if (portAvailable) {
       // Configured port is available - use it
       availablePort = configuredPort;
@@ -59,7 +61,7 @@ async function startServer() {
       process.env.PORT = availablePort.toString();
       console.log(`✓ Using port ${availablePort}`);
     }
-    
+
     await bootstrap(config);
   } catch (err) {
     console.error('Failed to start server:', err);

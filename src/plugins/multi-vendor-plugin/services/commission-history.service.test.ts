@@ -23,7 +23,7 @@ import { CommissionHistory, CommissionHistoryStatus } from '../entities/commissi
 
 // Mock TransactionalConnection
 jest.mock('@vendure/core', () => {
-  const actual = jest.requireActual('@vendure/core');
+  const actual = jest.requireActual('@vendure/core') as any;
   return {
     ...actual,
     TransactionalConnection: jest.fn(),
@@ -335,10 +335,9 @@ describe('CommissionHistoryService', () => {
       const result = await service.getCommissionHistory(mockCtx, sellerId, options);
 
       // Assert: Verify status filter was applied
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith(
-        'commissionHistory.status = :status',
-        { status }
-      );
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('commissionHistory.status = :status', {
+        status,
+      });
       result.items.forEach((item) => {
         expect(item.status).toBe(status);
       });
@@ -448,7 +447,7 @@ describe('CommissionHistoryService', () => {
           id: 2,
           orderId: '101',
           sellerId: sellerId as any,
-          commissionRate: 0.20,
+          commissionRate: 0.2,
           orderTotal: 20000,
           commissionAmount: 4000,
           sellerPayout: 16000,
@@ -487,7 +486,7 @@ describe('CommissionHistoryService', () => {
           id: 2,
           orderId: '101',
           sellerId: sellerId as any,
-          commissionRate: 0.20,
+          commissionRate: 0.2,
           orderTotal: 20000,
           commissionAmount: 4000,
           sellerPayout: 16000,
@@ -526,7 +525,7 @@ describe('CommissionHistoryService', () => {
           id: 2,
           orderId: '101',
           sellerId: sellerId as any,
-          commissionRate: 0.20,
+          commissionRate: 0.2,
           orderTotal: 20000,
           commissionAmount: 4000,
           sellerPayout: 16000,
@@ -565,7 +564,7 @@ describe('CommissionHistoryService', () => {
           id: 2,
           orderId: '101',
           sellerId: sellerId as any,
-          commissionRate: 0.20,
+          commissionRate: 0.2,
           orderTotal: 20000,
           commissionAmount: 4000,
           sellerPayout: 16000,
@@ -577,7 +576,7 @@ describe('CommissionHistoryService', () => {
           id: 3,
           orderId: '102',
           sellerId: sellerId as any,
-          commissionRate: 0.10,
+          commissionRate: 0.1,
           orderTotal: 5000,
           commissionAmount: 500,
           sellerPayout: 4500,

@@ -15,7 +15,10 @@ import type { RequestContext, ID } from '@vendure/core';
 import { CommissionHistoryResolver } from './commission-history.resolver';
 import { CommissionHistoryService } from '../services/commission-history.service';
 import { CommissionHistoryStatus } from '../entities/commission-history.entity';
-import type { CommissionHistoryRecord, SellerCommissionSummary } from '../services/commission-history.service';
+import type {
+  CommissionHistoryRecord,
+  SellerCommissionSummary,
+} from '../services/commission-history.service';
 
 // Mock CommissionHistoryService
 jest.mock('../services/commission-history.service');

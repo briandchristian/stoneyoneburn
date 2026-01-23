@@ -19,18 +19,21 @@ import type { RequestContext, Order, Payment } from '@vendure/core';
 import { EventBus, OrderPlacedEvent, PaymentStateTransitionEvent } from '@vendure/core';
 import { OrderPaymentHandlerService } from '../services/order-payment-handler.service';
 import { CommissionHistoryService } from '../services/commission-history.service';
+import { SellerPayoutService } from '../services/seller-payout.service';
 import { OrderPaymentSubscriber } from './order-payment.subscriber';
 import { CommissionHistoryStatus } from '../entities/commission-history.entity';
 
 // Mock services
 jest.mock('../services/order-payment-handler.service');
 jest.mock('../services/commission-history.service');
+jest.mock('../services/seller-payout.service');
 
 describe('OrderPaymentSubscriber - Unit Tests', () => {
   let subscriber: OrderPaymentSubscriber;
   let mockEventBus: jest.Mocked<EventBus>;
   let mockOrderPaymentHandlerService: jest.Mocked<OrderPaymentHandlerService>;
   let mockCommissionHistoryService: jest.Mocked<CommissionHistoryService>;
+  let mockSellerPayoutService: jest.Mocked<SellerPayoutService>;
   let mockCtx: RequestContext;
   let orderPlacedHandler: (event: OrderPlacedEvent) => Promise<void>;
   let paymentSettledHandler: (event: PaymentStateTransitionEvent) => Promise<void>;
@@ -43,6 +46,10 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
 
     mockCommissionHistoryService = {
       createCommissionHistory: jest.fn(),
+    } as any;
+
+    mockSellerPayoutService = {
+      hasPayoutsForOrder: jest.fn().mockResolvedValue(false),
     } as any;
 
     // Create mock observable that supports pipe and subscribe
@@ -93,7 +100,8 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
     subscriber = new OrderPaymentSubscriber(
       mockEventBus,
       mockOrderPaymentHandlerService,
-      mockCommissionHistoryService
+      mockCommissionHistoryService,
+      mockSellerPayoutService
     );
 
     // Create mock request context
@@ -103,10 +111,10 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
     } as RequestContext;
   });
 
-  describe('onVendureBootstrap', () => {
+  describe('onApplicationBootstrap', () => {
     it('should subscribe to OrderPlacedEvent', () => {
       // Act
-      subscriber.onVendureBootstrap();
+      subscriber.onApplicationBootstrap();
 
       // Assert
       expect(mockEventBus.ofType).toHaveBeenCalledWith(OrderPlacedEvent);
@@ -115,7 +123,7 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
 
     it('should subscribe to PaymentStateTransitionEvent for settled payments', () => {
       // Act
-      subscriber.onVendureBootstrap();
+      subscriber.onApplicationBootstrap();
 
       // Assert: Should subscribe to PaymentStateTransitionEvent
       expect(mockEventBus.ofType).toHaveBeenCalledWith(PaymentStateTransitionEvent);
@@ -125,7 +133,7 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
 
   describe('OrderPlacedEvent handling', () => {
     beforeEach(() => {
-      subscriber.onVendureBootstrap();
+      subscriber.onApplicationBootstrap();
     });
 
     it('should process order payment when order is placed', async () => {
@@ -136,21 +144,47 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         lines: [],
       };
 
-      const mockEvent: Partial<OrderPlacedEvent> = {
-        entity: mockOrder as Order,
+      const mockEvent = {
+        order: mockOrder as Order,
         ctx: mockCtx,
-      };
+      } as OrderPlacedEvent;
 
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
       mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(null);
 
       // Act
       await orderPlacedHandler!(mockEvent as OrderPlacedEvent);
 
       // Assert
+      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
       expect(mockOrderPaymentHandlerService.processOrderPayment).toHaveBeenCalledWith(
         mockCtx,
         mockOrder as Order
       );
+    });
+
+    it('should skip processing if payouts already exist for order (deduplication)', async () => {
+      // Arrange
+      const mockOrder: Partial<Order> = {
+        id: '100',
+        totalWithTax: 10000,
+        lines: [],
+      };
+
+      const mockEvent = {
+        order: mockOrder as Order,
+        ctx: mockCtx,
+      } as OrderPlacedEvent;
+
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(true); // Payouts already exist
+
+      // Act
+      await orderPlacedHandler!(mockEvent as OrderPlacedEvent);
+
+      // Assert: Should check for existing payouts but not process
+      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
+      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      expect(mockCommissionHistoryService.createCommissionHistory).not.toHaveBeenCalled();
     });
 
     it('should create commission history records when order payment is processed', async () => {
@@ -161,10 +195,10 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         lines: [],
       };
 
-      const mockEvent: Partial<OrderPlacedEvent> = {
-        entity: mockOrder as Order,
+      const mockEvent = {
+        order: mockOrder as Order,
         ctx: mockCtx,
-      };
+      } as OrderPlacedEvent;
 
       const mockSplitResult = {
         orderId: '100',
@@ -209,10 +243,10 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         lines: [],
       };
 
-      const mockEvent: Partial<OrderPlacedEvent> = {
-        entity: mockOrder as Order,
+      const mockEvent = {
+        order: mockOrder as Order,
         ctx: mockCtx,
-      };
+      } as OrderPlacedEvent;
 
       const error = new Error('Payment processing failed');
       mockOrderPaymentHandlerService.processOrderPayment.mockRejectedValue(error);
@@ -224,7 +258,7 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
 
   describe('PaymentStateTransitionEvent handling', () => {
     beforeEach(() => {
-      subscriber.onVendureBootstrap();
+      subscriber.onApplicationBootstrap();
     });
 
     it('should process order payment when payment transitions to Settled', async () => {
@@ -241,23 +275,57 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         order: mockOrder as Order,
       };
 
-      const mockEvent: Partial<PaymentStateTransitionEvent> = {
-        entity: mockPayment as Payment,
+      const mockEvent = {
+        payment: mockPayment as Payment,
         ctx: mockCtx,
         toState: 'Settled',
         fromState: 'Authorized',
-      };
+      } as PaymentStateTransitionEvent;
 
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
       mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(null);
 
       // Act: Handler is only called for 'Settled' state due to filter
       await paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent);
 
       // Assert
+      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
       expect(mockOrderPaymentHandlerService.processOrderPayment).toHaveBeenCalledWith(
         mockCtx,
         mockOrder as Order
       );
+    });
+
+    it('should skip processing if payouts already exist when payment settles (deduplication)', async () => {
+      // Arrange
+      const mockOrder: Partial<Order> = {
+        id: '100',
+        totalWithTax: 10000,
+        lines: [],
+      };
+
+      const mockPayment: Partial<Payment> = {
+        id: '1',
+        state: 'Settled',
+        order: mockOrder as Order,
+      };
+
+      const mockEvent = {
+        payment: mockPayment as Payment,
+        ctx: mockCtx,
+        toState: 'Settled',
+        fromState: 'Authorized',
+      } as PaymentStateTransitionEvent;
+
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(true); // Payouts already exist
+
+      // Act
+      await paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent);
+
+      // Assert: Should check for existing payouts but not process
+      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
+      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      expect(mockCommissionHistoryService.createCommissionHistory).not.toHaveBeenCalled();
     });
 
     it('should create commission history records when payment is settled', async () => {
@@ -274,12 +342,12 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         order: mockOrder as Order,
       };
 
-      const mockEvent: Partial<PaymentStateTransitionEvent> = {
-        entity: mockPayment as Payment,
+      const mockEvent = {
+        payment: mockPayment as Payment,
         ctx: mockCtx,
         toState: 'Settled',
         fromState: 'Authorized',
-      };
+      } as PaymentStateTransitionEvent;
 
       const mockSplitResult = {
         orderId: '100',
@@ -297,6 +365,7 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         ],
       };
 
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
       mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(mockSplitResult as any);
 
       // Act
@@ -325,15 +394,17 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         order: null as any, // No order attached
       };
 
-      const mockEvent: Partial<PaymentStateTransitionEvent> = {
-        entity: mockPayment as Payment,
+      const mockEvent = {
+        payment: mockPayment as Payment,
         ctx: mockCtx,
         toState: 'Settled',
         fromState: 'Authorized',
-      };
+      } as PaymentStateTransitionEvent;
 
       // Act & Assert: Should not throw
-      await expect(paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent)).resolves.not.toThrow();
+      await expect(
+        paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent)
+      ).resolves.not.toThrow();
       expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
     });
 
@@ -351,18 +422,148 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         order: mockOrder as Order,
       };
 
-      const mockEvent: Partial<PaymentStateTransitionEvent> = {
-        entity: mockPayment as Payment,
+      const mockEvent = {
+        payment: mockPayment as Payment,
         ctx: mockCtx,
         toState: 'Settled',
         fromState: 'Authorized',
-      };
+      } as PaymentStateTransitionEvent;
 
       const error = new Error('Payment settlement processing failed');
       mockOrderPaymentHandlerService.processOrderPayment.mockRejectedValue(error);
 
       // Act & Assert: Should not throw, but log error
-      await expect(paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent)).resolves.not.toThrow();
+      await expect(
+        paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent)
+      ).resolves.not.toThrow();
+    });
+  });
+
+  describe('Deduplication - Prevent duplicate payouts', () => {
+    beforeEach(() => {
+      subscriber.onApplicationBootstrap();
+    });
+
+    it('should skip processing OrderPlacedEvent if payouts already exist', async () => {
+      // Arrange
+      const mockOrder: Partial<Order> = {
+        id: '100',
+        totalWithTax: 10000,
+        lines: [],
+      };
+
+      const mockEvent = {
+        order: mockOrder as Order,
+        ctx: mockCtx,
+      } as OrderPlacedEvent;
+
+      // Mock that payouts already exist for this order
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(true);
+
+      // Act
+      await orderPlacedHandler!(mockEvent);
+
+      // Assert: Should not process payment if payouts already exist
+      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
+      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      expect(mockCommissionHistoryService.createCommissionHistory).not.toHaveBeenCalled();
+    });
+
+    it('should skip processing PaymentStateTransitionEvent if payouts already exist', async () => {
+      // Arrange
+      const mockOrder: Partial<Order> = {
+        id: '100',
+        totalWithTax: 10000,
+        lines: [],
+      };
+
+      const mockPayment: Partial<Payment> = {
+        id: '1',
+        state: 'Settled',
+        order: mockOrder as Order,
+      };
+
+      const mockEvent = {
+        payment: mockPayment as Payment,
+        ctx: mockCtx,
+        toState: 'Settled',
+        fromState: 'Authorized',
+      } as PaymentStateTransitionEvent;
+
+      // Mock that payouts already exist for this order
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(true);
+
+      // Act
+      await paymentSettledHandler!(mockEvent);
+
+      // Assert: Should not process payment if payouts already exist
+      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
+      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      expect(mockCommissionHistoryService.createCommissionHistory).not.toHaveBeenCalled();
+    });
+
+    it('should process OrderPlacedEvent if no payouts exist', async () => {
+      // Arrange
+      const mockOrder: Partial<Order> = {
+        id: '100',
+        totalWithTax: 10000,
+        lines: [],
+      };
+
+      const mockEvent = {
+        order: mockOrder as Order,
+        ctx: mockCtx,
+      } as OrderPlacedEvent;
+
+      // Mock that no payouts exist
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
+      mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(null);
+
+      // Act
+      await orderPlacedHandler!(mockEvent);
+
+      // Assert: Should process payment if no payouts exist
+      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
+      expect(mockOrderPaymentHandlerService.processOrderPayment).toHaveBeenCalledWith(
+        mockCtx,
+        mockOrder as Order
+      );
+    });
+
+    it('should process PaymentStateTransitionEvent if no payouts exist', async () => {
+      // Arrange
+      const mockOrder: Partial<Order> = {
+        id: '100',
+        totalWithTax: 10000,
+        lines: [],
+      };
+
+      const mockPayment: Partial<Payment> = {
+        id: '1',
+        state: 'Settled',
+        order: mockOrder as Order,
+      };
+
+      const mockEvent = {
+        payment: mockPayment as Payment,
+        ctx: mockCtx,
+        toState: 'Settled',
+        fromState: 'Authorized',
+      } as PaymentStateTransitionEvent;
+
+      // Mock that no payouts exist
+      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
+      mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(null);
+
+      // Act
+      await paymentSettledHandler!(mockEvent);
+
+      // Assert: Should process payment if no payouts exist
+      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
+      expect(mockOrderPaymentHandlerService.processOrderPayment).toHaveBeenCalledWith(
+        mockCtx,
+        mockOrder as Order
+      );
     });
   });
 });

@@ -261,9 +261,7 @@ describe('Seller Dashboard Resolver', () => {
       // Mutation should accept sellerId and status parameters
       expect(mutationVariables.sellerId).toBeDefined();
       expect(mutationVariables.status).toBeDefined();
-      expect(['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED']).toContain(
-        mutationVariables.status
-      );
+      expect(['PENDING', 'VERIFIED', 'REJECTED', 'SUSPENDED']).toContain(mutationVariables.status);
     });
 
     it('should return updated seller with verification status', () => {

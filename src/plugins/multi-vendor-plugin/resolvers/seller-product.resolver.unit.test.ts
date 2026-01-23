@@ -18,14 +18,29 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { RequestContext, ID, ProductListOptions, ProductList } from '@vendure/core';
+import type { RequestContext, ID } from '@vendure/core';
 import { Product } from '@vendure/core';
 import { SellerProductResolver } from './seller-product.resolver';
 import { TransactionalConnection } from '@vendure/core';
 
+// Define ProductListOptions type for tests (matches GraphQL schema)
+interface ProductListOptions {
+  skip?: number;
+  take?: number;
+  sort?: {
+    name?: 'ASC' | 'DESC';
+    createdAt?: 'ASC' | 'DESC';
+  };
+  filter?: {
+    enabled?: {
+      eq?: boolean;
+    };
+  };
+}
+
 // Mock TransactionalConnection
 jest.mock('@vendure/core', () => {
-  const actual = jest.requireActual('@vendure/core');
+  const actual = jest.requireActual('@vendure/core') as any;
   return {
     ...actual,
     TransactionalConnection: jest.fn(),
@@ -99,9 +114,7 @@ describe('SellerProductResolver - Unit Tests', () => {
 
     it('should return ProductList type with items and totalItems', async () => {
       // Arrange
-      const mockProducts = [
-        { id: '1', name: 'Product 1', enabled: true },
-      ];
+      const mockProducts = [{ id: '1', name: 'Product 1', enabled: true }];
       mockQueryBuilder.getMany.mockResolvedValue(mockProducts);
       mockQueryBuilder.getCount.mockResolvedValue(1);
 
@@ -207,9 +220,7 @@ describe('SellerProductResolver - Unit Tests', () => {
   describe('sellerProducts - Filtering Support', () => {
     it('should filter products by enabled status (true)', async () => {
       // Arrange
-      const mockProducts = [
-        { id: '1', name: 'Product 1', enabled: true },
-      ];
+      const mockProducts = [{ id: '1', name: 'Product 1', enabled: true }];
       mockQueryBuilder.getMany.mockResolvedValue(mockProducts);
       mockQueryBuilder.getCount.mockResolvedValue(1);
 
@@ -222,7 +233,9 @@ describe('SellerProductResolver - Unit Tests', () => {
       await resolver.sellerProducts(mockCtx, sellerId, options);
 
       // Assert: Verify filtering was applied
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('product.enabled = :enabled', { enabled: true });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('product.enabled = :enabled', {
+        enabled: true,
+      });
     });
 
     it('should filter products by enabled status (false)', async () => {
@@ -240,16 +253,16 @@ describe('SellerProductResolver - Unit Tests', () => {
       await resolver.sellerProducts(mockCtx, sellerId, options);
 
       // Assert
-      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('product.enabled = :enabled', { enabled: false });
+      expect(mockQueryBuilder.andWhere).toHaveBeenCalledWith('product.enabled = :enabled', {
+        enabled: false,
+      });
     });
   });
 
   describe('sellerProducts - Seller Filtering', () => {
     it('should filter products by sellerId', async () => {
       // Arrange
-      const mockProducts = [
-        { id: '1', name: 'Product 1', enabled: true },
-      ];
+      const mockProducts = [{ id: '1', name: 'Product 1', enabled: true }];
       mockQueryBuilder.getMany.mockResolvedValue(mockProducts);
       mockQueryBuilder.getCount.mockResolvedValue(1);
 

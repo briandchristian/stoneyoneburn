@@ -116,7 +116,9 @@ export class CommissionHistoryService {
     }
   ): Promise<CommissionHistoryListResult> {
     const repository = this.connection.getRepository(ctx, CommissionHistory);
-    const queryBuilder = repository.createQueryBuilder('commissionHistory').where('commissionHistory.sellerId = :sellerId', { sellerId });
+    const queryBuilder = repository
+      .createQueryBuilder('commissionHistory')
+      .where('commissionHistory.sellerId = :sellerId', { sellerId });
 
     // Apply filters
     if (options?.orderId) {
@@ -128,11 +130,15 @@ export class CommissionHistoryService {
     }
 
     if (options?.startDate) {
-      queryBuilder.andWhere('commissionHistory.createdAt >= :startDate', { startDate: options.startDate });
+      queryBuilder.andWhere('commissionHistory.createdAt >= :startDate', {
+        startDate: options.startDate,
+      });
     }
 
     if (options?.endDate) {
-      queryBuilder.andWhere('commissionHistory.createdAt <= :endDate', { endDate: options.endDate });
+      queryBuilder.andWhere('commissionHistory.createdAt <= :endDate', {
+        endDate: options.endDate,
+      });
     }
 
     // Get total count
@@ -170,15 +176,21 @@ export class CommissionHistoryService {
     }
   ): Promise<SellerCommissionSummary> {
     const repository = this.connection.getRepository(ctx, CommissionHistory);
-    const queryBuilder = repository.createQueryBuilder('commissionHistory').where('commissionHistory.sellerId = :sellerId', { sellerId });
+    const queryBuilder = repository
+      .createQueryBuilder('commissionHistory')
+      .where('commissionHistory.sellerId = :sellerId', { sellerId });
 
     // Apply date range filter
     if (dateRange?.startDate) {
-      queryBuilder.andWhere('commissionHistory.createdAt >= :startDate', { startDate: dateRange.startDate });
+      queryBuilder.andWhere('commissionHistory.createdAt >= :startDate', {
+        startDate: dateRange.startDate,
+      });
     }
 
     if (dateRange?.endDate) {
-      queryBuilder.andWhere('commissionHistory.createdAt <= :endDate', { endDate: dateRange.endDate });
+      queryBuilder.andWhere('commissionHistory.createdAt <= :endDate', {
+        endDate: dateRange.endDate,
+      });
     }
 
     const allRecords = await queryBuilder.getMany();
@@ -220,7 +232,10 @@ export class CommissionHistoryService {
       id: entity.id.toString(),
       orderId: String(entity.orderId), // Ensure string type
       sellerId: entity.sellerId.toString(),
-      commissionRate: typeof entity.commissionRate === 'string' ? parseFloat(entity.commissionRate) : entity.commissionRate,
+      commissionRate:
+        typeof entity.commissionRate === 'string'
+          ? parseFloat(entity.commissionRate)
+          : entity.commissionRate,
       orderTotal: entity.orderTotal,
       commissionAmount: entity.commissionAmount,
       sellerPayout: entity.sellerPayout,

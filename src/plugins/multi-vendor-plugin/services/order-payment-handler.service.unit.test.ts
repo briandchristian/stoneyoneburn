@@ -24,7 +24,7 @@ jest.mock('./split-payment.service');
 jest.mock('./seller-payout.service');
 jest.mock('./commission.service');
 jest.mock('@vendure/core', () => {
-  const actual = jest.requireActual('@vendure/core');
+  const actual = jest.requireActual('@vendure/core') as any;
   return {
     ...actual,
     TransactionalConnection: jest.fn(),
