@@ -48,9 +48,10 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       createCommissionHistory: jest.fn(),
     } as any;
 
-    const hasPayoutsForOrderMock = jest.fn<(ctx: RequestContext, orderId: ID) => Promise<boolean>>();
+    const hasPayoutsForOrderMock =
+      jest.fn<(ctx: RequestContext, orderId: ID) => Promise<boolean>>();
     hasPayoutsForOrderMock.mockResolvedValue(false);
-    
+
     mockSellerPayoutService = {
       hasPayoutsForOrder: hasPayoutsForOrderMock,
     } as any;
