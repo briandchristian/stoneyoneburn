@@ -295,31 +295,34 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 ---
 
 ### Phase 4: Reviews & Ratings System
-**Status:** 🚧 In Progress  
+**Status:** ✅ Complete (Backend)  
 **Estimated Time:** 1-2 weeks  
-**Started:** January 2025
+**Started:** January 2025  
+**Completed:** January 2025
 
 #### Tasks
 - [x] Review entity design (Review entity with ReviewStatus enum)
 - [x] ReviewService with TDD (createReview, getReviews, approveReview, rejectReview, getSellerRating)
 - [x] ReviewResolver for Shop API (submitReview, getReviews mutations/queries)
-- [ ] ReviewAdminResolver for Admin API (approveReview, rejectReview mutations)
-- [ ] Seller rating aggregation display (on seller profiles)
-- [ ] Review display on product pages (storefront)
+- [x] ReviewAdminResolver for Admin API (approveReview, rejectReview, pendingReviews)
+- [x] Database migration for Review entity
+- [x] Seller rating aggregation display (on seller profiles - GraphQL field resolver)
+- [ ] Review display on product pages (storefront - frontend implementation in Phase 5)
 - [x] Review verification (purchase required - implemented in ReviewService)
 
 #### Tests Required
-- [ ] Review creation tests
-- [ ] Rating calculation tests
-- [ ] Review moderation tests
-- [ ] Verification tests (only buyers can review)
-- [ ] Spam prevention tests
+- [x] Review creation tests (ReviewService.createReview, ReviewResolver.submitReview)
+- [x] Rating calculation tests (ReviewService.getSellerRating)
+- [x] Review moderation tests (ReviewService.approveReview/rejectReview, ReviewAdminResolver)
+- [x] Verification tests (only buyers can review - ReviewService.createReview with purchase verification)
+- [x] Spam prevention tests (duplicate review check in ReviewService.createReview)
 
 ---
 
 ### Phase 5: Enhanced Storefront Features
-**Status:** Not Started  
-**Estimated Time:** 2-3 weeks
+**Status:** 🚧 In Progress  
+**Estimated Time:** 2-3 weeks  
+**Started:** January 2025
 
 #### 5.1: Seller Shop Pages
 - [ ] Individual seller shop pages

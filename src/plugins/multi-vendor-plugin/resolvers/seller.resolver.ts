@@ -5,12 +5,13 @@
  * Part of Phase 2.2: Seller Registration & Onboarding
  */
 
-import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { InputType, Field as GQLField, ID } from '@nestjs/graphql';
+import { Args, Mutation, Query, Resolver, ResolveField, Root } from '@nestjs/graphql';
+import { InputType, Field as GQLField, ID, ObjectType, Field, Float, Int } from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission, CustomerService } from '@vendure/core';
 import { MarketplaceSeller } from '../entities/seller.entity';
 import { SellerService } from '../services/seller.service';
+import { ReviewService } from '../services/review.service';
 
 /**
  * GraphQL Input Types
@@ -56,15 +57,28 @@ export class UpdateSellerProfileInput {
 // The service already throws SellerRegistrationError and SellerUpdateError which will be properly handled by GraphQL
 
 /**
+ * Seller Rating GraphQL Type
+ */
+@ObjectType()
+export class SellerRating {
+  @Field(() => Float)
+  averageRating!: number;
+
+  @Field(() => Int)
+  totalReviews!: number;
+}
+
+/**
  * Seller Resolver
  *
  * Provides GraphQL mutations and queries for seller management
  */
-@Resolver()
+@Resolver(() => MarketplaceSeller)
 export class SellerResolver {
   constructor(
     private sellerService: SellerService,
-    private customerService: CustomerService
+    private customerService: CustomerService,
+    private reviewService: ReviewService
   ) {}
 
   /**
@@ -139,5 +153,31 @@ export class SellerResolver {
     @Args('slug') slug: string
   ): Promise<MarketplaceSeller | null> {
     return await this.sellerService.findSellerByShopSlug(ctx, slug);
+  }
+
+  /**
+   * Resolve seller rating field
+   *
+   * Fetches the aggregated rating for a seller from approved reviews.
+   *
+   * @param seller - MarketplaceSeller instance
+   * @param ctx - Request context
+   * @returns SellerRating with averageRating and totalReviews
+   */
+  @ResolveField(() => SellerRating, { nullable: true })
+  async rating(
+    @Root() seller: MarketplaceSeller,
+    @Ctx() ctx: RequestContext
+  ): Promise<SellerRating | null> {
+    const sellerId = typeof seller.id === 'string' ? parseInt(seller.id, 10) : seller.id;
+    if (isNaN(sellerId)) {
+      return null;
+    }
+
+    const rating = await this.reviewService.getSellerRating(ctx, sellerId);
+    return {
+      averageRating: rating.averageRating,
+      totalReviews: rating.totalReviews,
+    };
   }
 }

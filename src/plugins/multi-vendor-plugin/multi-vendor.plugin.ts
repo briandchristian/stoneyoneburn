@@ -30,6 +30,7 @@ import { SellerPayoutService } from './services/seller-payout.service';
 import { OrderPaymentHandlerService } from './services/order-payment-handler.service';
 import { PayoutSchedulerService } from './services/payout-scheduler.service';
 import { ReviewService } from './services/review.service';
+import { ShopService } from './services/shop.service';
 import { SellerResolver } from './resolvers/seller.resolver';
 import { MarketplaceSellerResolver } from './resolvers/marketplace-seller.resolver';
 import { SellerProductResolver } from './resolvers/seller-product.resolver';
@@ -40,6 +41,7 @@ import { SellerPayoutResolver } from './resolvers/seller-payout.resolver';
 import { SellerPayoutAdminResolver } from './resolvers/seller-payout-admin.resolver';
 import { ReviewResolver } from './resolvers/review.resolver';
 import { ReviewAdminResolver } from './resolvers/review-admin.resolver';
+import { ShopResolver } from './resolvers/shop.resolver';
 import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
 
 /**
@@ -73,6 +75,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
     OrderPaymentSubscriber,
     PayoutSchedulerService,
     ReviewService,
+    ShopService,
   ],
   shopApiExtensions: {
     // Register both resolvers: legacy SellerResolver and new polymorphic MarketplaceSellerResolver
@@ -83,6 +86,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
       SellerProductManagementResolver,
       SellerPayoutResolver,
       ReviewResolver,
+      ShopResolver,
     ],
     // Hybrid schema-first + code-first: Define types and queries in schema string (required by Vendure)
     // This is necessary because Vendure parses schema extensions before NestJS GraphQL decorators register types
@@ -107,6 +111,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           updatedAt: DateTime!
           customer: Customer!
           customerId: ID!
+          rating: SellerRating
         }
 
         # Polymorphic MarketplaceSellerBase interface (code-first types)
@@ -121,6 +126,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           sellerType: SellerType!
           customerId: ID!
           commissionRate: Float
+          rating: SellerRating
         }
 
         type IndividualSeller implements MarketplaceSellerBase {
@@ -137,6 +143,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           lastName: String!
           birthDate: DateTime
           commissionRate: Float
+          rating: SellerRating
         }
 
         type CompanySeller implements MarketplaceSellerBase {
@@ -153,6 +160,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           vatNumber: String!
           legalForm: String
           commissionRate: Float
+          rating: SellerRating
         }
 
         enum SellerType {
@@ -236,6 +244,11 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
         }
 
         # Review Types (Phase 4)
+        type SellerRating {
+          averageRating: Float!
+          totalReviews: Int!
+        }
+
         enum ReviewStatus {
           PENDING
           APPROVED
@@ -279,6 +292,23 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           totalItems: Int!
         }
 
+        # Shop Types (Phase 5.1)
+        type ShopProductsList {
+          items: [Product!]!
+          totalItems: Int!
+        }
+
+        input ShopProductsOptionsInput {
+          skip: Int
+          take: Int
+        }
+
+        input UpdateShopCustomizationInput {
+          shopDescription: String
+          shopBannerAssetId: ID
+          shopLogoAssetId: ID
+        }
+
         extend type Mutation {
           registerAsSeller(input: RegisterSellerInput!): MarketplaceSeller!
           updateSellerProfile(input: UpdateSellerProfileInput!): MarketplaceSeller!
@@ -287,6 +317,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           deleteSellerProduct(productId: ID!): SellerProductDeletionResponse!
           requestPayout(sellerId: ID!, minimumThreshold: Int): PayoutRequestResult!
           submitReview(input: SubmitReviewInput!): Review!
+          updateShopCustomization(sellerId: ID!, input: UpdateShopCustomizationInput!): MarketplaceSeller!
         }
 
         extend type Query {
@@ -298,6 +329,8 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           payoutHistory(sellerId: ID!): [SellerPayout!]!
           pendingPayoutTotal(sellerId: ID!): Int!
           getReviews(options: ReviewListOptionsInput!): ReviewList!
+          shop(slug: String!): MarketplaceSeller
+          shopProducts(slug: String!, options: ShopProductsOptionsInput): ShopProductsList!
         }
       `);
     },

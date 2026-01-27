@@ -14,6 +14,7 @@ import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import type { RequestContext } from '@vendure/core';
 import { MarketplaceSellerResolver } from './marketplace-seller.resolver';
 import { SellerService } from '../services/seller.service';
+import { ReviewService } from '../services/review.service';
 import { SellerType } from '../entities/marketplace-seller-base.entity';
 import { IndividualSeller } from '../entities/individual-seller.entity';
 import { CompanySeller } from '../entities/company-seller.entity';
@@ -44,6 +45,9 @@ describe('MarketplaceSellerResolver', () => {
     findSellerById: any;
     findAllSellers: any;
   };
+  let mockReviewService: {
+    getSellerRating: any;
+  };
   let mockCtx: RequestContext;
 
   beforeEach(() => {
@@ -57,7 +61,16 @@ describe('MarketplaceSellerResolver', () => {
       findAllSellers: findAllMock,
     };
 
-    resolver = new MarketplaceSellerResolver(mockSellerService as unknown as SellerService);
+    // Create mock ReviewService
+    const getSellerRatingMock = jest.fn();
+    mockReviewService = {
+      getSellerRating: getSellerRatingMock,
+    };
+
+    resolver = new MarketplaceSellerResolver(
+      mockSellerService as unknown as SellerService,
+      mockReviewService as unknown as ReviewService
+    );
 
     // Create mock request context
     mockCtx = {

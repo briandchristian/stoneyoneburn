@@ -7,13 +7,26 @@
  * Part of Phase 2.3: Polymorphic Seller Types
  */
 
-import { Resolver, Query, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Args, ID, ResolveField, Root, ObjectType, Field, Float, Int } from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission } from '@vendure/core';
 import { MarketplaceSellerBase, SellerType } from '../entities/marketplace-seller-base.entity';
 import { IndividualSeller } from '../entities/individual-seller.entity';
 import { CompanySeller } from '../entities/company-seller.entity';
 import { SellerService } from '../services/seller.service';
+import { ReviewService } from '../services/review.service';
+
+/**
+ * Seller Rating GraphQL Type
+ */
+@ObjectType()
+export class SellerRating {
+  @Field(() => Float)
+  averageRating!: number;
+
+  @Field(() => Int)
+  totalReviews!: number;
+}
 
 /**
  * MarketplaceSeller Resolver
@@ -28,6 +41,10 @@ import { SellerService } from '../services/seller.service';
  *     name
  *     email
  *     isActive
+ *     rating {
+ *       averageRating
+ *       totalReviews
+ *     }
  *     ... on IndividualSeller {
  *       firstName
  *       lastName
@@ -44,7 +61,12 @@ import { SellerService } from '../services/seller.service';
  */
 @Resolver(() => MarketplaceSellerBase)
 export class MarketplaceSellerResolver {
-  constructor(private sellerService: SellerService) {}
+  constructor(
+    private sellerService: SellerService,
+    private reviewService: ReviewService
+  ) {}
+
+  // Note: ReviewService is injected but may not be used in all test scenarios
 
   /**
    * Get seller by ID
@@ -118,6 +140,32 @@ export class MarketplaceSellerResolver {
       // Fallback - should not happen with proper database structure
       return Object.assign(new IndividualSeller(), seller);
     });
+  }
+
+  /**
+   * Resolve seller rating field
+   *
+   * Fetches the aggregated rating for a seller from approved reviews.
+   *
+   * @param seller - MarketplaceSellerBase instance
+   * @param ctx - Request context
+   * @returns SellerRating with averageRating and totalReviews
+   */
+  @ResolveField(() => SellerRating, { nullable: true })
+  async rating(
+    @Root() seller: MarketplaceSellerBase,
+    @Ctx() ctx: RequestContext
+  ): Promise<SellerRating | null> {
+    const sellerId = typeof seller.id === 'string' ? parseInt(seller.id, 10) : seller.id;
+    if (isNaN(sellerId)) {
+      return null;
+    }
+
+    const rating = await this.reviewService.getSellerRating(ctx, sellerId);
+    return {
+      averageRating: rating.averageRating,
+      totalReviews: rating.totalReviews,
+    };
   }
 
   /**
