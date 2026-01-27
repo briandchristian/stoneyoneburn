@@ -37,7 +37,13 @@ describe('OrderPaymentHandlerService', () => {
   let mockConnection: jest.Mocked<TransactionalConnection>;
 
   beforeEach(() => {
-    commissionService = new CommissionService();
+    // Mock GlobalSettingsService
+    const mockGlobalSettingsService = {
+      getSettings: jest.fn().mockResolvedValue({
+        customFields: {} as any,
+      }),
+    } as any;
+    commissionService = new CommissionService(mockGlobalSettingsService);
     splitPaymentService = new SplitPaymentService(commissionService);
 
     // Mock TransactionalConnection

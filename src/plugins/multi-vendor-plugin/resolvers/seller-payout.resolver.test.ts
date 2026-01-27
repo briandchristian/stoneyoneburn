@@ -38,6 +38,7 @@ describe('SellerPayoutResolver - Unit Tests', () => {
       getPendingPayoutTotal: jest.fn(),
       canRequestPayout: jest.fn(),
       requestPayout: jest.fn(),
+      requestPayoutWithThresholdCheck: jest.fn(),
       getPayoutsForSeller: jest.fn(),
       getPayoutById: jest.fn(),
       updatePayoutStatus: jest.fn(),
@@ -62,11 +63,8 @@ describe('SellerPayoutResolver - Unit Tests', () => {
       // Arrange
       const sellerId = '5';
       const minimumThreshold = 10000; // $100.00
-      const pendingTotal = 15000; // $150.00
 
-      mockPayoutService.canRequestPayout.mockResolvedValue(true);
-      mockPayoutService.getPendingPayoutTotal.mockResolvedValue(pendingTotal);
-      mockPayoutService.requestPayout.mockResolvedValue([
+      const mockPayouts = [
         {
           id: '1',
           sellerId: parseInt(sellerId, 10),
@@ -83,50 +81,63 @@ describe('SellerPayoutResolver - Unit Tests', () => {
           commission: 750,
           status: PayoutStatus.PENDING,
         },
-      ] as SellerPayout[]);
+      ] as SellerPayout[];
+
+      mockPayoutService.requestPayoutWithThresholdCheck.mockResolvedValue(mockPayouts);
 
       // Act
       const result = await resolver.requestPayout(mockCtx, sellerId, minimumThreshold);
 
       // Assert
-      expect(mockPayoutService.canRequestPayout).toHaveBeenCalledWith(
+      expect(mockPayoutService.requestPayoutWithThresholdCheck).toHaveBeenCalledWith(
         mockCtx,
         sellerId,
         minimumThreshold
       );
-      expect(mockPayoutService.requestPayout).toHaveBeenCalledWith(mockCtx, sellerId);
       expect(result).toBeDefined();
       expect(result.status).toBe(PayoutStatus.PENDING);
+      expect(result.amount).toBe(15000); // Total of both payouts
     });
 
     it('should reject payout request when threshold is not met', async () => {
       // Arrange
       const sellerId = '5';
       const minimumThreshold = 10000; // $100.00
-      const pendingTotal = 5000; // $50.00
 
-      mockPayoutService.canRequestPayout.mockResolvedValue(false);
-      mockPayoutService.getPendingPayoutTotal.mockResolvedValue(pendingTotal);
+      mockPayoutService.requestPayoutWithThresholdCheck.mockRejectedValue(
+        new Error('Minimum payout threshold not met')
+      );
 
       // Act & Assert
       await expect(resolver.requestPayout(mockCtx, sellerId, minimumThreshold)).rejects.toThrow(
         'Minimum payout threshold not met'
       );
-      expect(mockPayoutService.requestPayout).not.toHaveBeenCalled();
+
+      expect(mockPayoutService.requestPayoutWithThresholdCheck).toHaveBeenCalledWith(
+        mockCtx,
+        sellerId,
+        minimumThreshold
+      );
     });
 
     it('should reject payout request when no pending funds exist', async () => {
       // Arrange
       const sellerId = '5';
       const minimumThreshold = 10000;
-      const pendingTotal = 0;
 
-      mockPayoutService.canRequestPayout.mockResolvedValue(false);
-      mockPayoutService.getPendingPayoutTotal.mockResolvedValue(pendingTotal);
+      mockPayoutService.requestPayoutWithThresholdCheck.mockRejectedValue(
+        new Error('No payouts available to request')
+      );
 
       // Act & Assert
       await expect(resolver.requestPayout(mockCtx, sellerId, minimumThreshold)).rejects.toThrow(
-        'Minimum payout threshold not met'
+        'No payouts available to request'
+      );
+
+      expect(mockPayoutService.requestPayoutWithThresholdCheck).toHaveBeenCalledWith(
+        mockCtx,
+        sellerId,
+        minimumThreshold
       );
     });
   });

@@ -2,7 +2,7 @@
 
 **Project:** StoneyOneBurn - Multi-Vendor Marketplace  
 **Approach:** Test-Driven Development (TDD)  
-**Last Updated:** December 29, 2024
+**Last Updated:** January 23, 2025
 
 ---
 
@@ -26,6 +26,14 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - ✅ All tests must pass before merging
 - ✅ Code reviews required for each phase
 - ✅ Documentation updated with each feature
+
+### Phase Management
+- **Phase Completion**: When a phase is completed, update the roadmap status and add completion date
+- **Work Migration**: If work is moved to another phase for efficiency or architectural reasons, document the move in both phases
+- **Notifications**: Always notify when:
+  - A phase is marked as complete
+  - Work is being moved to another phase
+  - Moving to the next phase begins
 
 ---
 
@@ -232,8 +240,9 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 ---
 
 ### Phase 3: Commission & Payment System
-**Status:** ✅ Complete (3.1–3.3)  
-**Estimated Time:** 2-3 weeks
+**Status:** ✅ Complete (3.1, 3.2, 3.3, 3.4, 3.6)  
+**Estimated Time:** 2-3 weeks  
+**Completed:** January 2025
 
 **Goal:** Implement split payments and commission tracking
 
@@ -265,25 +274,39 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - [x] Payout approval workflow (Admin: approvePayout, rejectPayout, pendingPayouts)
 - [x] Payout history (payoutHistory, pendingPayoutTotal)
 - [x] Dashboard: Pending Payouts page (list, approve/reject)
-- [ ] Payout scheduling (weekly/monthly) — deferred
+- [x] Payout scheduling (weekly via ScheduledTask: `process-scheduled-payouts`)
 
 **Tests:**
 - [x] Payout service and resolver tests
 - [x] Payout workflow tests
+- [x] Payout scheduler service tests
+
+#### 3.4: Configurable Default Commission Rate
+**Status:** ✅ Complete
+- [x] GlobalSettings custom field: `defaultCommissionRate` (float, 0-1, default 0.15)
+- [x] CommissionService: `getDefaultCommissionRate(ctx)` reads from GlobalSettings
+- [x] OrderPaymentHandlerService: uses configured rate instead of hardcoded constant
+- [x] Admin UI: Available via Vendure's built-in GlobalSettings page
+
+**Tests:**
+- [x] CommissionService tests (21 tests passing)
+- [x] OrderPaymentHandlerService tests (6 tests passing)
 
 ---
 
 ### Phase 4: Reviews & Ratings System
-**Status:** Not Started  
-**Estimated Time:** 1-2 weeks
+**Status:** 🚧 In Progress  
+**Estimated Time:** 1-2 weeks  
+**Started:** January 2025
 
 #### Tasks
-- [ ] Review entity design
-- [ ] Product review system
-- [ ] Seller rating aggregation
-- [ ] Review moderation tools
-- [ ] Review display on product pages
-- [ ] Review verification (purchase required)
+- [x] Review entity design (Review entity with ReviewStatus enum)
+- [x] ReviewService with TDD (createReview, getReviews, approveReview, rejectReview, getSellerRating)
+- [x] ReviewResolver for Shop API (submitReview, getReviews mutations/queries)
+- [ ] ReviewAdminResolver for Admin API (approveReview, rejectReview mutations)
+- [ ] Seller rating aggregation display (on seller profiles)
+- [ ] Review display on product pages (storefront)
+- [x] Review verification (purchase required - implemented in ReviewService)
 
 #### Tests Required
 - [ ] Review creation tests
@@ -416,12 +439,13 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - [ ] Dispute creation system
 - [ ] Dispute workflow
 - [ ] Admin dispute management
-- [ ] Refund processing
+- [ ] Refund processing (including partial refunds from Phase 3)
 - [ ] Dispute history
+- [ ] Partial refunds edge cases (moved from Phase 3 for architectural alignment)
 
 **Tests:**
 - [ ] Dispute workflow tests
-- [ ] Refund processing tests
+- [ ] Refund processing tests (including partial refunds)
 - [ ] Admin intervention tests
 
 ---

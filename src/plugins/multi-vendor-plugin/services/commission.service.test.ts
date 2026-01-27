@@ -7,8 +7,10 @@
  * Part of Phase 3.1: Commission Configuration
  */
 
-import { describe, it, expect, beforeEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import { CommissionService } from './commission.service';
+import { GlobalSettingsService } from '@vendure/core';
+import type { RequestContext } from '@vendure/core';
 
 /**
  * Commission Calculation Tests
@@ -20,9 +22,26 @@ import { CommissionService } from './commission.service';
  */
 describe('CommissionService', () => {
   let commissionService: CommissionService;
+  let mockGlobalSettingsService: jest.Mocked<GlobalSettingsService>;
+  let mockCtx: RequestContext;
 
   beforeEach(() => {
-    commissionService = new CommissionService();
+    // Mock GlobalSettingsService
+    const getSettingsMock = jest.fn() as jest.MockedFunction<any>;
+    getSettingsMock.mockResolvedValue({
+      customFields: {},
+    });
+    mockGlobalSettingsService = {
+      getSettings: getSettingsMock,
+    } as any;
+
+    commissionService = new CommissionService(mockGlobalSettingsService);
+
+    // Mock RequestContext
+    mockCtx = {
+      channel: {} as any,
+      languageCode: 'en' as const,
+    } as RequestContext;
   });
 
   describe('calculateCommission', () => {
@@ -160,11 +179,42 @@ describe('CommissionService', () => {
   });
 
   describe('getDefaultCommissionRate', () => {
-    it('should return default commission rate', () => {
-      const defaultRate = commissionService.getDefaultCommissionRate();
+    it('should return default commission rate from GlobalSettings when configured', async () => {
+      mockGlobalSettingsService.getSettings.mockResolvedValue({
+        customFields: {
+          defaultCommissionRate: 0.2, // 20%
+        },
+      } as any);
 
+      const defaultRate = await commissionService.getDefaultCommissionRate(mockCtx);
+
+      expect(defaultRate).toBe(0.2);
       expect(defaultRate).toBeGreaterThanOrEqual(0);
       expect(defaultRate).toBeLessThanOrEqual(1);
+    });
+
+    it('should return fallback rate when GlobalSettings not configured', async () => {
+      mockGlobalSettingsService.getSettings.mockResolvedValue({
+        customFields: {},
+      } as any);
+
+      const defaultRate = await commissionService.getDefaultCommissionRate(mockCtx);
+
+      expect(defaultRate).toBe(0.15); // DEFAULT_COMMISSION_RATE fallback
+    });
+
+    it('should return fallback rate when GlobalSettings access fails', async () => {
+      mockGlobalSettingsService.getSettings.mockRejectedValue(new Error('Settings access failed'));
+
+      const defaultRate = await commissionService.getDefaultCommissionRate(mockCtx);
+
+      expect(defaultRate).toBe(0.15); // DEFAULT_COMMISSION_RATE fallback
+    });
+
+    it('should return fallback rate synchronously when no context provided', () => {
+      const defaultRate = commissionService.getDefaultCommissionRateSync();
+
+      expect(defaultRate).toBe(0.15); // DEFAULT_COMMISSION_RATE fallback
     });
   });
 

@@ -90,7 +90,11 @@ describe('OrderPaymentHandlerService - Unit Tests', () => {
       createPayout: jest.fn(),
     } as any;
 
-    mockCommissionService = {} as any;
+    const getDefaultCommissionRateMock = jest.fn() as jest.MockedFunction<any>;
+    getDefaultCommissionRateMock.mockResolvedValue(0.15); // Default 15%
+    mockCommissionService = {
+      getDefaultCommissionRate: getDefaultCommissionRateMock,
+    } as any;
 
     // Create service instance
     service = new OrderPaymentHandlerService(

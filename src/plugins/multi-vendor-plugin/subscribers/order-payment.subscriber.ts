@@ -22,7 +22,8 @@ import type { OrderSplitPaymentResult } from '../services/split-payment.service'
  * Order Payment Event Subscriber
  *
  * Listens to order and payment events to process split payments
- * Implements OnApplicationBootstrap to register event subscriptions when the application starts
+ * Implements OnApplicationBootstrap to register event subscriptions when NestJS bootstraps
+ * Note: Uses NestJS lifecycle hook which is called automatically for registered providers
  */
 @Injectable()
 export class OrderPaymentSubscriber implements OnApplicationBootstrap {
@@ -36,6 +37,8 @@ export class OrderPaymentSubscriber implements OnApplicationBootstrap {
   /**
    * Subscribe to events when the application bootstraps
    * This is called automatically by NestJS when the application starts
+   * Since this subscriber is registered as a provider in MultiVendorPlugin,
+   * NestJS will call this method during application bootstrap
    */
   async onApplicationBootstrap() {
     // Subscribe to OrderPlacedEvent - fires when order transitions to PaymentAuthorized or PaymentSettled

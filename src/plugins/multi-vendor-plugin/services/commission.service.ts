@@ -13,10 +13,13 @@
  */
 
 import { Injectable } from '@nestjs/common';
+import type { RequestContext } from '@vendure/core';
+import { GlobalSettingsService } from '@vendure/core';
 
 /**
  * Default commission rate (15%)
- * This can be overridden per-seller via custom fields
+ * This is the fallback value if GlobalSettings.defaultCommissionRate is not set.
+ * Can be overridden per-seller via custom fields.
  */
 export const DEFAULT_COMMISSION_RATE = 0.15;
 
@@ -44,10 +47,12 @@ export interface OrderLineForCommission {
  */
 @Injectable()
 export class CommissionService {
+  constructor(private globalSettingsService: GlobalSettingsService) {}
+
   /**
-   * Default commission rate
+   * Fallback default commission rate (used if GlobalSettings is not configured)
    */
-  private readonly defaultCommissionRate = DEFAULT_COMMISSION_RATE;
+  private readonly fallbackCommissionRate = DEFAULT_COMMISSION_RATE;
 
   /**
    * Calculate commission from order total and commission rate
@@ -105,12 +110,48 @@ export class CommissionService {
   }
 
   /**
-   * Get default commission rate
+   * Get default commission rate from GlobalSettings
+   * Falls back to DEFAULT_COMMISSION_RATE constant if not configured
    *
+   * @param ctx RequestContext (optional, for async access to GlobalSettings)
    * @returns Default commission rate as decimal (0-1)
    */
-  getDefaultCommissionRate(): number {
-    return this.defaultCommissionRate;
+  async getDefaultCommissionRate(ctx?: RequestContext): Promise<number> {
+    if (!ctx) {
+      // If no context provided, return fallback (for backwards compatibility)
+      return this.fallbackCommissionRate;
+    }
+
+    try {
+      const settings = await this.globalSettingsService.getSettings(ctx);
+      const customFields = settings.customFields as { defaultCommissionRate?: number } | undefined;
+      const configuredRate = customFields?.defaultCommissionRate;
+
+      // Return configured rate if valid, otherwise fallback
+      if (configuredRate != null && configuredRate >= 0 && configuredRate <= 1) {
+        return configuredRate;
+      }
+
+      return this.fallbackCommissionRate;
+    } catch (error) {
+      // If GlobalSettings access fails, return fallback
+      console.warn(
+        '[CommissionService] Failed to read defaultCommissionRate from GlobalSettings, using fallback:',
+        error
+      );
+      return this.fallbackCommissionRate;
+    }
+  }
+
+  /**
+   * Get default commission rate synchronously (for backwards compatibility)
+   * Returns the fallback rate. Use getDefaultCommissionRate(ctx) for configured value.
+   *
+   * @returns Fallback commission rate as decimal (0-1)
+   * @deprecated Use getDefaultCommissionRate(ctx) instead to read from GlobalSettings
+   */
+  getDefaultCommissionRateSync(): number {
+    return this.fallbackCommissionRate;
   }
 
   /**

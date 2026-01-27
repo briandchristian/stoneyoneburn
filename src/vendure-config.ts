@@ -16,6 +16,7 @@ import { validateEnvironmentVariables } from './config/env-validation';
 import { getSecurityConfig, isProductionMode, validateSecurityConfig } from './config/security';
 import { getStripeConfig, validateStripeConfig } from './config/stripe-config';
 import { MultiVendorPlugin } from './plugins/multi-vendor-plugin/multi-vendor.plugin';
+import { processScheduledPayoutsTask } from './plugins/multi-vendor-plugin/scheduled-tasks/payout-scheduler.task';
 
 // Get the project root directory
 // process.cwd() returns the current working directory (project root when run from npm scripts)
@@ -105,6 +106,9 @@ export const config: VendureConfig = {
   // When adding or altering custom field definitions, the database will
   // need to be updated. See the "Migrations" section in README.md.
   customFields: {},
+  schedulerOptions: {
+    tasks: [processScheduledPayoutsTask],
+  },
   plugins: [
     GraphiqlPlugin.init(),
     AssetServerPlugin.init({

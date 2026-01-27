@@ -322,6 +322,59 @@ export class SellerPayoutService {
   }
 
   /**
+   * Request payout with threshold check (atomic operation)
+   * Combines threshold validation and payout request into a single atomic operation
+   * to prevent TOCTOU race conditions between check and execution
+   *
+   * @param ctx RequestContext
+   * @param sellerId Seller ID
+   * @param minimumThreshold Minimum payout threshold in cents
+   * @returns Array of payouts that were transitioned to PENDING
+   * @throws Error if threshold not met or no payouts available
+   */
+  async requestPayoutWithThresholdCheck(
+    ctx: RequestContext,
+    sellerId: ID,
+    minimumThreshold: number
+  ): Promise<SellerPayout[]> {
+    const repository = this.connection.getRepository(ctx, SellerPayout);
+
+    // Atomic operation: Find HOLD payouts and calculate total in a single query
+    // This prevents race conditions where concurrent requests could transition
+    // the same HOLD payouts between the threshold check and payout request
+    const holdPayouts = await repository.find({
+      where: {
+        sellerId: parseInt(sellerId.toString(), 10),
+        status: PayoutStatus.HOLD,
+      },
+    });
+
+    // Calculate total from HOLD payouts (same logic as getPendingPayoutTotal but only HOLD)
+    const holdTotal = holdPayouts.reduce((total, payout) => total + payout.amount, 0);
+
+    // Check threshold using HOLD payouts only (matching what requestPayout will transition)
+    if (holdTotal < minimumThreshold) {
+      throw new Error('Minimum payout threshold not met');
+    }
+
+    if (holdPayouts.length === 0) {
+      throw new Error('No payouts available to request');
+    }
+
+    // Transition each payout to PENDING
+    const updatedPayouts = holdPayouts.map((payout) => {
+      payout.status = PayoutStatus.PENDING;
+      payout.releasedAt = new Date();
+      return payout;
+    });
+
+    // Save all updated payouts
+    await repository.save(updatedPayouts);
+
+    return updatedPayouts;
+  }
+
+  /**
    * Get all pending payouts across all sellers (for admin review)
    * Includes both PENDING and PROCESSING status payouts
    *

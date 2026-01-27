@@ -117,18 +117,18 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
   });
 
   describe('onApplicationBootstrap', () => {
-    it('should subscribe to OrderPlacedEvent', () => {
+    it('should subscribe to OrderPlacedEvent', async () => {
       // Act
-      subscriber.onApplicationBootstrap();
+      await subscriber.onApplicationBootstrap();
 
       // Assert
       expect(mockEventBus.ofType).toHaveBeenCalledWith(OrderPlacedEvent);
       expect(orderPlacedHandler).toBeDefined();
     });
 
-    it('should subscribe to PaymentStateTransitionEvent for settled payments', () => {
+    it('should subscribe to PaymentStateTransitionEvent for settled payments', async () => {
       // Act
-      subscriber.onApplicationBootstrap();
+      await subscriber.onApplicationBootstrap();
 
       // Assert: Should subscribe to PaymentStateTransitionEvent
       expect(mockEventBus.ofType).toHaveBeenCalledWith(PaymentStateTransitionEvent);
@@ -137,8 +137,8 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
   });
 
   describe('OrderPlacedEvent handling', () => {
-    beforeEach(() => {
-      subscriber.onApplicationBootstrap();
+    beforeEach(async () => {
+      await subscriber.onApplicationBootstrap();
     });
 
     it('should process order payment when order is placed', async () => {
@@ -266,8 +266,8 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
   });
 
   describe('PaymentStateTransitionEvent handling', () => {
-    beforeEach(() => {
-      subscriber.onApplicationBootstrap();
+    beforeEach(async () => {
+      await subscriber.onApplicationBootstrap();
     });
 
     it('should process order payment when payment transitions to Settled', async () => {
@@ -452,8 +452,8 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
   });
 
   describe('Deduplication - Prevent duplicate payouts', () => {
-    beforeEach(() => {
-      subscriber.onApplicationBootstrap();
+    beforeEach(async () => {
+      await subscriber.onApplicationBootstrap();
     });
 
     it('should skip processing OrderPlacedEvent if payouts already exist', async () => {

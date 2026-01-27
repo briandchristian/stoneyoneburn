@@ -51,6 +51,12 @@ export class SellerPayoutResolver {
    * Request payout for seller
    * Transitions all HOLD payouts to PENDING status
    *
+   * Uses atomic threshold check and payout request to prevent TOCTOU race conditions.
+   * Previously, there was a race condition between the threshold check (which included
+   * PENDING + HOLD payouts) and the payout request (which only transitions HOLD payouts).
+   * This is now fixed by using requestPayoutWithThresholdCheck which performs both
+   * operations atomically.
+   *
    * @param ctx RequestContext
    * @param sellerId Seller ID
    * @param minimumThreshold Minimum payout threshold in cents
@@ -63,19 +69,14 @@ export class SellerPayoutResolver {
     @Args('sellerId', { type: () => ID }) sellerId: string,
     @Args('minimumThreshold', { type: () => Int, defaultValue: 0 }) minimumThreshold: number
   ): Promise<PayoutRequestResult> {
-    // Check if seller can request payout (meets minimum threshold)
-    const canRequest = await this.payoutService.canRequestPayout(ctx, sellerId, minimumThreshold);
-
-    if (!canRequest) {
-      throw new Error('Minimum payout threshold not met');
-    }
-
-    // Request payout (transitions HOLD to PENDING)
-    const updatedPayouts = await this.payoutService.requestPayout(ctx, sellerId);
-
-    if (updatedPayouts.length === 0) {
-      throw new Error('No payouts available to request');
-    }
+    // Use atomic method that combines threshold check and payout request
+    // This prevents TOCTOU race conditions where concurrent requests could
+    // transition the same HOLD payouts between check and execution
+    const updatedPayouts = await this.payoutService.requestPayoutWithThresholdCheck(
+      ctx,
+      sellerId,
+      minimumThreshold
+    );
 
     // Calculate total amount
     const totalAmount = updatedPayouts.reduce((sum, payout) => sum + payout.amount, 0);

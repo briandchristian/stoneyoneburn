@@ -23,7 +23,7 @@ import {
 } from './split-payment.service';
 import { SellerPayoutService, PayoutStatus } from './seller-payout.service';
 import { SellerPayout } from '../entities/seller-payout.entity';
-import { CommissionService, DEFAULT_COMMISSION_RATE } from './commission.service';
+import { CommissionService } from './commission.service';
 import { MarketplaceSeller } from '../entities/seller.entity';
 
 /**
@@ -120,18 +120,21 @@ export class OrderPaymentHandlerService {
       lines: orderLinesForSplit,
     };
 
+    // Get default commission rate from GlobalSettings (or fallback)
+    const defaultCommissionRate = await this.commissionService.getDefaultCommissionRate(ctx);
+
     // Calculate split payments
     const splitResult = this.splitPaymentService.calculateSplitPaymentForOrderWithRates(
       orderForSplit,
       sellerCommissionRates,
-      DEFAULT_COMMISSION_RATE
+      defaultCommissionRate
     );
 
     // Add commission rate to each seller split for commission history tracking
     // This ensures we store the actual rate used, not a calculated approximation
     for (const sellerSplit of splitResult.sellerSplits) {
       const sellerIdStr = sellerSplit.sellerId.toString();
-      const commissionRate = sellerCommissionRates.get(sellerIdStr) ?? DEFAULT_COMMISSION_RATE;
+      const commissionRate = sellerCommissionRates.get(sellerIdStr) ?? defaultCommissionRate;
       // Add commission rate to the split for commission history creation
       (sellerSplit as any).commissionRate = commissionRate;
 
@@ -154,9 +157,15 @@ export class OrderPaymentHandlerService {
    * Prevents race conditions when multiple events fire concurrently for the same order
    *
    * Protection mechanisms:
-   * 1. Initial check to avoid unnecessary work (optimistic)
-   * 2. Duplicate key error handling in createPayout (pessimistic, primary protection)
-   * 3. Recommended: Add unique constraint on (orderId, sellerId) in database
+   * 1. Optimistic check: Initial check to avoid unnecessary work (performance optimization only)
+   * 2. Primary protection: Duplicate key error handling in createPayout method
+   *    - Requires unique constraint on (orderId, sellerId) in database
+   *    - If concurrent handlers both pass the optimistic check, one will succeed and the other
+   *      will catch the duplicate key error and return existing payout (idempotent behavior)
+   *
+   * Note: The optimistic check at line 174 is NOT atomic with the payout creation at line 184.
+   * Race conditions are prevented by the unique constraint + duplicate key error handling in
+   * createPayout, not by the optimistic check. The check is purely for performance optimization.
    *
    * @param ctx RequestContext
    * @param order Vendure Order entity
@@ -167,16 +176,18 @@ export class OrderPaymentHandlerService {
     order: Order
   ): Promise<OrderSplitPaymentResult | null> {
     // Optimistic check: if payouts already exist, skip processing
-    // This avoids unnecessary work but doesn't prevent race conditions on its own
+    // NOTE: This check is NOT atomic with payout creation below. It's purely for performance.
+    // Race condition protection comes from unique constraint + duplicate key handling in createPayout.
     const hasPayouts = await this.sellerPayoutService.hasPayoutsForOrder(ctx, order.id);
     if (hasPayouts) {
       return null;
     }
 
     // Process order payment
-    // The createPayout method handles duplicate key errors gracefully as the primary protection
-    // If two handlers run concurrently, one will create payouts and the other will catch
-    // the duplicate key error and return the existing payout (idempotent behavior)
+    // The createPayout method handles duplicate key errors gracefully as the PRIMARY protection.
+    // If two handlers run concurrently and both pass the optimistic check above, one will create
+    // payouts successfully, and the other will catch the duplicate key error and return the
+    // existing payout (idempotent behavior). This ensures correctness despite the non-atomic check.
     try {
       return await this.processOrderPayment(ctx, order);
     } catch (error: any) {
