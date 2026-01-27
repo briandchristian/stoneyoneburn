@@ -7,7 +7,18 @@
  * Part of Phase 2.3: Polymorphic Seller Types
  */
 
-import { Resolver, Query, Args, ID, ResolveField, Root, ObjectType, Field, Float, Int } from '@nestjs/graphql';
+import {
+  Resolver,
+  Query,
+  Args,
+  ID,
+  ResolveField,
+  Root,
+  ObjectType,
+  Field,
+  Float,
+  Int,
+} from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission } from '@vendure/core';
 import { MarketplaceSellerBase, SellerType } from '../entities/marketplace-seller-base.entity';

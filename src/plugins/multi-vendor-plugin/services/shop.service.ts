@@ -60,10 +60,7 @@ export class ShopService {
    * @param shopSlug Shop slug
    * @returns MarketplaceSeller or null if not found
    */
-  async getShopBySlug(
-    ctx: RequestContext,
-    shopSlug: string
-  ): Promise<MarketplaceSeller | null> {
+  async getShopBySlug(ctx: RequestContext, shopSlug: string): Promise<MarketplaceSeller | null> {
     return await this.sellerService.findSellerByShopSlug(ctx, shopSlug);
   }
 

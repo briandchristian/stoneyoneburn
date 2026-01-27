@@ -10,7 +10,17 @@
  * - Updating shop customization (authenticated sellers only)
  */
 
-import { Args, Mutation, Query, Resolver, InputType, Field, ID, Int, ObjectType } from '@nestjs/graphql';
+import {
+  Args,
+  Mutation,
+  Query,
+  Resolver,
+  InputType,
+  Field,
+  ID,
+  Int,
+  ObjectType,
+} from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission, CustomerService, Product } from '@vendure/core';
 import { MarketplaceSeller } from '../entities/seller.entity';
