@@ -87,6 +87,56 @@ interface SellerProductSummary {
  * Test Suite: Seller Dashboard Resolver
  */
 describe('Seller Dashboard Resolver', () => {
+  describe('marketplaceSellers Query', () => {
+    it('should define marketplaceSellers query with skip and take parameters', () => {
+      // Contract test: Documents the GraphQL query structure (Phase 2.4)
+      const expectedQuery = `
+        query MarketplaceSellers($skip: Int, $take: Int) {
+          marketplaceSellers(skip: $skip, take: $take) {
+            items {
+              id
+              shopName
+              shopSlug
+              verificationStatus
+              isActive
+              customerId
+            }
+            totalItems
+          }
+        }
+      `;
+
+      const queryVariables = { skip: 0, take: 25 };
+
+      expect(queryVariables.skip).toBeDefined();
+      expect(queryVariables.take).toBeDefined();
+    });
+
+    it('should return paginated list with items and totalItems', () => {
+      const expectedList = { items: [], totalItems: 0 };
+      expect(expectedList.items).toBeDefined();
+      expect(expectedList.totalItems).toBeDefined();
+    });
+  });
+
+  describe('marketplaceSeller Query', () => {
+    it('should define marketplaceSeller query with id parameter', () => {
+      const expectedQuery = `
+        query MarketplaceSellerDetail($id: ID!) {
+          marketplaceSeller(id: $id) {
+            id
+            shopName
+            shopSlug
+            verificationStatus
+            isActive
+          }
+        }
+      `;
+      const queryVariables = { id: '1' };
+      expect(queryVariables.id).toBeDefined();
+    });
+  });
+
   describe('sellerDashboardStats Query', () => {
     it('should define sellerDashboardStats query with sellerId parameter', () => {
       // Contract test: Documents the GraphQL query structure

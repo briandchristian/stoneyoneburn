@@ -167,7 +167,7 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 ---
 
 ### Phase 2: Multi-Vendor Core Plugin
-**Status:** 🟡 In Progress (2.1 & 2.2 complete, awaiting migration)  
+**Status:** ✅ Complete (2.1–2.4)  
 **Estimated Time:** 3-4 weeks
 
 **Goal:** Build the foundation for multi-vendor functionality
@@ -216,60 +216,60 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - [ ] Product ownership validation tests
 
 #### 2.4: Seller Dashboard Plugin
-- [ ] Custom Vendure plugin for seller dashboard
-- [ ] Seller-specific product list
-- [ ] Seller order management
-- [ ] Seller analytics (basic)
-- [ ] Seller settings page
+**Status:** ✅ Complete
+- [x] Custom Vendure plugin for seller dashboard (dashboard extension + Marketplace nav)
+- [x] Seller list (marketplace sellers, paginated) and detail view
+- [x] Seller stats, product summary, recent orders on detail page
+- [x] Admin verification UI (Verify/Reject/Suspend) with UpdateAdministrator guard
+- [x] Seller analytics (basic): revenue, AOV, orders by status, products by status
+- [ ] Seller settings page (deferred)
 
 **Tests:**
-- [ ] Dashboard access control tests
-- [ ] Seller data filtering tests
-- [ ] Permission boundary tests
+- [x] Contract tests for marketplaceSellers, marketplaceSeller, dashboard stats/summaries, updateVerificationStatus
+- [ ] Dashboard access control tests (manual)
+- [ ] Permission boundary tests (manual)
 
 ---
 
 ### Phase 3: Commission & Payment System
-**Status:** Not Started  
+**Status:** ✅ Complete (3.1–3.3)  
 **Estimated Time:** 2-3 weeks
 
 **Goal:** Implement split payments and commission tracking
 
 #### 3.1: Commission Configuration
-- [ ] Commission rate configuration
-- [ ] Per-seller commission rates
-- [ ] Commission calculation logic
-- [ ] Commission history tracking
+**Status:** ✅ Complete
+- [x] Commission rate (default 15%, configurable per-seller via custom fields)
+- [x] Commission calculation (CommissionService), validation
+- [x] Commission history (entity, service, resolver, dashboard on seller detail)
 
 **Tests:**
-- [ ] Commission calculation tests (various scenarios)
-- [ ] Commission rate validation tests
-- [ ] Edge case tests (0%, 100%, negative values)
+- [x] Commission calculation tests (commission.service, split-payment, order-payment-handler)
+- [x] Commission rate validation tests
+- [x] Edge case tests (0%, 100%, etc.)
 
 #### 3.2: Split Payment Processing
-- [ ] Modify payment handler for split payments
-- [ ] Platform commission deduction
-- [ ] Seller payout calculation
-- [ ] Payment status tracking
-- [ ] Escrow/holding funds until fulfillment
+**Status:** ✅ Complete
+- [x] Order payment handler (OrderPlaced / PaymentSettled), split payments
+- [x] Platform commission deduction, seller payout calculation
+- [x] Payment status (HOLD, PENDING, PROCESSING, COMPLETED, FAILED), escrow
 
 **Tests:**
-- [ ] Split payment calculation tests
-- [ ] Payment handler integration tests
-- [ ] Edge cases (partial refunds, disputes)
-- [ ] Transaction logging tests
+- [x] Split payment and payment-handler unit tests
+- [x] Order payment subscriber tests
+- [ ] Edge cases (partial refunds, disputes) — deferred
 
 #### 3.3: Seller Payout System
-- [ ] Payout request system
-- [ ] Payout approval workflow
-- [ ] Payout history
-- [ ] Minimum payout threshold
-- [ ] Payout scheduling (weekly/monthly)
+**Status:** ✅ Complete
+- [x] Payout request (Shop API: requestPayout, minimum threshold)
+- [x] Payout approval workflow (Admin: approvePayout, rejectPayout, pendingPayouts)
+- [x] Payout history (payoutHistory, pendingPayoutTotal)
+- [x] Dashboard: Pending Payouts page (list, approve/reject)
+- [ ] Payout scheduling (weekly/monthly) — deferred
 
 **Tests:**
-- [ ] Payout calculation tests
-- [ ] Payout request validation tests
-- [ ] Payout workflow tests
+- [x] Payout service and resolver tests
+- [x] Payout workflow tests
 
 ---
 

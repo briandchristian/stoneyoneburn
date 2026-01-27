@@ -42,6 +42,7 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
     // Create mock services
     mockOrderPaymentHandlerService = {
       processOrderPayment: jest.fn(),
+      processOrderPaymentAtomically: jest.fn(),
     } as any;
 
     mockCommissionHistoryService = {
@@ -154,14 +155,13 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       } as OrderPlacedEvent;
 
       mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
-      mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(null);
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(null);
 
       // Act
       await orderPlacedHandler!(mockEvent as OrderPlacedEvent);
 
       // Assert
-      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
-      expect(mockOrderPaymentHandlerService.processOrderPayment).toHaveBeenCalledWith(
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).toHaveBeenCalledWith(
         mockCtx,
         mockOrder as Order
       );
@@ -180,14 +180,17 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         ctx: mockCtx,
       } as OrderPlacedEvent;
 
-      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(true); // Payouts already exist
+      // processOrderPaymentAtomically checks internally and returns null if payouts exist
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(null);
 
       // Act
       await orderPlacedHandler!(mockEvent as OrderPlacedEvent);
 
-      // Assert: Should check for existing payouts but not process
-      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
-      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      // Assert: Should call atomic method which handles deduplication internally
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).toHaveBeenCalledWith(
+        mockCtx,
+        mockOrder as Order
+      );
       expect(mockCommissionHistoryService.createCommissionHistory).not.toHaveBeenCalled();
     });
 
@@ -219,7 +222,9 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         ],
       };
 
-      mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(mockSplitResult as any);
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(
+        mockSplitResult as any
+      );
 
       // Act
       await orderPlacedHandler!(mockEvent as OrderPlacedEvent);
@@ -253,7 +258,7 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       } as OrderPlacedEvent;
 
       const error = new Error('Payment processing failed');
-      mockOrderPaymentHandlerService.processOrderPayment.mockRejectedValue(error);
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockRejectedValue(error);
 
       // Act & Assert: Should not throw, but log error
       await expect(orderPlacedHandler!(mockEvent as OrderPlacedEvent)).resolves.not.toThrow();
@@ -287,14 +292,13 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       } as PaymentStateTransitionEvent;
 
       mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
-      mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(null);
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(null);
 
       // Act: Handler is only called for 'Settled' state due to filter
       await paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent);
 
       // Assert
-      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
-      expect(mockOrderPaymentHandlerService.processOrderPayment).toHaveBeenCalledWith(
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).toHaveBeenCalledWith(
         mockCtx,
         mockOrder as Order
       );
@@ -326,9 +330,11 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       // Act
       await paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent);
 
-      // Assert: Should check for existing payouts but not process
-      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
-      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      // Assert: Atomic method handles deduplication internally and returns null if payouts exist
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).toHaveBeenCalledWith(
+        mockCtx,
+        mockOrder as Order
+      );
       expect(mockCommissionHistoryService.createCommissionHistory).not.toHaveBeenCalled();
     });
 
@@ -370,7 +376,9 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       };
 
       mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
-      mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(mockSplitResult as any);
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(
+        mockSplitResult as any
+      );
 
       // Act
       await paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent);
@@ -409,7 +417,7 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       await expect(
         paymentSettledHandler!(mockEvent as PaymentStateTransitionEvent)
       ).resolves.not.toThrow();
-      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).not.toHaveBeenCalled();
     });
 
     it('should handle errors gracefully when processing payment settlement fails', async () => {
@@ -434,7 +442,7 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
       } as PaymentStateTransitionEvent;
 
       const error = new Error('Payment settlement processing failed');
-      mockOrderPaymentHandlerService.processOrderPayment.mockRejectedValue(error);
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockRejectedValue(error);
 
       // Act & Assert: Should not throw, but log error
       await expect(
@@ -461,15 +469,17 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         ctx: mockCtx,
       } as OrderPlacedEvent;
 
-      // Mock that payouts already exist for this order
-      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(true);
+      // Mock that atomic method returns null (payouts already exist)
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(null);
 
       // Act
       await orderPlacedHandler!(mockEvent);
 
-      // Assert: Should not process payment if payouts already exist
-      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
-      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      // Assert: Atomic method is called and handles deduplication internally (returns null)
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).toHaveBeenCalledWith(
+        mockCtx,
+        mockOrder as Order
+      );
       expect(mockCommissionHistoryService.createCommissionHistory).not.toHaveBeenCalled();
     });
 
@@ -494,15 +504,17 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         fromState: 'Authorized',
       } as PaymentStateTransitionEvent;
 
-      // Mock that payouts already exist for this order
-      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(true);
+      // Mock that atomic method returns null (payouts already exist)
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(null);
 
       // Act
       await paymentSettledHandler!(mockEvent);
 
-      // Assert: Should not process payment if payouts already exist
-      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
-      expect(mockOrderPaymentHandlerService.processOrderPayment).not.toHaveBeenCalled();
+      // Assert: Atomic method is called and handles deduplication internally (returns null)
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).toHaveBeenCalledWith(
+        mockCtx,
+        mockOrder as Order
+      );
       expect(mockCommissionHistoryService.createCommissionHistory).not.toHaveBeenCalled();
     });
 
@@ -519,16 +531,14 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         ctx: mockCtx,
       } as OrderPlacedEvent;
 
-      // Mock that no payouts exist
-      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
-      mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(null);
+      // Mock that atomic method processes successfully (no payouts exist)
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(null);
 
       // Act
       await orderPlacedHandler!(mockEvent);
 
       // Assert: Should process payment if no payouts exist
-      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
-      expect(mockOrderPaymentHandlerService.processOrderPayment).toHaveBeenCalledWith(
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).toHaveBeenCalledWith(
         mockCtx,
         mockOrder as Order
       );
@@ -555,16 +565,14 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
         fromState: 'Authorized',
       } as PaymentStateTransitionEvent;
 
-      // Mock that no payouts exist
-      mockSellerPayoutService.hasPayoutsForOrder.mockResolvedValue(false);
-      mockOrderPaymentHandlerService.processOrderPayment.mockResolvedValue(null);
+      // Mock that atomic method processes successfully (no payouts exist)
+      mockOrderPaymentHandlerService.processOrderPaymentAtomically.mockResolvedValue(null);
 
       // Act
       await paymentSettledHandler!(mockEvent);
 
       // Assert: Should process payment if no payouts exist
-      expect(mockSellerPayoutService.hasPayoutsForOrder).toHaveBeenCalledWith(mockCtx, '100');
-      expect(mockOrderPaymentHandlerService.processOrderPayment).toHaveBeenCalledWith(
+      expect(mockOrderPaymentHandlerService.processOrderPaymentAtomically).toHaveBeenCalledWith(
         mockCtx,
         mockOrder as Order
       );

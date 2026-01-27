@@ -13,6 +13,7 @@
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
 import type { RequestContext, ID } from '@vendure/core';
 import { TransactionalConnection } from '@vendure/core';
+import { In } from 'typeorm';
 import { SellerPayoutService, PayoutStatus } from './seller-payout.service';
 import { SellerPayout } from '../entities/seller-payout.entity';
 
@@ -204,6 +205,186 @@ describe('SellerPayoutService - Unit Tests', () => {
 
       // Assert
       expect(result.failureReason).toBe(failureReason);
+    });
+
+    it('should return existing payout when duplicate key error occurs (PostgreSQL)', async () => {
+      // Arrange
+      const sellerId = '5';
+      const orderId = '100';
+      const amount = 8500;
+      const commission = 1500;
+
+      const existingPayout = new SellerPayout({
+        sellerId: parseInt(sellerId, 10),
+        orderId: orderId,
+        amount,
+        commission,
+        status: PayoutStatus.HOLD,
+      });
+      existingPayout.id = 1;
+      existingPayout.createdAt = new Date();
+      existingPayout.updatedAt = new Date();
+
+      // Simulate duplicate key error (PostgreSQL error code 23505)
+      const duplicateError = new Error('duplicate key value violates unique constraint');
+      (duplicateError as any).code = '23505';
+
+      mockRepository.save.mockRejectedValueOnce(duplicateError);
+      mockRepository.findOne.mockResolvedValue(existingPayout);
+
+      // Act
+      const result = await service.createPayout(mockCtx, sellerId, orderId, amount, commission);
+
+      // Assert
+      expect(mockRepository.save).toHaveBeenCalled();
+      expect(mockRepository.findOne).toHaveBeenCalledWith({
+        where: {
+          orderId: orderId,
+          sellerId: parseInt(sellerId, 10),
+        },
+      });
+      expect(result).toEqual(existingPayout);
+      expect(result.id).toBe(1);
+    });
+
+    it('should return existing payout when duplicate key error occurs (MySQL)', async () => {
+      // Arrange
+      const sellerId = '5';
+      const orderId = '100';
+      const amount = 8500;
+      const commission = 1500;
+
+      const existingPayout = new SellerPayout({
+        sellerId: parseInt(sellerId, 10),
+        orderId: orderId,
+        amount,
+        commission,
+        status: PayoutStatus.HOLD,
+      });
+      existingPayout.id = 1;
+
+      // Simulate duplicate key error (MySQL error code ER_DUP_ENTRY)
+      const duplicateError = new Error('Duplicate entry');
+      (duplicateError as any).code = 'ER_DUP_ENTRY';
+
+      mockRepository.save.mockRejectedValueOnce(duplicateError);
+      mockRepository.findOne.mockResolvedValue(existingPayout);
+
+      // Act
+      const result = await service.createPayout(mockCtx, sellerId, orderId, amount, commission);
+
+      // Assert
+      expect(mockRepository.findOne).toHaveBeenCalled();
+      expect(result).toEqual(existingPayout);
+    });
+
+    it('should retry findOne with delay if it returns null after duplicate error (race condition)', async () => {
+      // Arrange
+      const sellerId = '5';
+      const orderId = '100';
+      const amount = 8500;
+      const commission = 1500;
+
+      const existingPayout = new SellerPayout({
+        sellerId: parseInt(sellerId, 10),
+        orderId: orderId,
+        amount,
+        commission,
+        status: PayoutStatus.HOLD,
+      });
+      existingPayout.id = 1;
+
+      // Simulate duplicate key error
+      const duplicateError = new Error('UNIQUE constraint violation');
+      (duplicateError as any).code = '23505';
+
+      // First findOne returns null (record not yet visible due to transaction isolation)
+      // Second findOne returns the existing payout (after retry)
+      mockRepository.save.mockRejectedValueOnce(duplicateError);
+      mockRepository.findOne
+        .mockResolvedValueOnce(null) // First attempt: not found
+        .mockResolvedValueOnce(existingPayout); // Second attempt: found
+
+      // Act
+      const result = await service.createPayout(mockCtx, sellerId, orderId, amount, commission);
+
+      // Assert
+      expect(mockRepository.findOne).toHaveBeenCalledTimes(2);
+      expect(result).toEqual(existingPayout);
+    });
+
+    it('should throw descriptive error if findOne fails after duplicate error and retries exhausted', async () => {
+      // Arrange
+      const sellerId = '5';
+      const orderId = '100';
+      const amount = 8500;
+      const commission = 1500;
+
+      // Simulate duplicate key error
+      const duplicateError = new Error('UNIQUE constraint violation');
+      (duplicateError as any).code = '23505';
+
+      mockRepository.save.mockRejectedValueOnce(duplicateError);
+      // findOne keeps returning null (record never becomes visible)
+      mockRepository.findOne.mockResolvedValue(null);
+
+      // Act & Assert
+      // After retries are exhausted, should throw a descriptive error
+      // This indicates a real problem (transaction isolation or replication issue)
+      await expect(
+        service.createPayout(mockCtx, sellerId, orderId, amount, commission)
+      ).rejects.toThrow('Duplicate payout detected but existing record not found after');
+      expect(mockRepository.findOne).toHaveBeenCalledTimes(5); // Max retries
+    });
+
+    it('should handle duplicate error with message containing "UNIQUE constraint"', async () => {
+      // Arrange
+      const sellerId = '5';
+      const orderId = '100';
+      const amount = 8500;
+      const commission = 1500;
+
+      const existingPayout = new SellerPayout({
+        sellerId: parseInt(sellerId, 10),
+        orderId: orderId,
+        amount,
+        commission,
+        status: PayoutStatus.HOLD,
+      });
+      existingPayout.id = 1;
+
+      // Simulate duplicate error with message (no error code)
+      const duplicateError = new Error(
+        'UNIQUE constraint "idx_seller_payout_order_seller_unique" violated'
+      );
+
+      mockRepository.save.mockRejectedValueOnce(duplicateError);
+      mockRepository.findOne.mockResolvedValue(existingPayout);
+
+      // Act
+      const result = await service.createPayout(mockCtx, sellerId, orderId, amount, commission);
+
+      // Assert
+      expect(result).toEqual(existingPayout);
+    });
+
+    it('should re-throw non-duplicate errors', async () => {
+      // Arrange
+      const sellerId = '5';
+      const orderId = '100';
+      const amount = 8500;
+      const commission = 1500;
+
+      const otherError = new Error('Database connection failed');
+      (otherError as any).code = 'ECONNREFUSED';
+
+      mockRepository.save.mockRejectedValueOnce(otherError);
+
+      // Act & Assert
+      await expect(
+        service.createPayout(mockCtx, sellerId, orderId, amount, commission)
+      ).rejects.toThrow('Database connection failed');
+      expect(mockRepository.findOne).not.toHaveBeenCalled();
     });
   });
 
@@ -884,6 +1065,154 @@ describe('SellerPayoutService - Unit Tests', () => {
         },
       });
       expect(hasPayouts).toBe(false);
+    });
+  });
+
+  describe('requestPayout', () => {
+    it('should transition all HOLD payouts to PENDING for seller', async () => {
+      // Arrange
+      const sellerId = '5';
+      const holdPayouts = [
+        {
+          id: '1',
+          sellerId: parseInt(sellerId, 10),
+          orderId: '100',
+          amount: 5000,
+          commission: 500,
+          status: PayoutStatus.HOLD,
+        },
+        {
+          id: '2',
+          sellerId: parseInt(sellerId, 10),
+          orderId: '101',
+          amount: 3000,
+          commission: 300,
+          status: PayoutStatus.HOLD,
+        },
+      ] as SellerPayout[];
+
+      mockRepository.find.mockResolvedValue(holdPayouts);
+      mockRepository.save.mockImplementation((payout: SellerPayout | SellerPayout[]) =>
+        Promise.resolve(payout)
+      );
+
+      // Act
+      const result = await service.requestPayout(mockCtx, sellerId);
+
+      // Assert
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: {
+          sellerId: parseInt(sellerId, 10),
+          status: PayoutStatus.HOLD,
+        },
+      });
+      expect(mockRepository.save).toHaveBeenCalledTimes(1);
+      expect(mockRepository.save).toHaveBeenCalledWith(expect.arrayContaining(holdPayouts));
+      expect(result.length).toBe(2);
+      result.forEach((payout) => {
+        expect(payout.status).toBe(PayoutStatus.PENDING);
+        expect(payout.releasedAt).toBeDefined();
+      });
+    });
+
+    it('should return empty array when seller has no HOLD payouts', async () => {
+      // Arrange
+      const sellerId = '5';
+      mockRepository.find.mockResolvedValue([]);
+
+      // Act
+      const result = await service.requestPayout(mockCtx, sellerId);
+
+      // Assert
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: {
+          sellerId: parseInt(sellerId, 10),
+          status: PayoutStatus.HOLD,
+        },
+      });
+      expect(mockRepository.save).not.toHaveBeenCalled();
+      expect(result).toEqual([]);
+    });
+
+    it('should only transition HOLD payouts, not PENDING ones', async () => {
+      // Arrange
+      const sellerId = '5';
+      const holdPayouts = [
+        {
+          id: '1',
+          sellerId: parseInt(sellerId, 10),
+          orderId: '100',
+          amount: 5000,
+          commission: 500,
+          status: PayoutStatus.HOLD,
+        },
+      ] as SellerPayout[];
+
+      mockRepository.find.mockResolvedValue(holdPayouts);
+      mockRepository.save.mockImplementation((payout: SellerPayout | SellerPayout[]) =>
+        Promise.resolve(payout)
+      );
+
+      // Act
+      const result = await service.requestPayout(mockCtx, sellerId);
+
+      // Assert
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: {
+          sellerId: parseInt(sellerId, 10),
+          status: PayoutStatus.HOLD,
+        },
+      });
+      expect(result.length).toBe(1);
+      expect(result[0].status).toBe(PayoutStatus.PENDING);
+    });
+  });
+
+  describe('getPendingPayouts', () => {
+    it('should return all pending payouts across all sellers', async () => {
+      // Arrange
+      const mockPayouts = [
+        {
+          id: '1',
+          sellerId: 5,
+          orderId: '100',
+          amount: 5000,
+          status: PayoutStatus.PENDING,
+        },
+        {
+          id: '2',
+          sellerId: 6,
+          orderId: '101',
+          amount: 3000,
+          status: PayoutStatus.PENDING,
+        },
+      ] as SellerPayout[];
+
+      mockRepository.find.mockResolvedValue(mockPayouts);
+
+      // Act
+      const result = await service.getPendingPayouts(mockCtx);
+
+      // Assert
+      expect(mockRepository.find).toHaveBeenCalledWith({
+        where: {
+          status: In([PayoutStatus.PENDING, PayoutStatus.PROCESSING]),
+        },
+        order: { createdAt: 'DESC' },
+      });
+      expect(result).toEqual(mockPayouts);
+      expect(result.length).toBe(2);
+    });
+
+    it('should return empty array when no pending payouts exist', async () => {
+      // Arrange
+      mockRepository.find.mockResolvedValue([]);
+
+      // Act
+      const result = await service.getPendingPayouts(mockCtx);
+
+      // Assert
+      expect(result).toEqual([]);
     });
   });
 });

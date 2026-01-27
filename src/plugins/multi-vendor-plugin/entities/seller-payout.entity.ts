@@ -33,6 +33,12 @@ export enum PayoutStatus {
  *
  * Tracks payouts to sellers from order payments.
  * Supports escrow/holding funds until fulfillment.
+ *
+ * RECOMMENDED: Add a unique constraint on (orderId, sellerId) to prevent duplicate payouts
+ * when OrderPlacedEvent and PaymentStateTransitionEvent fire concurrently.
+ * Example migration:
+ *   CREATE UNIQUE INDEX idx_seller_payout_order_seller_unique
+ *   ON seller_payout(orderId, sellerId);
  */
 @Entity('seller_payout')
 @ObjectType()

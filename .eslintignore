@@ -7,4 +7,6 @@ src/gql/
 build/
 .vscode/
 .cursor/
+# Dashboard .graphql.ts: not in tsconfig (excluded with dashboard/*), causes parser project error
+**/dashboard/*.graphql.ts
 

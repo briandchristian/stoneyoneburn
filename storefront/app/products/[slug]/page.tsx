@@ -12,11 +12,18 @@
 'use client';
 
 import { useQuery, useMutation } from '@apollo/client';
-import { GET_PRODUCT_BY_SLUG, ADD_ITEM_TO_ORDER, GET_ACTIVE_ORDER } from '@/graphql/queries';
+import {
+  GET_PRODUCT_BY_SLUG,
+  ADD_ITEM_TO_ORDER,
+  GET_ACTIVE_ORDER,
+  TRANSITION_ORDER_TO_STATE,
+} from '@/graphql/queries';
+import { apolloClient } from '@/lib/apollo-client';
 import { Header } from '@/components/Header';
 import { useParams, useRouter } from 'next/navigation';
 import Image from 'next/image';
 import { useState } from 'react';
+import Link from 'next/link';
 
 interface ProductVariant {
   id: string;
@@ -60,6 +67,10 @@ interface ProductData {
   };
 }
 
+interface ActiveOrderData {
+  activeOrder?: { id: string; state: string } | null;
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -72,12 +83,27 @@ export default function ProductDetailPage() {
     variables: { slug },
   });
 
+  const { data: orderData } = useQuery<ActiveOrderData>(GET_ACTIVE_ORDER, {
+    fetchPolicy: 'cache-and-network',
+  });
+
   const [addItemToOrder] = useMutation(ADD_ITEM_TO_ORDER, {
-    // Use object format to ensure Header (which queries GET_ACTIVE_ORDER) gets updated
-    // even though this component doesn't directly query it
     refetchQueries: [{ query: GET_ACTIVE_ORDER }],
     awaitRefetchQueries: true,
   });
+
+  const [transitionOrder] = useMutation(TRANSITION_ORDER_TO_STATE, {
+    refetchQueries: [{ query: GET_ACTIVE_ORDER }],
+    awaitRefetchQueries: true,
+  });
+
+  const activeOrder = orderData?.activeOrder;
+  const canAddToCart =
+    !activeOrder || activeOrder.state === 'AddingItems';
+  const orderLockedMessage =
+    activeOrder &&
+    activeOrder.state !== 'AddingItems' &&
+    'Your cart has moved to checkout. Complete your purchase or clear your cart to add more items.';
 
   if (loading) {
     return (
@@ -112,8 +138,18 @@ export default function ProductDetailPage() {
   const price = variant?.priceWithTax || variant?.price || 0;
   const currencyCode = variant?.currencyCode || 'USD';
 
+  const performAddToCart = async () => {
+    if (!variant) return;
+    const result = await addItemToOrder({
+      variables: { productVariantId: variant.id, quantity },
+    });
+    return result.data?.addItemToOrder;
+  };
+
   const handleAddToCart = async () => {
-    if (!variant || variant.stockLevel !== 'IN_STOCK') {
+    if (!variant || variant.stockLevel !== 'IN_STOCK') return;
+    if (!canAddToCart) {
+      setAddToCartError(orderLockedMessage || 'Your cart is in checkout. Go to checkout or clear your cart first.');
       return;
     }
 
@@ -121,39 +157,68 @@ export default function ProductDetailPage() {
     setAddToCartError(null);
 
     try {
-      const result = await addItemToOrder({
-        variables: {
-          productVariantId: variant.id,
-          quantity: quantity,
-        },
-      });
+      const addItemResult = await performAddToCart();
 
-      const addItemResult = result.data?.addItemToOrder;
-      
-      // Check if result is an Order (success case)
       if (addItemResult?.__typename === 'Order') {
-        // Success - optionally redirect to cart or show success message
         router.push('/cart');
         return;
       }
-      
-      // Handle error cases
-      if (addItemResult && 'errorCode' in addItemResult) {
-        // Error result with errorCode property
-        const errorResult = addItemResult as { errorCode: string; message: string };
-        setAddToCartError(errorResult.message || 'Failed to add item to cart');
-      } else if (addItemResult && addItemResult.__typename && addItemResult.__typename !== 'Order') {
-        // Error result with non-Order typename
-        const errorResult = addItemResult as { message?: string; __typename: string };
-        setAddToCartError(errorResult.message || 'Failed to add item to cart');
+
+      if (addItemResult && 'message' in addItemResult) {
+        const msg = (addItemResult as { message?: string }).message || 'Failed to add item to cart';
+        setAddToCartError(msg);
       } else {
-        // No result or unexpected format
         setAddToCartError('Failed to add item to cart');
       }
-    } catch (err: any) {
-      // Handle GraphQL errors or network errors
-      const errorMessage = err?.message || err?.graphQLErrors?.[0]?.message || 'Failed to add item to cart';
-      setAddToCartError(errorMessage);
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error
+          ? err.message
+          : (err as { graphQLErrors?: Array<{ message?: string }> })?.graphQLErrors?.[0]?.message ??
+            'Failed to add item to cart';
+      setAddToCartError(String(msg));
+    } finally {
+      setIsAddingToCart(false);
+    }
+  };
+
+  const handleClearCartAndAdd = async () => {
+    if (!variant || variant.stockLevel !== 'IN_STOCK' || !activeOrder) return;
+
+    setIsAddingToCart(true);
+    setAddToCartError(null);
+
+    try {
+      const transitionResult = await transitionOrder({ variables: { state: 'Cancelled' } });
+      const transitionData = transitionResult.data?.transitionOrderToState as
+        | { __typename?: string; message?: string }
+        | undefined;
+
+      if (transitionData?.__typename && transitionData.__typename !== 'Order') {
+        setAddToCartError(
+          (transitionData.message as string) ||
+            'Could not clear cart. Please complete or abandon checkout first.'
+        );
+        return;
+      }
+
+      await apolloClient.refetchQueries({ include: ['GetActiveOrder'] });
+      const addItemResult = await performAddToCart();
+
+      if (addItemResult?.__typename === 'Order') {
+        router.push('/cart');
+        return;
+      }
+
+      if (addItemResult && 'message' in addItemResult) {
+        setAddToCartError((addItemResult as { message?: string }).message || 'Failed to add item to cart');
+      } else {
+        setAddToCartError('Failed to add item to cart');
+      }
+    } catch (err: unknown) {
+      const msg =
+        err instanceof Error ? err.message : (err as { graphQLErrors?: Array<{ message?: string }> })?.graphQLErrors?.[0]?.message;
+      setAddToCartError(msg ? String(msg) : 'Could not clear cart. Please try again.');
     } finally {
       setIsAddingToCart(false);
     }
@@ -282,18 +347,40 @@ export default function ProductDetailPage() {
               )}
 
               <div className="mt-10">
-                <button
-                  type="button"
-                  onClick={handleAddToCart}
-                  className="w-full rounded-md bg-blue-700 px-4 py-3 text-base font-semibold text-white shadow-lg hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
-                  disabled={!variant || variant.stockLevel !== 'IN_STOCK' || isAddingToCart}
-                >
-                  {isAddingToCart
-                    ? 'Adding to Cart...'
-                    : variant && variant.stockLevel === 'IN_STOCK'
-                    ? 'Add to Cart'
-                    : 'Out of Stock'}
-                </button>
+                {orderLockedMessage ? (
+                  <div className="rounded-lg border-2 border-amber-200 bg-amber-50 p-4">
+                    <p className="text-sm font-medium text-amber-900">{orderLockedMessage}</p>
+                    <div className="mt-3 flex flex-wrap gap-3">
+                      <Link
+                        href="/checkout"
+                        className="inline-flex rounded-md bg-blue-700 px-4 py-2 text-sm font-semibold text-white shadow hover:bg-blue-800"
+                      >
+                        Go to checkout
+                      </Link>
+                      <button
+                        type="button"
+                        onClick={handleClearCartAndAdd}
+                        disabled={isAddingToCart}
+                        className="inline-flex rounded-md border-2 border-amber-600 bg-white px-4 py-2 text-sm font-semibold text-amber-800 hover:bg-amber-50 disabled:opacity-50"
+                      >
+                        {isAddingToCart ? 'Clearing cart…' : 'Clear cart and add this item'}
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={handleAddToCart}
+                    className="w-full rounded-md bg-blue-700 px-4 py-3 text-base font-semibold text-white shadow-lg hover:bg-blue-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-blue-700 transition-colors disabled:bg-gray-400 disabled:cursor-not-allowed"
+                    disabled={!variant || variant.stockLevel !== 'IN_STOCK' || isAddingToCart}
+                  >
+                    {isAddingToCart
+                      ? 'Adding to Cart...'
+                      : variant && variant.stockLevel === 'IN_STOCK'
+                        ? 'Add to Cart'
+                        : 'Out of Stock'}
+                  </button>
+                )}
                 {addToCartError && (
                   <p className="mt-2 text-sm text-red-700">{addToCartError}</p>
                 )}

@@ -31,6 +31,7 @@ export class SellerPayoutService {
 
   /**
    * Create a payout record in the database for a seller from an order
+   * Handles duplicate key errors gracefully to prevent race conditions
    *
    * @param ctx RequestContext
    * @param sellerId Seller ID
@@ -39,7 +40,8 @@ export class SellerPayoutService {
    * @param commission Commission amount deducted in cents
    * @param status Payout status (default: HOLD)
    * @param failureReason Optional failure reason
-   * @returns Created payout entity
+   * @returns Created payout entity, or existing payout if duplicate key error
+   * @throws Error if amount is invalid or other non-duplicate errors occur
    */
   async createPayout(
     ctx: RequestContext,
@@ -63,7 +65,57 @@ export class SellerPayoutService {
       failureReason,
     });
 
-    return this.connection.getRepository(ctx, SellerPayout).save(payout);
+    try {
+      return await this.connection.getRepository(ctx, SellerPayout).save(payout);
+    } catch (error: any) {
+      // Handle duplicate key errors (race condition protection)
+      // If a unique constraint exists on (orderId, sellerId), catch the duplicate error
+      // and return the existing payout instead
+      if (
+        error?.code === '23505' ||
+        error?.code === 'ER_DUP_ENTRY' ||
+        error?.message?.includes('UNIQUE constraint')
+      ) {
+        // Duplicate key error - payout already exists, try to find existing one
+        // Retry logic handles cases where the record isn't immediately visible due to transaction isolation
+        const repository = this.connection.getRepository(ctx, SellerPayout);
+        const maxRetries = 5;
+        const initialDelay = 10; // milliseconds
+        let existingPayout: SellerPayout | null = null;
+
+        for (let attempt = 0; attempt < maxRetries; attempt++) {
+          existingPayout = await repository.findOne({
+            where: {
+              orderId: orderId.toString(),
+              sellerId: parseInt(sellerId.toString(), 10),
+            },
+          });
+
+          if (existingPayout) {
+            return existingPayout;
+          }
+
+          // If not found and not the last attempt, wait before retrying
+          // Exponential backoff: 10ms, 20ms, 40ms, 80ms, 160ms
+          if (attempt < maxRetries - 1) {
+            await new Promise((resolve) =>
+              setTimeout(resolve, initialDelay * Math.pow(2, attempt))
+            );
+          }
+        }
+
+        // If we still can't find the payout after retries, this indicates a real problem
+        // The duplicate error suggests the record exists, but we can't see it
+        // This could happen with transaction isolation issues or database replication lag
+        // In this case, we throw a more descriptive error
+        throw new Error(
+          `Duplicate payout detected but existing record not found after ${maxRetries} retries. ` +
+            `This may indicate a transaction isolation or replication issue. Original error: ${error.message}`
+        );
+      }
+      // Re-throw if it's not a duplicate key error
+      throw error;
+    }
   }
 
   /**
@@ -233,5 +285,55 @@ export class SellerPayoutService {
       },
     });
     return count > 0;
+  }
+
+  /**
+   * Request payout for a seller
+   * Transitions all HOLD payouts to PENDING status
+   *
+   * @param ctx RequestContext
+   * @param sellerId Seller ID
+   * @returns Array of payouts that were transitioned to PENDING
+   */
+  async requestPayout(ctx: RequestContext, sellerId: ID): Promise<SellerPayout[]> {
+    const repository = this.connection.getRepository(ctx, SellerPayout);
+
+    // Find all HOLD payouts for this seller
+    const holdPayouts = await repository.find({
+      where: {
+        sellerId: parseInt(sellerId.toString(), 10),
+        status: PayoutStatus.HOLD,
+      },
+    });
+
+    // Transition each payout to PENDING
+    const updatedPayouts = holdPayouts.map((payout) => {
+      payout.status = PayoutStatus.PENDING;
+      payout.releasedAt = new Date();
+      return payout;
+    });
+
+    // Save all updated payouts
+    if (updatedPayouts.length > 0) {
+      await repository.save(updatedPayouts);
+    }
+
+    return updatedPayouts;
+  }
+
+  /**
+   * Get all pending payouts across all sellers (for admin review)
+   * Includes both PENDING and PROCESSING status payouts
+   *
+   * @param ctx RequestContext
+   * @returns Array of pending payout entities
+   */
+  async getPendingPayouts(ctx: RequestContext): Promise<SellerPayout[]> {
+    return this.connection.getRepository(ctx, SellerPayout).find({
+      where: {
+        status: In([PayoutStatus.PENDING, PayoutStatus.PROCESSING]),
+      },
+      order: { createdAt: 'DESC' },
+    });
   }
 }

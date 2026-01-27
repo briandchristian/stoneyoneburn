@@ -221,6 +221,43 @@ export class SellerService {
   }
 
   /**
+   * Find a marketplace seller by ID (Admin API).
+   * Used by the seller dashboard detail view.
+   *
+   * @param ctx Request context
+   * @param id Seller ID
+   * @returns MarketplaceSeller or null if not found
+   */
+  async findMarketplaceSellerById(ctx: RequestContext, id: ID): Promise<MarketplaceSeller | null> {
+    const seller = await this.connection
+      .getRepository(ctx, MarketplaceSeller)
+      .findOne({ where: { id } });
+    return seller ?? null;
+  }
+
+  /**
+   * Find all marketplace sellers (Admin API).
+   * Used by the seller dashboard UI to list sellers.
+   *
+   * @param ctx Request context
+   * @param options skip, take for pagination
+   * @returns Paginated list of MarketplaceSeller
+   */
+  async findAllMarketplaceSellers(
+    ctx: RequestContext,
+    options: { skip?: number; take?: number } = {}
+  ): Promise<{ items: MarketplaceSeller[]; totalItems: number }> {
+    const { skip = 0, take = 25 } = options;
+    const repo = this.connection.getRepository(ctx, MarketplaceSeller);
+    const [items, totalItems] = await repo.findAndCount({
+      order: { createdAt: 'DESC' as const },
+      skip,
+      take,
+    });
+    return { items, totalItems };
+  }
+
+  /**
    * Update seller verification status
    *
    * This is typically called by admins to verify or reject seller applications.

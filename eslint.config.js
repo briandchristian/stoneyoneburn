@@ -1,14 +1,18 @@
 // ESLint v8 flat config format
 module.exports = [
   {
-    files: ['src/**/*.ts', 'tests/**/*.ts'],
-    ignores: ['src/gql/**', 'src/plugins/test-auto-verify-plugin.ts'],
+    files: ['src/**/*.ts', 'src/**/*.tsx', 'tests/**/*.ts'],
+    ignores: [
+      'src/gql/**',
+      'src/plugins/test-auto-verify-plugin.ts',
+      '**/dashboard/*.graphql.ts',
+    ],
     languageOptions: {
       parser: require('@typescript-eslint/parser'),
       parserOptions: {
         ecmaVersion: 2020,
         sourceType: 'module',
-        project: './tsconfig.json',
+        project: './tsconfig.eslint.json',
       },
     },
     plugins: {

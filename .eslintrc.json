@@ -4,7 +4,7 @@
   "parserOptions": {
     "ecmaVersion": 2020,
     "sourceType": "module",
-    "project": "./tsconfig.json"
+    "project": "./tsconfig.eslint.json"
   },
   "plugins": ["@typescript-eslint", "prettier"],
   "extends": [
@@ -36,7 +36,8 @@
     "src/gql/**",
     "tests/setup.ts",
     "*.js",
-    "*.mjs"
+    "*.mjs",
+    "**/dashboard/*.graphql.ts"
   ]
 }
 

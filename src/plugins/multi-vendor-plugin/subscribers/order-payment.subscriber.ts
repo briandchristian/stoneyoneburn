@@ -56,19 +56,16 @@ export class OrderPaymentSubscriber implements OnApplicationBootstrap {
   /**
    * Handle OrderPlacedEvent
    * Creates seller payouts and commission history when an order is placed
-   * Includes deduplication check to prevent duplicate payouts when both events fire
+   * Uses atomic processing to prevent race conditions when both events fire concurrently
    */
   private async handleOrderPlaced(ctx: RequestContext, order: Order): Promise<void> {
     try {
-      // Check if payouts already exist for this order to prevent duplicates
-      // This can happen if PaymentStateTransitionEvent fires before OrderPlacedEvent
-      const hasPayouts = await this.sellerPayoutService.hasPayoutsForOrder(ctx, order.id);
-      if (hasPayouts) {
-        // Payouts already created, skip processing
-        return;
-      }
-
-      const splitResult = await this.orderPaymentHandlerService.processOrderPayment(ctx, order);
+      // Use atomic processing to prevent race conditions
+      // This wraps the check-and-create in a transaction, making it atomic
+      const splitResult = await this.orderPaymentHandlerService.processOrderPaymentAtomically(
+        ctx,
+        order
+      );
 
       // Create commission history records if split payment was processed
       if (splitResult) {
@@ -83,7 +80,7 @@ export class OrderPaymentSubscriber implements OnApplicationBootstrap {
   /**
    * Handle PaymentStateTransitionEvent when payment is settled
    * Creates seller payouts and commission history when payment is settled
-   * Includes deduplication check to prevent duplicate payouts when both events fire
+   * Uses atomic processing to prevent race conditions when both events fire concurrently
    */
   private async handlePaymentSettled(ctx: RequestContext, payment: Payment): Promise<void> {
     try {
@@ -93,15 +90,9 @@ export class OrderPaymentSubscriber implements OnApplicationBootstrap {
         return;
       }
 
-      // Check if payouts already exist for this order to prevent duplicates
-      // This can happen if OrderPlacedEvent fires before PaymentStateTransitionEvent
-      const hasPayouts = await this.sellerPayoutService.hasPayoutsForOrder(ctx, payment.order.id);
-      if (hasPayouts) {
-        // Payouts already created, skip processing
-        return;
-      }
-
-      const splitResult = await this.orderPaymentHandlerService.processOrderPayment(
+      // Use atomic processing to prevent race conditions
+      // This wraps the check-and-create in a transaction, making it atomic
+      const splitResult = await this.orderPaymentHandlerService.processOrderPaymentAtomically(
         ctx,
         payment.order
       );

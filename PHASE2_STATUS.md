@@ -57,11 +57,16 @@ Input types are now proper GraphQL classes with decorators, not TypeScript inter
 - **Integration tests created:** `src/plugins/multi-vendor-plugin/integration/seller-product-management.integration.test.ts`
 - **Status:** Ready for testing (requires running server and verified sellers)
 
-## 🟡 Phase 2.4: Seller Dashboard Plugin - IN PROGRESS
+## ✅ Phase 2.4: Seller Dashboard Plugin - COMPLETE
 - SellerDashboardService created for data aggregation
 - Admin API queries implemented:
+  - `marketplaceSellers(skip, take)` - Paginated list (access: SuperAdmin OR ReadCatalog+ReadOrder)
+  - `marketplaceSeller(id: ID!)` - Single seller for detail view
   - `sellerDashboardStats(sellerId: ID!)` - Aggregated statistics
   - `sellerOrderSummary(sellerId: ID!, limit: Int)` - Order summary with recent orders
   - `sellerProductSummary(sellerId: ID!)` - Product statistics
+- Admin API mutation: `updateSellerVerificationStatus(sellerId, status)` (UpdateAdministrator)
+- Dashboard extension: Marketplace nav section, Sellers list (ListPage), Seller detail page
+- Seller detail: stats, product summary, recent orders, verification card with Verify/Reject/Suspend (PermissionGuard: UpdateAdministrator)
 - Contract tests written
-- **Next:** Dashboard UI components (React/Angular)
+- **Status:** Phase 2 complete

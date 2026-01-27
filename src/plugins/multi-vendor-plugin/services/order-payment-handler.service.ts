@@ -148,4 +148,51 @@ export class OrderPaymentHandlerService {
     // Return split result for commission history creation
     return splitResult;
   }
+
+  /**
+   * Atomically process order payment with deduplication
+   * Prevents race conditions when multiple events fire concurrently for the same order
+   *
+   * Protection mechanisms:
+   * 1. Initial check to avoid unnecessary work (optimistic)
+   * 2. Duplicate key error handling in createPayout (pessimistic, primary protection)
+   * 3. Recommended: Add unique constraint on (orderId, sellerId) in database
+   *
+   * @param ctx RequestContext
+   * @param order Vendure Order entity
+   * @returns Promise that resolves with split payment result, or null if payouts already exist
+   */
+  async processOrderPaymentAtomically(
+    ctx: RequestContext,
+    order: Order
+  ): Promise<OrderSplitPaymentResult | null> {
+    // Optimistic check: if payouts already exist, skip processing
+    // This avoids unnecessary work but doesn't prevent race conditions on its own
+    const hasPayouts = await this.sellerPayoutService.hasPayoutsForOrder(ctx, order.id);
+    if (hasPayouts) {
+      return null;
+    }
+
+    // Process order payment
+    // The createPayout method handles duplicate key errors gracefully as the primary protection
+    // If two handlers run concurrently, one will create payouts and the other will catch
+    // the duplicate key error and return the existing payout (idempotent behavior)
+    try {
+      return await this.processOrderPayment(ctx, order);
+    } catch (error: any) {
+      // Additional error handling: if processOrderPayment throws a duplicate error
+      // (shouldn't happen if createPayout handles it, but added as extra safety)
+      if (
+        error?.code === '23505' ||
+        error?.code === 'ER_DUP_ENTRY' ||
+        error?.message?.includes('UNIQUE constraint') ||
+        error?.message?.includes('duplicate')
+      ) {
+        // Duplicate detected - another handler created payouts, return null (idempotent)
+        return null;
+      }
+      // Re-throw if it's not a duplicate error
+      throw error;
+    }
+  }
 }

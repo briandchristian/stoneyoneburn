@@ -50,6 +50,16 @@ const mockProduct = {
   facetValues: [],
 };
 
+const activeOrderNullMock = {
+  request: { query: GET_ACTIVE_ORDER },
+  result: { data: { activeOrder: null } },
+};
+
+const activeOrderAddingItemsMock = {
+  request: { query: GET_ACTIVE_ORDER },
+  result: { data: { activeOrder: { id: 'order-1', state: 'AddingItems' } } },
+};
+
 describe('ProductDetailPage - Add to Cart', () => {
   describe('Product Display', () => {
     it('should display product information', async () => {
@@ -65,6 +75,7 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderNullMock,
       ];
 
       render(
@@ -94,6 +105,7 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderNullMock,
       ];
 
       render(
@@ -130,6 +142,7 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderNullMock,
       ];
 
       render(
@@ -367,19 +380,8 @@ describe('ProductDetailPage - Add to Cart', () => {
           },
         },
         addItemMock,
-        {
-          request: {
-            query: GET_ACTIVE_ORDER,
-          },
-          result: {
-            data: {
-              activeOrder: {
-                id: 'order-1',
-                lines: [],
-              },
-            },
-          },
-        },
+        activeOrderAddingItemsMock,
+        activeOrderAddingItemsMock,
       ];
 
       render(
@@ -472,19 +474,8 @@ describe('ProductDetailPage - Add to Cart', () => {
           },
         },
         addItemMock,
-        {
-          request: {
-            query: GET_ACTIVE_ORDER,
-          },
-          result: {
-            data: {
-              activeOrder: {
-                id: 'order-1',
-                lines: [],
-              },
-            },
-          },
-        },
+        activeOrderAddingItemsMock,
+        activeOrderAddingItemsMock,
       ];
 
       render(
@@ -583,19 +574,8 @@ describe('ProductDetailPage - Add to Cart', () => {
           },
         },
         addItemMock,
-        {
-          request: {
-            query: GET_ACTIVE_ORDER,
-          },
-          result: {
-            data: {
-              activeOrder: {
-                id: 'order-1',
-                lines: [],
-              },
-            },
-          },
-        },
+        activeOrderAddingItemsMock,
+        activeOrderAddingItemsMock,
       ];
 
       render(
@@ -650,16 +630,8 @@ describe('ProductDetailPage - Add to Cart', () => {
           },
         },
         addItemMock,
-        {
-          request: {
-            query: GET_ACTIVE_ORDER,
-          },
-          result: {
-            data: {
-              activeOrder: null,
-            },
-          },
-        },
+        activeOrderNullMock,
+        activeOrderNullMock,
       ];
 
       render(

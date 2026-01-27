@@ -33,6 +33,8 @@ import { SellerProductResolver } from './resolvers/seller-product.resolver';
 import { SellerProductManagementResolver } from './resolvers/seller-product-management.resolver';
 import { SellerDashboardResolver } from './resolvers/seller-dashboard.resolver';
 import { CommissionHistoryResolver } from './resolvers/commission-history.resolver';
+import { SellerPayoutResolver } from './resolvers/seller-payout.resolver';
+import { SellerPayoutAdminResolver } from './resolvers/seller-payout-admin.resolver';
 import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
 
 /**
@@ -42,6 +44,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
  */
 @VendurePlugin({
   imports: [PluginCommonModule],
+  dashboard: './dashboard/index.tsx',
   // Register entities for TypeORM
   // NOTE: MarketplaceSeller (non-STI) is used by most resolvers and custom fields
   // STI entities (MarketplaceSellerSTIBase, IndividualSeller, CompanySeller) are kept
@@ -71,6 +74,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
       MarketplaceSellerResolver,
       SellerProductResolver,
       SellerProductManagementResolver,
+      SellerPayoutResolver,
     ],
     // Hybrid schema-first + code-first: Define types and queries in schema string (required by Vendure)
     // This is necessary because Vendure parses schema extensions before NestJS GraphQL decorators register types
@@ -78,8 +82,9 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
     // Note: Types are defined here in schema-first style to avoid "Unknown type" errors during schema parsing
     schema: (): DocumentNode => {
       return parse(`
-        # Legacy MarketplaceSeller type (backward compatibility)
-        type MarketplaceSeller {
+        # Legacy MarketplaceSeller type (backward compatibility).
+        # Must match Admin API definition: implements Node, includes customer.
+        type MarketplaceSeller implements Node {
           id: ID!
           shopName: String!
           shopDescription: String
@@ -200,12 +205,35 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           message: String
         }
 
+        # Seller Payout Types (Phase 3.3)
+        type PayoutRequestResult {
+          id: ID!
+          sellerId: ID!
+          amount: Int!
+          status: String!
+        }
+
+        type SellerPayout {
+          id: ID!
+          createdAt: DateTime!
+          updatedAt: DateTime!
+          sellerId: ID!
+          orderId: ID!
+          amount: Int!
+          commission: Int!
+          status: String!
+          releasedAt: DateTime
+          completedAt: DateTime
+          failureReason: String
+        }
+
         extend type Mutation {
           registerAsSeller(input: RegisterSellerInput!): MarketplaceSeller!
           updateSellerProfile(input: UpdateSellerProfileInput!): MarketplaceSeller!
           createSellerProduct(input: CreateSellerProductInput!): Product!
           updateSellerProduct(input: UpdateSellerProductInput!): Product!
           deleteSellerProduct(productId: ID!): SellerProductDeletionResponse!
+          requestPayout(sellerId: ID!, minimumThreshold: Int): PayoutRequestResult!
         }
 
         extend type Query {
@@ -214,12 +242,14 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           seller(id: ID!): MarketplaceSellerBase
           sellers: [MarketplaceSellerBase!]!
           sellerProducts(sellerId: ID!, options: ProductListOptions): ProductList!
+          payoutHistory(sellerId: ID!): [SellerPayout!]!
+          pendingPayoutTotal(sellerId: ID!): Int!
         }
       `);
     },
   },
   adminApiExtensions: {
-    resolvers: [SellerDashboardResolver, CommissionHistoryResolver],
+    resolvers: [SellerDashboardResolver, CommissionHistoryResolver, SellerPayoutAdminResolver],
     schema: (): DocumentNode => {
       return parse(`
         # Seller Dashboard Types (Phase 2.4)
@@ -312,22 +342,59 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           endDate: DateTime
         }
 
+        # Seller Payout Admin Types (Phase 3.3)
+        type PayoutApprovalResult {
+          id: ID!
+          sellerId: ID!
+          orderId: ID!
+          amount: Int!
+          status: String!
+          failureReason: String
+        }
+
+        type SellerPayout {
+          id: ID!
+          createdAt: DateTime!
+          updatedAt: DateTime!
+          sellerId: ID!
+          orderId: ID!
+          amount: Int!
+          commission: Int!
+          status: String!
+          releasedAt: DateTime
+          completedAt: DateTime
+          failureReason: String
+        }
+
+        extend type Mutation {
+          approvePayout(payoutId: ID!): PayoutApprovalResult!
+          rejectPayout(payoutId: ID!, reason: String!): PayoutApprovalResult!
+        }
+
+        type MarketplaceSellerList implements PaginatedList {
+          items: [MarketplaceSeller!]!
+          totalItems: Int!
+        }
+
         extend type Query {
+          marketplaceSellers(skip: Int, take: Int): MarketplaceSellerList!
+          marketplaceSeller(id: ID!): MarketplaceSeller
           sellerDashboardStats(sellerId: ID!): SellerDashboardStats!
           sellerOrderSummary(sellerId: ID!, limit: Int): SellerOrderSummary!
           sellerProductSummary(sellerId: ID!): SellerProductSummary!
           commissionHistory(sellerId: ID!, options: CommissionHistoryListOptions): CommissionHistoryList!
           sellerCommissionSummary(sellerId: ID!, dateRange: DateRangeInput): SellerCommissionSummary!
+          pendingPayouts: [SellerPayout!]!
         }
 
         extend type Mutation {
           updateSellerVerificationStatus(sellerId: ID!, status: SellerVerificationStatus!): MarketplaceSeller!
         }
 
-        # Seller types for Admin API schema validation
-        # These types are required for custom field relations even if not exposed via queries/mutations
-        
-        type MarketplaceSeller {
+        # Seller types for Admin API schema validation.
+        # Must match Shop API definition: implements Node, includes customer.
+        # Required for custom field relations and PaginatedList (marketplaceSellers query).
+        type MarketplaceSeller implements Node {
           id: ID!
           shopName: String!
           shopDescription: String
@@ -340,6 +407,7 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           isActive: Boolean!
           createdAt: DateTime!
           updatedAt: DateTime!
+          customer: Customer!
           customerId: ID!
         }
         

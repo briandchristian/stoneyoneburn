@@ -9,6 +9,7 @@ admin-ui
 build
 storefront/.next
 storefront/out
+tsconfig.*.tsbuildinfo
 
 # Generated assets and cache
 static/assets

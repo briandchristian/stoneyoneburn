@@ -1,0 +1,5 @@
+{
+  "extends": "./tsconfig.json",
+  "include": ["src/**/*.ts", "src/**/*.tsx", "populate.ts", "tests/**/*.ts", "scripts/**/*.ts"],
+  "exclude": ["node_modules", "migration.ts", "src/plugins/**/ui/*", "admin-ui", "src/gql/*", "vite.*.*ts", "src/plugins/test-auto-verify-plugin.ts"]
+}

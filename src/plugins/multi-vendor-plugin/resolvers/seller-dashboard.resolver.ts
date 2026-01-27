@@ -23,7 +23,7 @@ import {
   InputType,
 } from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
-import { Ctx, Allow, Permission } from '@vendure/core';
+import { Ctx, Allow, ForbiddenError, Permission, RoleService } from '@vendure/core';
 import { SellerDashboardService } from '../services/seller-dashboard.service';
 import type { SellerDashboardStats } from '../services/seller-dashboard.service';
 import { SellerService } from '../services/seller.service';
@@ -124,6 +124,19 @@ export class SellerProductSummaryType {
 }
 
 /**
+ * Paginated list of marketplace sellers (Admin API).
+ * Used by seller dashboard UI to list sellers.
+ */
+@ObjectType('MarketplaceSellerList')
+export class MarketplaceSellerListType {
+  @Field(() => [MarketplaceSeller])
+  items!: MarketplaceSeller[];
+
+  @Field(() => Int)
+  totalItems!: number;
+}
+
+/**
  * Input type for updating seller verification status
  */
 @InputType()
@@ -144,8 +157,67 @@ export class UpdateSellerVerificationStatusInput {
 export class SellerDashboardResolver {
   constructor(
     private sellerDashboardService: SellerDashboardService,
-    private sellerService: SellerService
+    private sellerService: SellerService,
+    private roleService: RoleService
   ) {}
+
+  /**
+   * List marketplace sellers (Admin API).
+   * Used by seller dashboard UI to list and select sellers.
+   * Access: SuperAdmin OR (ReadCatalog AND ReadOrder). Users with only one of ReadCatalog/ReadOrder are denied.
+   */
+  @Query(() => MarketplaceSellerListType, {
+    description: 'List marketplace sellers with pagination',
+  })
+  @Allow(Permission.SuperAdmin, Permission.ReadCatalog, Permission.ReadOrder)
+  async marketplaceSellers(
+    @Ctx() ctx: RequestContext,
+    @Args('skip', { type: () => Int, nullable: true, defaultValue: 0 }) skip?: number,
+    @Args('take', { type: () => Int, nullable: true, defaultValue: 25 }) take?: number
+  ): Promise<MarketplaceSellerListType> {
+    const channelId = ctx.channelId;
+    const isSuperAdmin = await this.roleService.userHasAnyPermissionsOnChannel(ctx, channelId, [
+      Permission.SuperAdmin,
+    ]);
+    const hasBothCatalogAndOrder = await this.roleService.userHasAllPermissionsOnChannel(
+      ctx,
+      channelId,
+      [Permission.ReadCatalog, Permission.ReadOrder]
+    );
+    if (!isSuperAdmin && !hasBothCatalogAndOrder) {
+      throw new ForbiddenError();
+    }
+    return await this.sellerService.findAllMarketplaceSellers(ctx, { skip, take });
+  }
+
+  /**
+   * Get a single marketplace seller by ID (Admin API).
+   * Used by the seller dashboard detail view.
+   * Access: SuperAdmin OR (ReadCatalog AND ReadOrder).
+   */
+  @Query(() => MarketplaceSeller, {
+    nullable: true,
+    description: 'Get a marketplace seller by ID',
+  })
+  @Allow(Permission.SuperAdmin, Permission.ReadCatalog, Permission.ReadOrder)
+  async marketplaceSeller(
+    @Ctx() ctx: RequestContext,
+    @Args('id', { type: () => ID }) id: string
+  ): Promise<MarketplaceSeller | null> {
+    const channelId = ctx.channelId;
+    const isSuperAdmin = await this.roleService.userHasAnyPermissionsOnChannel(ctx, channelId, [
+      Permission.SuperAdmin,
+    ]);
+    const hasBothCatalogAndOrder = await this.roleService.userHasAllPermissionsOnChannel(
+      ctx,
+      channelId,
+      [Permission.ReadCatalog, Permission.ReadOrder]
+    );
+    if (!isSuperAdmin && !hasBothCatalogAndOrder) {
+      throw new ForbiddenError();
+    }
+    return await this.sellerService.findMarketplaceSellerById(ctx, id);
+  }
 
   /**
    * Get aggregated statistics for seller dashboard
