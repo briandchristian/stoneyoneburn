@@ -15,9 +15,8 @@ import { Ctx, Allow, Permission } from '@vendure/core';
 import {
   CommissionHistoryService,
   type CommissionHistoryRecord,
-  type SellerCommissionSummary,
 } from '../services/commission-history.service';
-import { CommissionHistory, CommissionHistoryStatus } from '../entities/commission-history.entity';
+import { CommissionHistoryStatus } from '../entities/commission-history.entity';
 
 /**
  * GraphQL Types for Commission History

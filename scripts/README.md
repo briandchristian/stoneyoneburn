@@ -71,6 +71,37 @@ Each log file contains:
 
 ---
 
+## Backfill Seller Channels (Phase 5.4)
+
+The `backfill-seller-channels.ts` script creates Vendure Channels for existing MarketplaceSellers that were registered before the channel-per-seller migration.
+
+### Usage
+
+```bash
+npm run backfill-seller-channels
+```
+
+Or directly:
+
+```bash
+npx ts-node scripts/backfill-seller-channels.ts
+```
+
+### Prerequisites
+
+- Database running
+- Migration `1769523500000-AddChannelIdToMarketplaceSeller` applied
+
+### What it does
+
+For each MarketplaceSeller where `channelId` is null:
+
+1. Creates a dedicated Vendure Channel (code: `seller-{id}`, token: `seller-{id}-token`)
+2. Updates MarketplaceSeller.channelId
+3. Assigns the seller's products to both the default channel and the new seller channel
+
+---
+
 ## Email Verification Helper
 
 The `show-latest-verification-url.js` script helps extract verification URLs from test emails in development.

@@ -2,7 +2,7 @@
 
 **Project:** StoneyOneBurn - Multi-Vendor Marketplace  
 **Approach:** Test-Driven Development (TDD)  
-**Last Updated:** January 23, 2025
+**Last Updated:** January 28, 2025
 
 ---
 
@@ -181,7 +181,7 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 **Goal:** Build the foundation for multi-vendor functionality
 
 #### 2.1: Seller Entity & Database Schema
-**Status:** ✅ Complete (ready for migration)  
+**Status:** ✅ Complete  
 - [x] Design seller entity schema
 - [x] Create Seller entity with custom fields
 - [x] Seller-Customer relationship
@@ -189,39 +189,42 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - [x] Seller shop information fields
 - [x] GraphQL decorators added
 - [x] Entity tests fixed (database constraints documented, not unit tested)
-- [ ] Generate database migration (manual step - run `npx vendure migrate`)
+- [x] Migrations generated (src/migrations/ - run automatically on server start)
 
 **Tests:**
 - [x] Seller entity creation tests (18 contract tests - fixed)
 - [x] Seller validation tests (database constraints documented)
-- [ ] Database migration tests (pending migration generation)
+- [ ] Database migration tests (optional - migrations verified on server boot)
 
 #### 2.2: Seller Registration & Onboarding
-**Status:** ✅ Complete (ready for testing)  
+**Status:** ✅ Complete  
 - [x] Seller registration API endpoint
 - [x] Seller service with registration logic
 - [x] Shop creation process (automatic slug generation)
 - [x] Seller profile management
 - [x] GraphQL resolver with mutations/queries
 - [x] Error handling and validation
+- [x] Storefront /register-seller page (form, auth redirects, validation, mutation)
 - [ ] Document upload for verification (future enhancement)
 
 **Tests:**
 - [x] Seller registration tests (30 contract tests)
 - [x] Shop slug generation tests
 - [x] Validation tests for required fields
-- [ ] Integration tests (pending migration)
+- [x] RegisterSellerPage storefront tests (7 tests: auth, redirects, form, validation, mutation)
+- [x] Integration tests created (seller-registration.integration.test.ts - run with server: `npm run dev:server` then `npm test -- seller-registration.integration`)
 
 #### 2.3: Seller-Product Association
-- [ ] Link products to sellers
-- [ ] Seller product management permissions
-- [ ] Product ownership validation
-- [ ] Seller product listing API
+**Status:** ✅ Complete  
+- [x] Link products to sellers (ProductOwnershipService, customFields.sellerId)
+- [x] Seller product management permissions (createSellerProduct, updateSellerProduct, deleteSellerProduct)
+- [x] Product ownership validation
+- [x] Seller product listing API (sellerProducts query)
 
 **Tests:**
-- [ ] Product-seller association tests
-- [ ] Permission checks for product management
-- [ ] Product ownership validation tests
+- [x] Product-seller association tests (seller-product-management.resolver.test.ts)
+- [x] Permission checks for product management
+- [x] Product ownership validation tests
 
 #### 2.4: Seller Dashboard Plugin
 **Status:** ✅ Complete
@@ -230,12 +233,14 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - [x] Seller stats, product summary, recent orders on detail page
 - [x] Admin verification UI (Verify/Reject/Suspend) with UpdateAdministrator guard
 - [x] Seller analytics (basic): revenue, AOV, orders by status, products by status
-- [ ] Seller settings page (deferred)
+- [x] Seller shop settings (Phase 5: /seller/shop-settings storefront page + updateShopCustomization mutation)
 
 **Tests:**
 - [x] Contract tests for marketplaceSellers, marketplaceSeller, dashboard stats/summaries, updateVerificationStatus
-- [ ] Dashboard access control tests (manual)
-- [ ] Permission boundary tests (manual)
+- [ ] Dashboard access control tests (manual - verify via admin UI)
+- [ ] Permission boundary tests (manual - verify via admin UI)
+
+**Phase 2 Deferred / Future Enhancements:** See [PHASE2_COMPLETION_PLAN.md](PHASE2_COMPLETION_PLAN.md)
 
 ---
 
@@ -309,6 +314,7 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 - [x] Seller rating aggregation display (on seller profiles - GraphQL field resolver)
 - [ ] Review display on product pages (storefront - frontend implementation in Phase 5)
 - [x] Review verification (purchase required - implemented in ReviewService)
+- [x] Review display on product pages (storefront - Phase 5 implementation)
 
 #### Tests Required
 - [x] Review creation tests (ReviewService.createReview, ReviewResolver.submitReview)
@@ -325,39 +331,70 @@ Build a secure, scalable, multi-vendor marketplace platform similar to Etsy usin
 **Started:** January 2025
 
 #### 5.1: Seller Shop Pages
-- [ ] Individual seller shop pages
-- [ ] Seller profile display
-- [ ] Shop product listings
-- [ ] Shop customization (banner, description)
-- [ ] Shop search functionality
+- [x] Individual seller shop pages (backend Shop/ShopProducts APIs + storefront /shops/[slug] page)
+- [x] Seller profile display (shop name, description, rating on /shops/[slug])
+- [x] Shop product listings (seller-specific product grid on /shops/[slug])
+- [x] Shop customization (banner, description) - backend mutation + frontend settings page
+- [x] Shop search functionality (ShopSearchService + ShopSearchResolver + /shops/search page)
 
 **Tests:**
-- [ ] Shop page rendering tests
-- [ ] Shop data fetching tests
-- [ ] Shop customization tests
+- [x] Shop page rendering tests (ShopPage React component tests)
+- [x] Shop data fetching tests (Apollo + GET_SHOP_PAGE query tests)
+- [x] Shop customization tests (ShopService and ShopResolver tests - 4 tests passing)
+- [x] Shop search tests (ShopSearchService and ShopSearchResolver tests - 11 tests passing)
+- [x] Shop settings page tests (ShopSettingsPage.test.tsx)
+- [x] Shop search page tests (ShopSearchPage.test.tsx)
 
 #### 5.2: Multi-Seller Cart
-- [ ] Cart with products from multiple sellers
-- [ ] Seller grouping in cart
-- [ ] Split checkout by seller
-- [ ] Shipping calculation per seller
-- [ ] Order splitting logic
+- [x] Cart with products from multiple sellers (seller info exposed via ProductSellerResolver)
+- [x] Seller grouping in cart (items grouped by seller with headers)
+- [x] Seller subtotals displayed when multiple sellers
+- [ ] Split checkout by seller (Phase 5.4 - requires backend order splitting)
+- [ ] Shipping calculation per seller (Phase 5.4 - requires backend support)
+- [ ] Order splitting logic (Phase 5.4 - backend feature)
 
 **Tests:**
-- [ ] Multi-seller cart tests
-- [ ] Cart grouping tests
-- [ ] Checkout flow tests
-- [ ] Order splitting tests
+- [x] Multi-seller cart tests (CartPage.test.tsx - 6 new tests for seller grouping)
+- [x] Cart grouping tests (seller headers, subtotals, item counts)
+- [ ] Checkout flow tests (Phase 5.4 - after split checkout implemented)
+- [ ] Order splitting tests (Phase 5.4 - after backend order splitting implemented)
+
+#### 5.4: Backend Order Splitting
+**Status:** Complete  
+**Goal:** Implement Vendure OrderSellerStrategy to split orders into sub-orders per seller at checkout
+
+- [x] Channel-per-seller setup (create Channel when seller registers; assign products to seller channel)
+- [x] OrderSellerStrategy implementation (channel-per-seller)
+  - [x] setOrderLineSellerChannel - returns seller channel when product has seller with channelId
+  - [x] splitOrder - groups by sellerChannelId, creates sub-orders per seller
+  - [x] afterSellerOrdersCreated - no-op (existing OrderPaymentSubscriber handles payouts)
+- [x] ShippingEligibilityChecker - filter ShippingMethods by seller channel
+- [x] ShippingLineAssignmentStrategy - assign ShippingLine to OrderLines by seller channel
+- [x] Migration: create Channels for existing MarketplaceSellers; assign seller products to channels
+- [x] Vendure config: orderOptions.orderSellerStrategy
+
+**Tests:**
+- [x] OrderSellerStrategy unit tests (4 tests: setOrderLineSellerChannel, splitOrder)
+- [x] ShippingEligibilityChecker tests
+- [x] ShippingLineAssignmentStrategy tests
+- [x] Integration tests (add to cart → checkout → verify sub-orders created)
+
+**Reference:** [Vendure Multi-vendor Guide](https://docs.vendure.io/guides/how-to/multi-vendor-marketplaces/), [OrderSellerStrategy API](https://docs.vendure.io/reference/typescript-api/orders/order-seller-strategy/)
 
 #### 5.3: Search & Discovery
-- [ ] Search by seller
-- [ ] Filter by seller
-- [ ] Seller recommendations
-- [ ] Category browsing
-- [ ] Advanced search filters
+- [x] Search by seller (ProductSearchService.searchProductsBySeller, ProductSearchResolver.searchBySeller)
+- [x] Filter by seller (ProductSearchService.filterProductsBySeller, ProductSearchResolver.productsBySeller)
+- [x] Seller recommendations (SellerRecommendationsService + SellerRecommendationsResolver - sorted by rating)
+- [x] Shop search functionality (ShopSearchService + ShopSearchResolver + /shops/search page)
+- [ ] Category browsing enhancements (basic category browsing exists via collections)
+- [x] Advanced search filters (Phase 5.3 - minRating for shop search, minPrice/maxPrice for product search)
 
 **Tests:**
-- [ ] Search functionality tests
+- [x] Search functionality tests (ProductSearchService and ProductSearchResolver tests - 12 tests passing)
+- [x] Shop search tests (ShopSearchService and ShopSearchResolver tests - 11 tests passing)
+- [x] Seller recommendations tests (SellerRecommendationsService and SellerRecommendationsResolver tests - 8 tests passing)
+- [x] Review display tests (ProductDetailPage.test.tsx - 4 new tests for reviews section)
+- [x] Filter tests (ShopSearchService minRating - 2 tests, ProductSearchService price range - 3 tests)
 - [ ] Filter combination tests
 - [ ] Performance tests for search
 

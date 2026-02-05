@@ -227,7 +227,7 @@ async function getVerificationTokenFromFiles(email: string): Promise<string | nu
             return tokenMatch[1];
           }
         }
-      } catch (parseError) {
+      } catch {
         continue;
       }
     }
@@ -376,7 +376,7 @@ async function makeAdminGraphQLRequest(
  * Helper function to verify customer email via Admin API
  * This bypasses the need for email token by directly updating the customer
  */
-async function verifyCustomerViaAdmin(email: string): Promise<boolean> {
+async function _verifyCustomerViaAdmin(_email: string): Promise<boolean> {
   try {
     const adminCookies = await loginAsAdmin();
 
@@ -395,7 +395,11 @@ async function verifyCustomerViaAdmin(email: string): Promise<boolean> {
       }
     `;
 
-    const findResult = await makeAdminGraphQLRequest(findCustomerQuery, { email }, adminCookies);
+    const findResult = await makeAdminGraphQLRequest(
+      findCustomerQuery,
+      { email: _email },
+      adminCookies
+    );
 
     if (findResult.errors || !findResult.data?.customers?.items?.length) {
       return false;
@@ -653,7 +657,7 @@ describe('Seller Registration Integration Tests', () => {
                 if (emailData.recipient === customerEmail) {
                   console.error(`Found matching email in file: ${file}`);
                 }
-              } catch (e) {
+              } catch {
                 // Ignore parse errors
               }
             }
@@ -836,8 +840,7 @@ describe('Seller Registration Integration Tests', () => {
       `;
 
       // Create a second customer and verify email
-      const { email: customerEmail2, cookies: customerCookies2 } =
-        await registerAndVerifyCustomer('seller-test-2');
+      const { cookies: customerCookies2 } = await registerAndVerifyCustomer('seller-test-2');
 
       // Try to register with same shop name
       const variables = {
@@ -875,8 +878,7 @@ describe('Seller Registration Integration Tests', () => {
       `;
 
       // Create third customer and verify email
-      const { email: customerEmail3, cookies: customerCookies3 } =
-        await registerAndVerifyCustomer('seller-test-3');
+      const { cookies: customerCookies3 } = await registerAndVerifyCustomer('seller-test-3');
 
       const variables = {
         input: {
@@ -1151,8 +1153,7 @@ describe('Seller Registration Integration Tests', () => {
       `;
 
       // Create new customer for this test and verify email
-      const { email: validationEmail, cookies: validationCookies } =
-        await registerAndVerifyCustomer('validation-test');
+      const { cookies: validationCookies } = await registerAndVerifyCustomer('validation-test');
 
       // Try with very short shop name (should fail validation)
       const variables = {

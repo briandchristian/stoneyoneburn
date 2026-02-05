@@ -8,6 +8,8 @@
 import { Column, ChildEntity, Index } from 'typeorm';
 import { ObjectType, Field } from '@nestjs/graphql';
 import type { ID, DeepPartial } from '@vendure/core';
+import type { DeepPartial as TypeOrmDeepPartial } from 'typeorm';
+import type { MarketplaceSellerSTIBase as STIBase } from './marketplace-seller-sti-base.entity';
 import {
   MarketplaceSellerBase,
   SellerType,
@@ -41,7 +43,7 @@ import { MarketplaceSellerSTIBase } from './marketplace-seller-sti-base.entity';
 @Index(['customerId'])
 export class IndividualSeller extends MarketplaceSellerSTIBase implements MarketplaceSellerBase {
   constructor(input?: DeepPartial<IndividualSeller>) {
-    super(input);
+    super(input as TypeOrmDeepPartial<STIBase> | undefined);
     // Always set discriminator - required for TypeORM STI
     this.sellerType = SellerType.INDIVIDUAL;
   }

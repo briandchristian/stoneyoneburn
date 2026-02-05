@@ -141,6 +141,13 @@ export function Header() {
                       My Account
                     </Link>
                     <Link
+                      href="/seller/shop-settings"
+                      className="block px-4 py-2 text-sm text-black hover:bg-blue-50 hover:text-blue-700 transition-colors"
+                      onClick={() => setIsAccountMenuOpen(false)}
+                    >
+                      Sell on Marketplace
+                    </Link>
+                    <Link
                       href="/orders"
                       className="block px-4 py-2 text-sm text-black hover:bg-blue-50 hover:text-blue-700 transition-colors"
                       onClick={() => setIsAccountMenuOpen(false)}

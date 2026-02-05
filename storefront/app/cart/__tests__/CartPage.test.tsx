@@ -23,6 +23,49 @@ jest.mock('@/components/Header', () => ({
 }));
 
 // Mock data
+const mockSeller1 = {
+  __typename: 'MarketplaceSeller' as const,
+  id: '1',
+  shopName: 'Test Shop',
+  shopSlug: 'test-shop',
+};
+
+const mockSeller2 = {
+  __typename: 'MarketplaceSeller' as const,
+  id: '2',
+  shopName: 'Another Shop',
+  shopSlug: 'another-shop',
+};
+
+// Helper to create order line with seller
+const createOrderLineWithSeller = (id: string, productName: string, seller: typeof mockSeller1 | null) => ({
+  __typename: 'OrderLine' as const,
+  id,
+  quantity: 2,
+  unitPrice: 1000,
+  unitPriceWithTax: 1200,
+  linePrice: 2000,
+  linePriceWithTax: 2400,
+  productVariant: {
+    __typename: 'ProductVariant' as const,
+    id: `variant-${id}`,
+    name: `Variant ${id}`,
+    sku: `SKU-${id}`,
+    product: {
+      __typename: 'Product' as const,
+      id: `product-${id}`,
+      name: productName,
+      slug: `product-${id}`,
+      featuredAsset: {
+        __typename: 'Asset' as const,
+        id: `asset-${id}`,
+        preview: `https://example.com/image-${id}.jpg`,
+      },
+      seller: seller,
+    },
+  },
+});
+
 const mockOrderLine = {
   __typename: 'OrderLine' as const,
   id: '1',
@@ -46,9 +89,13 @@ const mockOrderLine = {
         id: 'asset-1',
         preview: 'https://example.com/image.jpg',
       },
+      seller: null,
     },
   },
 };
+
+const mockOrderLineWithSeller1 = createOrderLineWithSeller('2', 'Seller 1 Product', mockSeller1);
+const mockOrderLineWithSeller2 = createOrderLineWithSeller('3', 'Seller 2 Product', mockSeller2);
 
 const mockActiveOrder = {
   __typename: 'Order' as const,
@@ -497,6 +544,236 @@ describe('CartPage', () => {
 
       await waitFor(() => {
         expect(screen.getByText(/error loading cart/i)).toBeInTheDocument();
+      });
+    });
+  });
+
+  describe('Multi-Seller Cart Grouping', () => {
+    it('should group cart items by seller when multiple sellers are present', async () => {
+      const multiSellerOrder = {
+        ...mockActiveOrder,
+        lines: [mockOrderLineWithSeller1, mockOrderLineWithSeller2],
+        total: 4800,
+        totalWithTax: 4800,
+      };
+
+      const mocks = [
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: multiSellerOrder,
+            },
+          },
+        },
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <CartPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Shop')).toBeInTheDocument();
+      });
+
+      // Verify seller headers are displayed
+      expect(screen.getByText('Test Shop')).toBeInTheDocument();
+      expect(screen.getByText('Another Shop')).toBeInTheDocument();
+      
+      // Verify products are displayed
+      expect(screen.getByText('Seller 1 Product')).toBeInTheDocument();
+      expect(screen.getByText('Seller 2 Product')).toBeInTheDocument();
+    });
+
+    it('should display seller subtotals when cart has multiple sellers', async () => {
+      const multiSellerOrder = {
+        ...mockActiveOrder,
+        lines: [mockOrderLineWithSeller1, mockOrderLineWithSeller2],
+        total: 4800,
+        totalWithTax: 4800,
+      };
+
+      const mocks = [
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: multiSellerOrder,
+            },
+          },
+        },
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <CartPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Shop')).toBeInTheDocument();
+      });
+
+      // Check for subtotal text (case-insensitive)
+      const subtotalTexts = screen.getAllByText(/subtotal from/i);
+      expect(subtotalTexts.length).toBeGreaterThan(0);
+      expect(screen.getByText(/subtotal from test shop/i)).toBeInTheDocument();
+      expect(screen.getByText(/subtotal from another shop/i)).toBeInTheDocument();
+    });
+
+    it('should not display seller subtotals when cart has only one seller', async () => {
+      const singleSellerOrder = {
+        ...mockActiveOrder,
+        lines: [mockOrderLineWithSeller1],
+        total: 2400,
+        totalWithTax: 2400,
+      };
+
+      const mocks = [
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: singleSellerOrder,
+            },
+          },
+        },
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <CartPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Shop')).toBeInTheDocument();
+      });
+
+      // Should not show subtotal when only one seller
+      expect(screen.queryByText(/subtotal from/i)).not.toBeInTheDocument();
+    });
+
+    it('should display item count for each seller group', async () => {
+      const multiSellerOrder = {
+        ...mockActiveOrder,
+        lines: [
+          mockOrderLineWithSeller1,
+          createOrderLineWithSeller('4', 'Another Seller 1 Product', mockSeller1),
+          mockOrderLineWithSeller2,
+        ],
+        total: 7200,
+        totalWithTax: 7200,
+      };
+
+      const mocks = [
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: multiSellerOrder,
+            },
+          },
+        },
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <CartPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Shop')).toBeInTheDocument();
+      });
+
+      // Check item counts
+      expect(screen.getByText(/2 items/i)).toBeInTheDocument();
+      expect(screen.getByText(/1 item/i)).toBeInTheDocument();
+    });
+
+    it('should group products without sellers together', async () => {
+      const mixedOrder = {
+        ...mockActiveOrder,
+        lines: [mockOrderLine, mockOrderLineWithSeller1],
+        total: 4800,
+        totalWithTax: 4800,
+      };
+
+      const mocks = [
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: mixedOrder,
+            },
+          },
+        },
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <CartPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        // Products should be displayed
+        expect(screen.getByText('Test Product')).toBeInTheDocument();
+        expect(screen.getByText('Seller 1 Product')).toBeInTheDocument();
+      });
+
+      // Seller header should be displayed for seller 1
+      expect(screen.getByText('Test Shop')).toBeInTheDocument();
+      
+      // Products without sellers should still be displayed (grouped separately)
+      expect(screen.getByText('Test Product')).toBeInTheDocument();
+      expect(screen.getByText('Seller 1 Product')).toBeInTheDocument();
+    });
+
+    it('should link seller names to shop pages', async () => {
+      const multiSellerOrder = {
+        ...mockActiveOrder,
+        lines: [mockOrderLineWithSeller1],
+        total: 2400,
+        totalWithTax: 2400,
+      };
+
+      const mocks = [
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: multiSellerOrder,
+            },
+          },
+        },
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <CartPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        const sellerLink = screen.getByRole('link', { name: 'Test Shop' });
+        expect(sellerLink).toBeInTheDocument();
+        expect(sellerLink).toHaveAttribute('href', '/shops/test-shop');
       });
     });
   });

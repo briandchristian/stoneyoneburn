@@ -36,7 +36,21 @@ module.exports = [
     },
   },
   {
-    ignores: ['dist', 'node_modules', 'coverage', '*.js', '!jest.config.js', '*.d.ts'],
+    files: ['**/*.test.ts', '**/*.spec.ts', '**/*.integration.test.ts'],
+    rules: {
+      '@typescript-eslint/no-explicit-any': 'off',
+    },
+  },
+  {
+    ignores: [
+      'dist',
+      'node_modules',
+      'coverage',
+      '*.js',
+      '!jest.config.js',
+      '*.d.ts',
+      'storefront/**',
+    ],
   },
 ];
 

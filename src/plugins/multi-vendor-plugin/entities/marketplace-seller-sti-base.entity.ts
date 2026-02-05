@@ -8,7 +8,7 @@
  * Part of Phase 2.3: Polymorphic Seller Types
  */
 
-import { Entity, TableInheritance, Column, ManyToOne, Index } from 'typeorm';
+import { Entity, TableInheritance, Column, ManyToOne, Index, type DeepPartial } from 'typeorm';
 import { VendureEntity } from '@vendure/core';
 import type { ID } from '@vendure/core';
 import { Customer } from '@vendure/core';
@@ -36,7 +36,7 @@ import { SellerType, SellerVerificationStatus } from './marketplace-seller-base.
 @TableInheritance({ column: { type: 'varchar', name: 'sellerType' } })
 @Index(['customerId'])
 export class MarketplaceSellerSTIBase extends VendureEntity {
-  constructor(input?: any) {
+  constructor(input?: DeepPartial<MarketplaceSellerSTIBase>) {
     super(input);
   }
 

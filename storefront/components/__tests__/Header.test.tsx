@@ -195,6 +195,51 @@ describe('Header - Account Management Indicators', () => {
       });
     });
 
+    it('should display Sell on Marketplace link in account menu (Phase 2.2)', async () => {
+      const user = userEvent.setup();
+      const mocks = [
+        {
+          request: {
+            query: GET_ACTIVE_CUSTOMER,
+          },
+          result: {
+            data: {
+              activeCustomer: mockCustomer,
+            },
+          },
+        },
+        {
+          request: {
+            query: GET_ACTIVE_ORDER,
+          },
+          result: {
+            data: {
+              activeOrder: null,
+            },
+          },
+        },
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <Header />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByTestId('account-indicator')).toBeInTheDocument();
+      });
+
+      const accountButton = screen.getByTestId('account-indicator');
+      await user.click(accountButton);
+
+      await waitFor(() => {
+        const sellLink = screen.getByRole('link', { name: /sell on marketplace/i });
+        expect(sellLink).toBeInTheDocument();
+        expect(sellLink).toHaveAttribute('href', '/seller/shop-settings');
+      });
+    });
+
     it('should display customer name or email in header', async () => {
       const mocks = [
         {

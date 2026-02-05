@@ -15,7 +15,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { RequestContext, ID, Product } from '@vendure/core';
+import type { RequestContext, Product } from '@vendure/core';
 import { TransactionalConnection } from '@vendure/core';
 import { ShopService } from './shop.service';
 import { SellerService } from './seller.service';

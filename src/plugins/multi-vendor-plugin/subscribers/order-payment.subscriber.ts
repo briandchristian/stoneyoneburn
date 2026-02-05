@@ -16,8 +16,10 @@ import { OrderPaymentHandlerService } from '../services/order-payment-handler.se
 import { CommissionHistoryService } from '../services/commission-history.service';
 import { SellerPayoutService } from '../services/seller-payout.service';
 import { CommissionHistoryStatus } from '../entities/commission-history.entity';
-import type { OrderSplitPaymentResult } from '../services/split-payment.service';
-
+import type {
+  OrderSplitPaymentResult,
+  SellerSplitPayment,
+} from '../services/split-payment.service';
 /**
  * Order Payment Event Subscriber
  *
@@ -115,14 +117,14 @@ export class OrderPaymentSubscriber implements OnApplicationBootstrap {
    */
   private async createCommissionHistoryRecords(
     ctx: RequestContext,
-    splitResult: any
+    splitResult: OrderSplitPaymentResult
   ): Promise<void> {
     try {
       for (const sellerSplit of splitResult.sellerSplits) {
         // Use commission rate from split result if available, otherwise calculate backwards
         // The OrderPaymentHandlerService adds commissionRate to each sellerSplit
         const commissionRate =
-          (sellerSplit as any).commissionRate ??
+          (sellerSplit as SellerSplitPayment & { commissionRate?: number }).commissionRate ??
           (sellerSplit.lineTotal > 0 ? sellerSplit.commission / sellerSplit.lineTotal : 0);
 
         await this.commissionHistoryService.createCommissionHistory(ctx, {

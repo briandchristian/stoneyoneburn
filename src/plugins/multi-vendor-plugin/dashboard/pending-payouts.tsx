@@ -31,6 +31,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Link } from '@tanstack/react-router';
 import { toast } from 'sonner';
 import { useState } from 'react';
+import type { DocumentNode } from 'graphql';
 import {
   pendingPayoutsDocument,
   approvePayoutMutationDocument,
@@ -56,12 +57,12 @@ export function PendingPayouts() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['pendingPayouts'],
-    queryFn: () => api.query(pendingPayoutsDocument as any),
+    queryFn: () => api.query(pendingPayoutsDocument as DocumentNode),
   });
 
   const approveMutation = useMutation({
     mutationFn: (payoutId: string) =>
-      api.mutate(approvePayoutMutationDocument as any, { payoutId }),
+      api.mutate(approvePayoutMutationDocument as DocumentNode, { payoutId }),
     onSuccess: () => {
       toast.success('Payout approved');
       queryClient.invalidateQueries({ queryKey: ['pendingPayouts'] });
@@ -73,7 +74,7 @@ export function PendingPayouts() {
 
   const rejectMutation = useMutation({
     mutationFn: ({ payoutId, reason }: { payoutId: string; reason: string }) =>
-      api.mutate(rejectPayoutMutationDocument as any, { payoutId, reason }),
+      api.mutate(rejectPayoutMutationDocument as DocumentNode, { payoutId, reason }),
     onSuccess: () => {
       toast.success('Payout rejected');
       setRejectingPayout(null);
@@ -85,7 +86,7 @@ export function PendingPayouts() {
     },
   });
 
-  const payouts: PayoutRow[] = (data as any)?.pendingPayouts ?? [];
+  const payouts: PayoutRow[] = (data as { pendingPayouts?: PayoutRow[] })?.pendingPayouts ?? [];
 
   const handleRejectSubmit = () => {
     if (!rejectingPayout || !rejectReason.trim()) return;

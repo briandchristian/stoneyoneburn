@@ -21,6 +21,12 @@ import Link from 'next/link';
 import Image from 'next/image';
 import { useState } from 'react';
 
+interface Seller {
+  id: string;
+  shopName: string;
+  shopSlug: string;
+}
+
 interface OrderLine {
   id: string;
   quantity: number;
@@ -40,6 +46,7 @@ interface OrderLine {
         id: string;
         preview: string;
       };
+      seller?: Seller | null;
     };
   };
 }
@@ -143,6 +150,33 @@ export default function CartPage() {
   const lines = order?.lines || [];
   const isEmpty = lines.length === 0;
 
+  // Group cart items by seller
+  const groupedBySeller = lines.reduce((acc, line) => {
+    const seller = line.productVariant.product.seller;
+    const sellerKey = seller?.id || 'no-seller';
+    const sellerName = seller?.shopName || 'Marketplace';
+    const sellerSlug = seller?.shopSlug || '';
+
+    if (!acc[sellerKey]) {
+      acc[sellerKey] = {
+        seller: seller ? { id: seller.id, shopName: seller.shopName, shopSlug: seller.shopSlug } : null,
+        sellerName,
+        sellerSlug,
+        items: [],
+        subtotal: 0,
+        subtotalWithTax: 0,
+      };
+    }
+
+    acc[sellerKey].items.push(line);
+    acc[sellerKey].subtotal += line.linePrice;
+    acc[sellerKey].subtotalWithTax += line.linePriceWithTax;
+
+    return acc;
+  }, {} as Record<string, { seller: Seller | null; sellerName: string; sellerSlug: string; items: OrderLine[]; subtotal: number; subtotalWithTax: number }>);
+
+  const sellerGroups = Object.values(groupedBySeller);
+
   if (isEmpty) {
     return (
       <div className="flex min-h-screen flex-col bg-white">
@@ -180,8 +214,26 @@ export default function CartPage() {
           <div className="lg:grid lg:grid-cols-12 lg:gap-x-12">
             {/* Cart Items */}
             <div className="lg:col-span-8">
-              <div className="space-y-4">
-                {lines.map((line) => {
+              <div className="space-y-8">
+                {sellerGroups.map((group, groupIndex) => (
+                  <div key={group.seller?.id || 'no-seller'} className="border-b border-gray-200 pb-6 last:border-b-0">
+                    {/* Seller Header */}
+                    {group.seller && (
+                      <div className="mb-4 pb-3 border-b border-gray-100">
+                        <Link
+                          href={`/shops/${group.sellerSlug}`}
+                          className="text-lg font-semibold text-blue-700 hover:text-blue-800 transition-colors"
+                        >
+                          {group.sellerName}
+                        </Link>
+                        <p className="text-sm text-gray-600 mt-1">
+                          {group.items.length} {group.items.length === 1 ? 'item' : 'items'}
+                        </p>
+                      </div>
+                    )}
+                    {/* Items for this seller */}
+                    <div className="space-y-4">
+                      {group.items.map((line) => {
                   const isAdjusting = adjustingQuantities.has(line.id);
                   const isRemoving = removingItems.has(line.id);
                   const product = line.productVariant.product;
@@ -287,8 +339,23 @@ export default function CartPage() {
                         </div>
                       </div>
                     </div>
-                  );
-                })}
+                    );
+                      })}
+                    </div>
+                    {/* Seller subtotal */}
+                    {sellerGroups.length > 1 && (
+                      <div className="mt-4 pt-3 border-t border-gray-100 text-right">
+                        <span className="text-sm text-gray-600">Subtotal from {group.sellerName}: </span>
+                        <span className="text-base font-semibold text-black ml-2">
+                          {new Intl.NumberFormat('en-US', {
+                            style: 'currency',
+                            currency: currencyCode,
+                          }).format(group.subtotalWithTax / 100)}
+                        </span>
+                      </div>
+                    )}
+                  </div>
+                ))}
               </div>
             </div>
 

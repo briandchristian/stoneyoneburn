@@ -3,9 +3,10 @@
  *
  * Tests for database migration rollback functionality.
  * Following TDD: These tests should fail initially, then we implement the rollback utilities.
+ * Uses mocked pg Client so tests run without a real PostgreSQL instance.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import {
   getMigrationFiles,
   validateMigrationFiles,
@@ -16,7 +17,20 @@ import {
 } from './migration-rollback';
 import { getDatabaseConfig } from './database-connection';
 import path from 'path';
-// Note: readdir and readFile are used in mocked tests, not directly imported
+
+// Mock pg Client - tests run without real PostgreSQL
+// Explicit types avoid TS2345 "parameter of type 'never'" with jest.fn()
+const mockConnect = jest.fn<() => Promise<void>>();
+const mockQuery = jest.fn<() => Promise<{ rows: unknown[] }>>();
+const mockEnd = jest.fn<() => Promise<void>>();
+
+jest.mock('pg', () => ({
+  Client: jest.fn().mockImplementation(() => ({
+    connect: mockConnect,
+    query: mockQuery,
+    end: mockEnd,
+  })),
+}));
 
 describe('Migration Rollback', () => {
   const originalEnv = process.env;
@@ -174,9 +188,20 @@ describe('Migration Rollback', () => {
   });
 
   describe('getMigrationStatus', () => {
+    beforeEach(() => {
+      mockConnect.mockReset();
+      mockQuery.mockReset();
+      mockEnd.mockReset();
+    });
+
     it('should return migration status from database', async () => {
+      mockConnect.mockResolvedValue(undefined);
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ exists: true }] }) // migrations table exists
+        .mockResolvedValueOnce({ rows: [{ name: 'Migration1', timestamp: 123 }] }); // executed migrations
+      mockEnd.mockResolvedValue(undefined);
+
       const dbConfig = getDatabaseConfig();
-      // Use a test database that exists
       dbConfig.database = 'postgres';
 
       const status = await getMigrationStatus(dbConfig);
@@ -184,9 +209,12 @@ describe('Migration Rollback', () => {
       expect(status).toBeDefined();
       expect(Array.isArray(status.executedMigrations)).toBe(true);
       expect(Array.isArray(status.pendingMigrations)).toBe(true);
-    }, 10000);
+      expect(status.executedMigrations).toContain('Migration1');
+    }, 5000);
 
     it('should handle database connection errors gracefully', async () => {
+      mockConnect.mockRejectedValue(new Error('connection refused'));
+
       const invalidConfig = {
         host: 'invalid-host',
         port: 5432,
@@ -196,34 +224,53 @@ describe('Migration Rollback', () => {
       };
 
       await expect(getMigrationStatus(invalidConfig)).rejects.toThrow(MigrationRollbackError);
-    }, 10000);
+    }, 5000);
 
     it('should return empty status when migrations table does not exist', async () => {
+      mockConnect.mockResolvedValue(undefined);
+      mockQuery.mockResolvedValueOnce({ rows: [{ exists: false }] }); // migrations table does not exist
+      mockEnd.mockResolvedValue(undefined);
+
       const dbConfig = getDatabaseConfig();
       dbConfig.database = 'postgres';
 
       const status = await getMigrationStatus(dbConfig);
 
-      // Should return valid status object even if table doesn't exist
       expect(status).toBeDefined();
       expect(status.executedMigrations).toEqual([]);
       expect(status.totalExecuted).toBe(0);
-    }, 10000);
+    }, 5000);
   });
 
   describe('testMigrationRollback', () => {
+    beforeEach(() => {
+      mockConnect.mockReset();
+      mockQuery.mockReset();
+      mockEnd.mockReset();
+    });
+
     it('should successfully test rollback when no migrations exist', async () => {
+      mockConnect.mockResolvedValue(undefined);
+      mockQuery.mockResolvedValueOnce({ rows: [{ exists: false }] }); // migrations table does not exist
+      mockEnd.mockResolvedValue(undefined);
+
       const dbConfig = getDatabaseConfig();
-      dbConfig.database = 'postgres'; // Use existing database
+      dbConfig.database = 'postgres';
 
       const result = await testMigrationRollback(dbConfig, migrationsDir);
 
       expect(result.success).toBe(true);
-      expect(result.canRollback).toBe(false); // No migrations to rollback
+      expect(result.canRollback).toBe(false);
       expect(result.error).toBeUndefined();
-    }, 15000);
+    }, 5000);
 
     it('should detect if rollback is possible', async () => {
+      mockConnect.mockResolvedValue(undefined);
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ exists: true }] })
+        .mockResolvedValueOnce({ rows: [] }); // no executed migrations
+      mockEnd.mockResolvedValue(undefined);
+
       const dbConfig = getDatabaseConfig();
       dbConfig.database = 'postgres';
 
@@ -233,9 +280,11 @@ describe('Migration Rollback', () => {
       expect(typeof result.canRollback).toBe('boolean');
       expect(result.executedMigrationsCount).toBeDefined();
       expect(typeof result.executedMigrationsCount).toBe('number');
-    }, 15000);
+    }, 5000);
 
     it('should return error details if rollback test fails', async () => {
+      mockConnect.mockRejectedValue(new Error('connection refused'));
+
       const invalidConfig = {
         host: 'invalid-host',
         port: 5432,
@@ -249,37 +298,44 @@ describe('Migration Rollback', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
       expect(result.error).toBeInstanceOf(MigrationRollbackError);
-    }, 10000);
+    }, 5000);
 
     it('should validate migration files before testing rollback', async () => {
+      mockConnect.mockResolvedValue(undefined);
+      mockQuery
+        .mockResolvedValueOnce({ rows: [{ exists: true }] })
+        .mockResolvedValueOnce({ rows: [] });
+      mockEnd.mockResolvedValue(undefined);
+
       const dbConfig = getDatabaseConfig();
       dbConfig.database = 'postgres';
 
       const result = await testMigrationRollback(dbConfig, migrationsDir);
 
-      // Should validate files even if none exist
       expect(result.success).toBe(true);
       expect(result.migrationFilesCount).toBeDefined();
       expect(typeof result.migrationFilesCount).toBe('number');
-    }, 15000);
+    }, 5000);
   });
 
   describe('Migration Safety', () => {
     it('should verify migrations directory exists', async () => {
       const files = await getMigrationFiles(migrationsDir);
 
-      // Should not throw error even if directory is empty
       expect(Array.isArray(files)).toBe(true);
     });
 
     it('should handle missing migrations gracefully', async () => {
+      mockConnect.mockResolvedValue(undefined);
+      mockQuery.mockResolvedValueOnce({ rows: [{ exists: false }] }); // migrations table does not exist
+      mockEnd.mockResolvedValue(undefined);
+
       const dbConfig = getDatabaseConfig();
       dbConfig.database = 'postgres';
 
       const result = await testMigrationRollback(dbConfig, migrationsDir);
 
-      // Should succeed even with no migrations
       expect(result.success).toBe(true);
-    }, 15000);
+    }, 5000);
   });
 });

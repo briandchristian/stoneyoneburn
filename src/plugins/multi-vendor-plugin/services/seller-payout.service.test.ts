@@ -43,9 +43,9 @@ describe('SellerPayoutService', () => {
   // These tests need to be updated to test the actual implementation with proper mocks and RequestContext.
   describe.skip('createPayout (legacy interface - needs update)', () => {
     it('should create a payout for seller from order', () => {
-      const sellerId: ID = 'seller-1';
-      const orderId: ID = 'order-1';
-      const amount = 8500; // $85.00 in cents
+      const _sellerId: ID = 'seller-1';
+      const _orderId: ID = 'order-1';
+      const _amount = 8500; // $85.00 in cents
 
       // This test needs to be updated to use the async database-backed method
       // const payout = await sellerPayoutService.createPayout(ctx, sellerId, orderId, amount, 0);

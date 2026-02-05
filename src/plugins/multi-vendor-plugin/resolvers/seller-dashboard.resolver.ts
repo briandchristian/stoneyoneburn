@@ -285,7 +285,7 @@ export class SellerDashboardResolver {
   @Mutation(() => MarketplaceSeller, {
     description: 'Update the verification status of a seller (admin only)',
   })
-  @Allow(Permission.UpdateAdministrator) // Admin-only operation
+  @Allow(Permission.SuperAdmin) // Admin-only: verify/reject/suspend sellers
   async updateSellerVerificationStatus(
     @Ctx() ctx: RequestContext,
     @Args('sellerId', { type: () => ID }) sellerId: string,

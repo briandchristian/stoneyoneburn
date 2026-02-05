@@ -1,7 +1,7 @@
 import { MigrationInterface, QueryRunner } from 'typeorm';
 
 export class UpdateMarketplaceSellerConstraintsAndCustomField1768059423923 implements MigrationInterface {
-  public async up(queryRunner: QueryRunner): Promise<any> {
+  public async up(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "marketplace_seller" DROP CONSTRAINT IF EXISTS "FK_marketplace_seller_customerId"`,
       undefined
@@ -84,7 +84,7 @@ export class UpdateMarketplaceSellerConstraintsAndCustomField1768059423923 imple
     );
   }
 
-  public async down(queryRunner: QueryRunner): Promise<any> {
+  public async down(queryRunner: QueryRunner): Promise<void> {
     await queryRunner.query(
       `ALTER TABLE "marketplace_seller" DROP CONSTRAINT "FK_5e06fa43653e9524f8c9de1b331"`,
       undefined

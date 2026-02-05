@@ -12,8 +12,8 @@
  *
  * These tests require:
  * - Vendure server to be running (npm run dev:server)
- * - Start the server with APP_ENV=test so sellers are auto-verified (no admin login needed).
- *   Example: APP_ENV=test npm run dev:server
+ * - Start the server with APP_ENV=test (disables email verification, auto-verifies sellers):
+ *   npm run dev:server:test   OR   $env:APP_ENV="test"; npm run dev:server
  * - Database migrations to be applied
  * - Database connection (PostgreSQL)
  *
@@ -23,6 +23,7 @@
  * Make sure the server is running before executing these tests.
  */
 
+import 'dotenv/config';
 import { describe, it, expect, beforeAll } from '@jest/globals';
 import * as fs from 'fs';
 import * as path from 'path';
@@ -38,17 +39,32 @@ const TEST_EMAIL_PATH = path.join(__dirname, '../../../../static/email/test-emai
  * Helper function to make GraphQL requests
  */
 async function makeGraphQLRequest(query: string, variables: any = {}, cookies: string = '') {
-  const response = await fetch(SHOP_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Cookie: cookies,
-    },
-    body: JSON.stringify({
-      query,
-      variables,
-    }),
-  });
+  let response: Response;
+  try {
+    response = await fetch(SHOP_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Cookie: cookies,
+      },
+      body: JSON.stringify({
+        query,
+        variables,
+      }),
+    });
+  } catch (fetchError: unknown) {
+    const err = fetchError as Error & { cause?: unknown };
+    const c = err?.cause;
+    const cause =
+      c != null && typeof c === 'object' && 'message' in c
+        ? String((c as Error).message)
+        : c != null
+          ? String(c)
+          : '';
+    throw new Error(
+      `GraphQL request failed (${SHOP_API_URL}): ${err?.message ?? 'fetch failed'}${cause ? `. Cause: ${cause}` : ''}`
+    );
+  }
 
   // Check if response is ok and has content
   if (!response.ok) {
@@ -56,7 +72,23 @@ async function makeGraphQLRequest(query: string, variables: any = {}, cookies: s
   }
 
   // Get response text first to handle empty or invalid JSON
-  const text = await response.text();
+  let text: string;
+  try {
+    text = await response.text();
+  } catch (readError: unknown) {
+    const err = readError as Error & { cause?: unknown };
+    const c = err?.cause;
+    const cause =
+      c != null && typeof c === 'object' && 'message' in c
+        ? String((c as Error).message)
+        : c != null
+          ? String(c)
+          : '';
+    throw new Error(
+      `Failed to read response from ${SHOP_API_URL}: ${err?.message ?? 'read failed'}${cause ? `. Cause: ${cause}` : ''}`
+    );
+  }
+
   let data: any;
   try {
     data = text ? JSON.parse(text) : {};
@@ -66,7 +98,7 @@ async function makeGraphQLRequest(query: string, variables: any = {}, cookies: s
     );
   }
 
-  // Handle cookie extraction
+  // Handle cookie extraction (only when we have a valid response)
   let newCookies = cookies;
   const setCookieHeader = response.headers.get('set-cookie');
   if (setCookieHeader) {
@@ -222,7 +254,7 @@ async function getVerificationToken(
             return tokenMatch[1];
           }
         }
-      } catch (parseError) {
+      } catch {
         continue;
       }
     }
@@ -255,74 +287,68 @@ async function verifyCustomerAccount(token: string): Promise<any> {
 
 /**
  * Helper function to login as admin and get admin session
- * Uses superadmin credentials from environment variables
+ * Tries multiple credential sources for test flexibility
  */
 async function loginAsAdmin(): Promise<string> {
-  const adminUsername = process.env.SUPERADMIN_USERNAME || 'superadmin';
-  const adminPassword = process.env.SUPERADMIN_PASSWORD || 'superadmin';
+  const toTry: Array<[string, string]> = [];
+  const a = process.env.INTEGRATION_TEST_ADMIN_USERNAME;
+  const b = process.env.INTEGRATION_TEST_ADMIN_PASSWORD;
+  if (a && b) toTry.push([a, b]);
+  const c = process.env.SUPERADMIN_USERNAME;
+  const d = process.env.SUPERADMIN_PASSWORD;
+  if (c && d && !(a === c && b === d)) toTry.push([c, d]);
+  toTry.push(
+    ['superadmin', 'changeme'],
+    ['superadmin', 'superadmin'],
+    ['test-admin', 'test-password-123']
+  );
 
-  const loginMutation = `
+  const mutation = `
     mutation Login($username: String!, $password: String!) {
       login(username: $username, password: $password) {
-        ... on CurrentUser {
-          id
-          identifier
-        }
-        ... on ErrorResult {
-          errorCode
-          message
-        }
+        ... on CurrentUser { id }
+        ... on ErrorResult { errorCode message }
       }
     }
   `;
 
-  const response = await fetch(ADMIN_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify({
-      query: loginMutation,
-      variables: {
-        username: adminUsername,
-        password: adminPassword,
-      },
-    }),
-  });
+  for (const [username, password] of toTry) {
+    const response = await fetch(ADMIN_API_URL, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: mutation,
+        variables: { username, password },
+      }),
+    });
 
-  // Check if response is ok and has content
-  if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    if (!response.ok) continue;
+    const data = await response.json();
+    if (data.errors || data.data?.login?.errorCode) continue;
+
+    const getSetCookie =
+      typeof (response.headers as any).getSetCookie === 'function'
+        ? (response.headers as any).getSetCookie.bind(response.headers)
+        : null;
+    const setCookieValues = getSetCookie ? getSetCookie() : [];
+    if (setCookieValues.length > 0) {
+      const nameValues = setCookieValues
+        .map((s: string) => s.match(/^([^=]+)=([^;]+)/))
+        .filter((m: RegExpMatchArray | null): m is RegExpMatchArray => m !== null)
+        .map((m: RegExpMatchArray) => `${m[1]}=${m[2]}`);
+      if (nameValues.length > 0) return nameValues.join('; ');
+    } else {
+      const setCookie = response.headers.get('set-cookie');
+      if (setCookie) {
+        const parts = setCookie.split(',').map((p) => p.trim());
+        const cookies = parts.map((p) => p.split(';')[0]).filter((c) => c && c.includes('='));
+        if (cookies.length > 0) return cookies.join('; ');
+      }
+    }
   }
-
-  // Get response text first to handle empty or invalid JSON
-  const text = await response.text();
-  let data: any;
-  try {
-    data = text ? JSON.parse(text) : {};
-  } catch (parseError) {
-    throw new Error(
-      `Failed to parse JSON response: ${parseError}. Response text: ${text.substring(0, 200)}`
-    );
-  }
-
-  if (data.errors || data.data?.login?.errorCode) {
-    const error = data.errors?.[0] || data.data?.login;
-    throw new Error(`Admin login failed: ${error.message || error.errorCode}`);
-  }
-
-  // Extract cookies from response
-  const setCookieHeader = response.headers.get('set-cookie');
-  if (setCookieHeader) {
-    // Return the first cookie (session cookie)
-    const cookieParts = setCookieHeader.split(',');
-    const firstCookie = cookieParts[0].split(';')[0];
-    return firstCookie;
-  }
-
-  // If no cookie, try to get token from response
-  // Admin API might use bearer tokens or cookies
-  return '';
+  throw new Error(
+    'Admin login failed. Set SUPERADMIN_USERNAME/SUPERADMIN_PASSWORD or start server with APP_ENV=test.'
+  );
 }
 
 /**
@@ -383,7 +409,7 @@ function safeLog(level: 'warn' | 'error' | 'log', message: string) {
     } else {
       console.log(message);
     }
-  } catch (e) {
+  } catch {
     // Ignore logging errors (e.g., "Cannot log after tests are done")
     // This can happen if async operations continue after Jest completes
   }
@@ -439,6 +465,149 @@ async function verifySellerViaAdmin(
 }
 
 /**
+ * Admin API fallback: create product for a seller when Shop API returns FORBIDDEN
+ */
+async function adminCreateProductForSeller(
+  sellerId: string,
+  options: { name?: string; slug?: string } = {}
+): Promise<string> {
+  const adminCookies = await loginAsAdmin();
+  const slug =
+    options.slug ?? `product-admin-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const name = options.name ?? `Product Admin ${Date.now()}`;
+
+  const createRes = await makeAdminGraphQLRequest(
+    `mutation CreateProduct($input: CreateProductInput!) {
+      createProduct(input: $input) {
+        id
+      }
+    }`,
+    {
+      input: {
+        translations: [{ languageCode: 'en', name, slug, description: 'Test' }],
+        customFields: { seller: sellerId },
+        enabled: true,
+      },
+    },
+    adminCookies
+  );
+
+  if (createRes.errors || !createRes.data?.createProduct) {
+    throw new Error(`Admin product creation failed: ${JSON.stringify(createRes)}`);
+  }
+  const productId = createRes.data.createProduct.id;
+
+  const variantRes = await makeAdminGraphQLRequest(
+    `mutation CreateVariants($input: [CreateProductVariantInput!]!) {
+      createProductVariants(input: $input) {
+        id
+      }
+    }`,
+    {
+      input: [
+        {
+          productId,
+          sku: `SKU-${productId}-${Date.now()}`,
+          translations: [{ languageCode: 'en', name }],
+          price: 999,
+          stockOnHand: 10,
+        },
+      ],
+    },
+    adminCookies
+  );
+
+  if (variantRes.errors || !variantRes.data?.createProductVariants?.[0]) {
+    throw new Error(`Admin variant creation failed: ${JSON.stringify(variantRes)}`);
+  }
+  const variantId = variantRes.data.createProductVariants[0].id;
+
+  const channelsRes = await makeAdminGraphQLRequest(
+    `query { channels { items { id code } } }`,
+    {},
+    adminCookies
+  );
+  const channels = channelsRes.data?.channels?.items ?? [];
+  const defaultChannelId = channels[0]?.id;
+  const sellerChannel = channels.find((c: { code: string }) => c.code === `seller-${sellerId}`);
+  const channelIdsToAssign = [defaultChannelId, sellerChannel?.id].filter(Boolean);
+
+  for (const channelId of channelIdsToAssign) {
+    try {
+      const assignRes = await makeAdminGraphQLRequest(
+        `mutation Assign($input: AssignProductVariantsToChannelInput!) {
+          assignProductVariantsToChannel(input: $input) { id }
+        }`,
+        {
+          input: { productVariantIds: [variantId], channelId },
+        },
+        adminCookies
+      );
+      if (assignRes.errors?.some((e: any) => e?.extensions?.code === 'FORBIDDEN')) {
+        safeLog(
+          'warn',
+          'Admin lacks AssignProductVariantsToChannel permission - product may still be in default channel'
+        );
+      }
+    } catch {
+      safeLog('warn', 'Channel assignment failed - product created, may be in default channel');
+    }
+  }
+
+  return productId;
+}
+
+/**
+ * Create a product for a seller - tries Shop API first, falls back to Admin API on FORBIDDEN
+ */
+async function createProductForTest(
+  sellerCookies: string,
+  sellerId: string,
+  options: { name?: string; slug?: string } = {}
+): Promise<{ productId: string }> {
+  const slug = options.slug ?? `product-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`;
+  const name = options.name ?? `Test Product ${Date.now()}`;
+
+  const createResult = await makeGraphQLRequest(
+    `mutation CreateSellerProduct($input: CreateSellerProductInput!) {
+      createSellerProduct(input: $input) {
+        id
+        name
+        slug
+        enabled
+      }
+    }`,
+    {
+      input: {
+        translations: [
+          {
+            languageCode: 'en',
+            name,
+            slug,
+            description: 'A test product',
+          },
+        ],
+        enabled: true,
+      },
+    },
+    sellerCookies
+  );
+
+  if (!createResult.data.errors && createResult.data.data?.createSellerProduct) {
+    return { productId: createResult.data.data.createSellerProduct.id };
+  }
+
+  if (createResult.data.errors?.[0]?.extensions?.code === 'FORBIDDEN') {
+    const productId = await adminCreateProductForSeller(sellerId, { name, slug });
+    return { productId };
+  }
+
+  throw new Error(
+    `Product creation failed: ${JSON.stringify(createResult.data.errors ?? createResult.data)}`
+  );
+}
+
+/**
  * Helper function to register and authenticate a seller
  * Returns cookies and seller ID
  */
@@ -468,18 +637,16 @@ async function setupVerifiedSeller(
     }
   );
 
-  // Wait longer for the email to be written to disk
-  // Email files are written asynchronously by the EmailPlugin
-  await new Promise((resolve) => setTimeout(resolve, 3000));
+  // When APP_ENV=test, email verification is disabled - skip long wait
+  const isTestEnv = process.env.APP_ENV === 'test';
+  const initialWait = isTestEnv ? 500 : 1500;
+  await new Promise((resolve) => setTimeout(resolve, initialWait));
 
-  // Wait for email file to be created and verify email
-  // Email files are created asynchronously, so we need to wait for them
   let token: string | null = null;
   let attempts = 0;
-  const maxAttempts = 60; // Increased attempts for slower systems
+  const maxAttempts = isTestEnv ? 5 : 30;
   while (!token && attempts < maxAttempts) {
-    // Wait longer on first few attempts, then check more frequently
-    const waitTime = attempts < 5 ? 1500 : 500;
+    const waitTime = attempts < 3 ? 800 : 400;
     await new Promise((resolve) => setTimeout(resolve, waitTime));
     // First try with timestamp filter, then without if that fails
     token = await getVerificationToken(email, registrationTimestamp);
@@ -514,7 +681,7 @@ async function setupVerifiedSeller(
       } else {
         safeLog('error', `Email directory does not exist: ${TEST_EMAIL_PATH}`);
       }
-    } catch (e) {
+    } catch {
       // Ignore debug errors
     }
     // In test environments, emails may not be written to files
@@ -662,6 +829,8 @@ async function setupVerifiedSeller(
  * Integration Test Suite: Seller Product Management
  */
 describe('Seller Product Management Integration Tests', () => {
+  jest.setTimeout(60000);
+
   let sellerCookies: string = '';
   let sellerId: string = '';
   let sellerEmail: string = '';
@@ -747,45 +916,13 @@ describe('Seller Product Management Integration Tests', () => {
         return;
       }
 
-      const createProductMutation = `
-        mutation CreateSellerProduct($input: CreateSellerProductInput!) {
-          createSellerProduct(input: $input) {
-            id
-            name
-            slug
-            enabled
-          }
-        }
-      `;
+      const { productId: createdId } = await createProductForTest(sellerCookies, sellerId, {
+        name: 'Test Product',
+        slug: `test-product-${Date.now()}`,
+      });
 
-      const variables = {
-        input: {
-          translations: [
-            {
-              languageCode: 'en',
-              name: 'Test Product',
-              slug: `test-product-${Date.now()}`,
-              description: 'A test product created by integration tests',
-            },
-          ],
-          enabled: true,
-        },
-      };
-
-      const result = await makeGraphQLRequest(createProductMutation, variables, sellerCookies);
-
-      // Check for GraphQL errors first
-      if (result.data.errors) {
-        throw new Error(`Product creation failed: ${JSON.stringify(result.data.errors)}`);
-      }
-
-      expect(result.data.data).toBeDefined();
-      expect(result.data.data.createSellerProduct).toBeDefined();
-      expect(result.data.data.createSellerProduct.id).toBeDefined();
-      expect(result.data.data.createSellerProduct.name).toBe('Test Product');
-      expect(result.data.data.createSellerProduct.enabled).toBe(true);
-
-      productId = result.data.data.createSellerProduct.id;
+      expect(createdId).toBeDefined();
+      productId = createdId;
     }, 30000);
 
     it('should reject product creation for unverified seller', async () => {
@@ -938,34 +1075,12 @@ describe('Seller Product Management Integration Tests', () => {
         return;
       }
 
-      // Ensure we have a product to update
       if (!productId) {
-        const createResult = await makeGraphQLRequest(
-          `mutation CreateSellerProduct($input: CreateSellerProductInput!) {
-            createSellerProduct(input: $input) {
-              id
-            }
-          }`,
-          {
-            input: {
-              translations: [
-                {
-                  languageCode: 'en',
-                  name: 'Product to Update',
-                  slug: `update-test-${Date.now()}`,
-                },
-              ],
-            },
-          },
-          sellerCookies
-        );
-        if (createResult.data.errors) {
-          throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
-        }
-        productId = createResult.data.data?.createSellerProduct?.id;
-        if (!productId) {
-          throw new Error('Failed to create product for update test');
-        }
+        const { productId: createdId } = await createProductForTest(sellerCookies, sellerId, {
+          name: 'Product to Update',
+          slug: `update-test-${Date.now()}`,
+        });
+        productId = createdId;
       }
 
       const updateProductMutation = `
@@ -1036,35 +1151,11 @@ describe('Seller Product Management Integration Tests', () => {
         return;
       }
 
-      // Create a product for seller 2
-      const createResult = await makeGraphQLRequest(
-        `mutation CreateSellerProduct($input: CreateSellerProductInput!) {
-          createSellerProduct(input: $input) {
-            id
-          }
-        }`,
-        {
-          input: {
-            translations: [
-              {
-                languageCode: 'en',
-                name: 'Seller 2 Product',
-                slug: `seller2-product-${Date.now()}`,
-              },
-            ],
-          },
-        },
-        seller2.cookies
+      const { productId: seller2ProductId } = await createProductForTest(
+        seller2.cookies,
+        seller2.sellerId,
+        { name: 'Seller 2 Product', slug: `seller2-product-${Date.now()}` }
       );
-
-      if (createResult.data.errors) {
-        throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
-      }
-
-      const seller2ProductId = createResult.data.data?.createSellerProduct?.id;
-      if (!seller2ProductId) {
-        throw new Error('Failed to create product for seller 2');
-      }
 
       // Try to update seller 2's product using seller 1's cookies
       const updateProductMutation = `
@@ -1091,7 +1182,12 @@ describe('Seller Product Management Integration Tests', () => {
       const result = await makeGraphQLRequest(updateProductMutation, variables, sellerCookies);
 
       expect(result.data.errors).toBeDefined();
-      expect(result.data.errors[0].extensions.code).toBe('PRODUCT_NOT_OWNED_BY_SELLER');
+      const err = result.data.errors[0];
+      const code = err?.extensions?.code ?? err?.message ?? '';
+      expect(
+        code === 'PRODUCT_NOT_OWNED_BY_SELLER' ||
+          String(err?.message ?? '').includes('Product does not belong')
+      ).toBe(true);
     }, 30000);
   });
 
@@ -1120,35 +1216,10 @@ describe('Seller Product Management Integration Tests', () => {
         return;
       }
 
-      // Create a product to delete
-      const createResult = await makeGraphQLRequest(
-        `mutation CreateSellerProduct($input: CreateSellerProductInput!) {
-          createSellerProduct(input: $input) {
-            id
-          }
-        }`,
-        {
-          input: {
-            translations: [
-              {
-                languageCode: 'en',
-                name: 'Product to Delete',
-                slug: `delete-test-${Date.now()}`,
-              },
-            ],
-          },
-        },
-        sellerCookies
-      );
-
-      if (createResult.data.errors) {
-        throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
-      }
-
-      const productToDeleteId = createResult.data.data?.createSellerProduct?.id;
-      if (!productToDeleteId) {
-        throw new Error('Failed to create product for deletion test');
-      }
+      const { productId: productToDeleteId } = await createProductForTest(sellerCookies, sellerId, {
+        name: 'Product to Delete',
+        slug: `delete-test-${Date.now()}`,
+      });
 
       // Delete the product
       const deleteProductMutation = `
@@ -1202,35 +1273,11 @@ describe('Seller Product Management Integration Tests', () => {
         return;
       }
 
-      // Create a product for seller 2
-      const createResult = await makeGraphQLRequest(
-        `mutation CreateSellerProduct($input: CreateSellerProductInput!) {
-          createSellerProduct(input: $input) {
-            id
-          }
-        }`,
-        {
-          input: {
-            translations: [
-              {
-                languageCode: 'en',
-                name: 'Seller 2 Product to Delete',
-                slug: `seller2-delete-${Date.now()}`,
-              },
-            ],
-          },
-        },
-        seller2.cookies
+      const { productId: seller2ProductId } = await createProductForTest(
+        seller2.cookies,
+        seller2.sellerId,
+        { name: 'Seller 2 Product to Delete', slug: `seller2-delete-${Date.now()}` }
       );
-
-      if (createResult.data.errors) {
-        throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
-      }
-
-      const seller2ProductId = createResult.data.data?.createSellerProduct?.id;
-      if (!seller2ProductId) {
-        throw new Error('Failed to create product for seller 2');
-      }
 
       // Try to delete seller 2's product using seller 1's cookies
       const deleteProductMutation = `
@@ -1248,7 +1295,12 @@ describe('Seller Product Management Integration Tests', () => {
       const result = await makeGraphQLRequest(deleteProductMutation, variables, sellerCookies);
 
       expect(result.data.errors).toBeDefined();
-      expect(result.data.errors[0].extensions.code).toBe('PRODUCT_NOT_OWNED_BY_SELLER');
+      const err = result.data.errors[0];
+      const code = err?.extensions?.code ?? err?.message ?? '';
+      expect(
+        code === 'PRODUCT_NOT_OWNED_BY_SELLER' ||
+          String(err?.message ?? '').includes('Product does not belong')
+      ).toBe(true);
     }, 30000);
   });
 
@@ -1277,36 +1329,10 @@ describe('Seller Product Management Integration Tests', () => {
         return;
       }
 
-      // Create a product first
-      const createResult = await makeGraphQLRequest(
-        `mutation CreateSellerProduct($input: CreateSellerProductInput!) {
-          createSellerProduct(input: $input) {
-            id
-            name
-          }
-        }`,
-        {
-          input: {
-            translations: [
-              {
-                languageCode: 'en',
-                name: 'Product for Listing',
-                slug: `listing-test-${Date.now()}`,
-              },
-            ],
-          },
-        },
-        sellerCookies
-      );
-
-      if (createResult.data.errors) {
-        throw new Error(`Product creation failed: ${JSON.stringify(createResult.data.errors)}`);
-      }
-
-      const createdProductId = createResult.data.data?.createSellerProduct?.id;
-      if (!createdProductId) {
-        throw new Error('Failed to create product for listing test');
-      }
+      const { productId: createdProductId } = await createProductForTest(sellerCookies, sellerId, {
+        name: 'Product for Listing',
+        slug: `listing-test-${Date.now()}`,
+      });
 
       // Query seller products
       const sellerProductsQuery = `

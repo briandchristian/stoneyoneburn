@@ -16,9 +16,9 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { RequestContext, ID } from '@vendure/core';
+import type { RequestContext } from '@vendure/core';
 import { ReviewResolver } from './review.resolver';
-import { ReviewService, CreateReviewInput, ReviewListResult } from '../services/review.service';
+import { ReviewService, ReviewListResult } from '../services/review.service';
 import { Review, ReviewStatus } from '../entities/review.entity';
 import { SellerService } from '../services/seller.service';
 import { ProductOwnershipService } from '../services/product-ownership.service';

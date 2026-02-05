@@ -20,13 +20,17 @@ import {
   ObjectType,
 } from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
+import type { UpdateProductInput } from '@vendure/common/lib/generated-types';
 import {
   Ctx,
   Allow,
   Permission,
   Product,
   ProductService,
+  LanguageCode,
+  ProductVariantService,
   CustomerService,
+  ChannelService,
   TransactionalConnection,
   Transaction,
 } from '@vendure/core';
@@ -124,9 +128,11 @@ export class UpdateSellerProductInput {
 export class SellerProductManagementResolver {
   constructor(
     private productService: ProductService,
+    private productVariantService: ProductVariantService,
     private sellerService: SellerService,
     private customerService: CustomerService,
     private productOwnershipService: ProductOwnershipService,
+    private channelService: ChannelService,
     private connection: TransactionalConnection
   ) {}
 
@@ -176,11 +182,14 @@ export class SellerProductManagementResolver {
     // Validate seller can create products (verified and active)
     await this.productOwnershipService.validateSellerCanCreateProducts(ctx, seller.id);
 
+    // Phase 5.4: Ensure seller has a channel (lazy creation if registration failed)
+    const sellerWithChannel = await this.sellerService.ensureSellerHasChannel(ctx, seller);
+
     // Create product using ProductService
     // Include seller in customFields to assign product to seller
     const product = await this.productService.create(ctx, {
       translations: input.translations.map((t) => ({
-        languageCode: t.languageCode as any,
+        languageCode: t.languageCode as LanguageCode,
         name: t.name,
         slug: t.slug,
         description: t.description || '',
@@ -194,8 +203,42 @@ export class SellerProductManagementResolver {
       },
     });
 
-    // Reload product to ensure custom fields are properly loaded
-    return (await this.productService.findOne(ctx, product.id)) || product;
+    // Phase 5.4: Always assign product to channels so it's findable in the storefront.
+    // Assign to default channel + seller's channel (if any). If seller has no channel,
+    // assign to default only so the product is at least visible.
+    const defaultChannel = await this.channelService.getDefaultChannel(ctx);
+    const channelIds = sellerWithChannel.channelId
+      ? [defaultChannel.id, sellerWithChannel.channelId]
+      : [defaultChannel.id];
+    await this.channelService.assignToChannels(ctx, Product, product.id, channelIds);
+
+    // Create default variant so the product can be added to cart (products need at least one variant)
+    const sku = `SKU-${product.id}-${Date.now()}`;
+    const [variant] = await this.productVariantService.create(ctx, [
+      {
+        productId: product.id,
+        sku,
+        translations: input.translations.map((t) => ({
+          languageCode: t.languageCode as LanguageCode,
+          name: t.name,
+        })),
+        price: 999, // Default 9.99 in minor units
+        stockOnHand: 10,
+      },
+    ]);
+    await this.productVariantService.assignProductVariantsToChannel(ctx, {
+      productVariantIds: [variant.id],
+      channelId: defaultChannel.id,
+    });
+    if (sellerWithChannel.channelId) {
+      await this.productVariantService.assignProductVariantsToChannel(ctx, {
+        productVariantIds: [variant.id],
+        channelId: sellerWithChannel.channelId,
+      });
+    }
+
+    // Reload product with variants
+    return (await this.productService.findOne(ctx, product.id, ['variants'])) || product;
   }
 
   /**
@@ -217,13 +260,13 @@ export class SellerProductManagementResolver {
     await this.productOwnershipService.validateProductOwnership(ctx, input.productId, seller.id);
 
     // Build update input
-    const updateInput: any = {
+    const updateInput: UpdateProductInput = {
       id: input.productId,
     };
 
     if (input.translations) {
       updateInput.translations = input.translations.map((t) => ({
-        languageCode: t.languageCode as any,
+        languageCode: t.languageCode as LanguageCode,
         name: t.name,
         slug: t.slug,
         description: t.description || '',

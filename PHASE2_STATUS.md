@@ -13,8 +13,9 @@
 - Shop slug generation
 - Error handling
 - 30 contract tests
+- **Storefront:** `/register-seller` page with form, auth redirects, validation, mutation (7 tests)
 - **Integration tests created:** `src/plugins/multi-vendor-plugin/integration/seller-registration.integration.test.ts`
-- **Status:** Ready for testing (requires running server)
+- **Status:** Complete (backend + storefront)
 
 ## Critical Fix Applied: Serialize Binary Error
 
@@ -70,3 +71,7 @@ Input types are now proper GraphQL classes with decorators, not TypeScript inter
 - Seller detail: stats, product summary, recent orders, verification card with Verify/Reject/Suspend (PermissionGuard: UpdateAdministrator)
 - Contract tests written
 - **Status:** Phase 2 complete
+
+## Completion Plan
+
+See [PHASE2_COMPLETION_PLAN.md](PHASE2_COMPLETION_PLAN.md) for deferred items and optional enhancements.

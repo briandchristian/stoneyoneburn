@@ -78,6 +78,8 @@ export const config: VendureConfig = {
     cookieOptions: {
       secret: process.env.COOKIE_SECRET,
     },
+    // In test mode, skip email verification so integration tests can proceed
+    ...(process.env.APP_ENV === 'test' ? { requireVerification: false } : {}),
   },
   dbConnectionOptions: {
     type: 'postgres' as const, // Critical: string with quotes + as const for TypeScript

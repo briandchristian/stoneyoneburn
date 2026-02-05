@@ -215,6 +215,70 @@ export const GET_PRODUCT_BY_SLUG = gql`
 `;
 
 /**
+ * Query to get product reviews (Phase 5: Review display on product pages)
+ * Uses multi-vendor plugin: getReviews(options: ReviewListOptionsInput!): ReviewList!
+ */
+export const GET_REVIEWS = gql`
+  query GetReviews($options: ReviewListOptionsInput!) {
+    getReviews(options: $options) {
+      items {
+        id
+        rating
+        title
+        body
+        verified
+        helpfulCount
+        createdAt
+      }
+      totalItems
+    }
+  }
+`;
+
+/**
+ * Query to get a seller shop page (shop info + products)
+ * Uses the multi-vendor plugin Shop API extensions:
+ * - shop(slug: String!): MarketplaceSeller
+ * - shopProducts(slug: String!, options: ShopProductsOptionsInput): ShopProductsList!
+ */
+export const GET_SHOP_PAGE = gql`
+  query GetShopPage($slug: String!, $options: ShopProductsOptionsInput) {
+    shop(slug: $slug) {
+      id
+      shopName
+      shopSlug
+      shopDescription
+      rating {
+        averageRating
+        totalReviews
+      }
+    }
+    shopProducts(slug: $slug, options: $options) {
+      items {
+        id
+        name
+        slug
+        description
+        featuredAsset {
+          id
+          preview
+        }
+        variants {
+          id
+          name
+          currencyCode
+          price
+          priceWithTax
+          sku
+          stockLevel
+        }
+      }
+      totalItems
+    }
+  }
+`;
+
+/**
  * Query to get active order (cart)
  */
 export const GET_ACTIVE_ORDER = gql`
@@ -244,6 +308,11 @@ export const GET_ACTIVE_ORDER = gql`
             featuredAsset {
               id
               preview
+            }
+            seller {
+              id
+              shopName
+              shopSlug
             }
           }
         }
@@ -642,6 +711,11 @@ export const GET_ORDER_BY_CODE = gql`
               id
               preview
             }
+            seller {
+              id
+              shopName
+              shopSlug
+            }
           }
         }
       }
@@ -839,6 +913,94 @@ export const DELETE_CUSTOMER_ADDRESS = gql`
   mutation DeleteCustomerAddress($id: ID!) {
     deleteCustomerAddress(id: $id) {
       success
+    }
+  }
+`;
+
+/**
+ * Query to search shops (sellers)
+ */
+export const SEARCH_SHOPS = gql`
+  query SearchShops($searchTerm: String!, $options: ShopSearchOptionsInput) {
+    searchShops(searchTerm: $searchTerm, options: $options) {
+      items {
+        id
+        shopName
+        shopSlug
+        shopDescription
+        rating {
+          averageRating
+          totalReviews
+        }
+      }
+      totalItems
+    }
+  }
+`;
+
+/**
+ * Mutation to register as a marketplace seller (Phase 2.2)
+ * Requires authenticated customer with verified email.
+ */
+export const REGISTER_AS_SELLER = gql`
+  mutation RegisterAsSeller($input: RegisterSellerInput!) {
+    registerAsSeller(input: $input) {
+      id
+      shopName
+      shopSlug
+      shopDescription
+      verificationStatus
+      isActive
+    }
+  }
+`;
+
+/**
+ * Query to get active seller (for authenticated sellers)
+ */
+export const GET_ACTIVE_SELLER = gql`
+  query GetActiveSeller {
+    activeSeller {
+      id
+      shopName
+      shopSlug
+      shopDescription
+      shopBannerAssetId
+      shopLogoAssetId
+    }
+  }
+`;
+
+/**
+ * Mutation to update shop customization
+ */
+export const UPDATE_SHOP_CUSTOMIZATION = gql`
+  mutation UpdateShopCustomization($sellerId: ID!, $input: UpdateShopCustomizationInput!) {
+    updateShopCustomization(sellerId: $sellerId, input: $input) {
+      id
+      shopName
+      shopSlug
+      shopDescription
+      shopBannerAssetId
+      shopLogoAssetId
+    }
+  }
+`;
+
+/**
+ * Query to get recommended sellers
+ */
+export const GET_RECOMMENDED_SELLERS = gql`
+  query GetRecommendedSellers($options: SellerRecommendationsOptionsInput) {
+    recommendedSellers(options: $options) {
+      id
+      shopName
+      shopSlug
+      shopDescription
+      rating {
+        averageRating
+        totalReviews
+      }
     }
   }
 `;

@@ -158,4 +158,12 @@ export class MarketplaceSeller extends VendureEntity {
   @Column({ type: 'decimal', precision: 5, scale: 2, default: 10.0 })
   @Field(() => Number)
   commissionRate: number;
+
+  /**
+   * Vendure Channel ID for this seller (Phase 5.4: Channel-per-seller).
+   * Each seller has a dedicated Channel for order splitting.
+   * Nullable for backward compatibility with sellers created before channel-per-seller.
+   */
+  @Column({ type: 'int', nullable: true })
+  channelId?: ID;
 }

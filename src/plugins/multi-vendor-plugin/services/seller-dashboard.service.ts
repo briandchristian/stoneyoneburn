@@ -313,7 +313,7 @@ export class SellerDashboardService {
       const unitPrice =
         typeof line.proratedUnitPriceWithTax === 'number'
           ? line.proratedUnitPriceWithTax
-          : (line.proratedUnitPriceWithTax as any)?.value || 0;
+          : ((line.proratedUnitPriceWithTax as { value?: number })?.value ?? 0);
       const lineTotal = unitPrice * line.quantity;
       revenue += lineTotal;
     }

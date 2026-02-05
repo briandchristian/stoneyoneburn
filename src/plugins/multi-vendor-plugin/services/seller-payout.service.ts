@@ -67,14 +67,14 @@ export class SellerPayoutService {
 
     try {
       return await this.connection.getRepository(ctx, SellerPayout).save(payout);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Handle duplicate key errors (race condition protection)
       // If a unique constraint exists on (orderId, sellerId), catch the duplicate error
       // and return the existing payout instead
       if (
-        error?.code === '23505' ||
-        error?.code === 'ER_DUP_ENTRY' ||
-        error?.message?.includes('UNIQUE constraint')
+        (error as NodeJS.ErrnoException)?.code === '23505' ||
+        (error as NodeJS.ErrnoException)?.code === 'ER_DUP_ENTRY' ||
+        (error as Error)?.message?.includes('UNIQUE constraint')
       ) {
         // Duplicate key error - payout already exists, try to find existing one
         // Retry logic handles cases where the record isn't immediately visible due to transaction isolation
@@ -110,7 +110,7 @@ export class SellerPayoutService {
         // In this case, we throw a more descriptive error
         throw new Error(
           `Duplicate payout detected but existing record not found after ${maxRetries} retries. ` +
-            `This may indicate a transaction isolation or replication issue. Original error: ${error.message}`
+            `This may indicate a transaction isolation or replication issue. Original error: ${(error as Error).message}`
         );
       }
       // Re-throw if it's not a duplicate key error

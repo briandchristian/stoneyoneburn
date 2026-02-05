@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { RequestContext, ID } from '@vendure/core';
+import type { RequestContext } from '@vendure/core';
 import { TransactionalConnection } from '@vendure/core';
 import { In } from 'typeorm';
 import { SellerPayoutService, PayoutStatus } from './seller-payout.service';

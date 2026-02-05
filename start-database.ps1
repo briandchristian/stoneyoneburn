@@ -8,7 +8,7 @@ Write-Host ""
 $dockerInstalled = Get-Command docker -ErrorAction SilentlyContinue
 
 if (-not $dockerInstalled) {
-    Write-Host "✗ Docker is NOT installed" -ForegroundColor Red
+    Write-Host "[X] Docker is NOT installed" -ForegroundColor Red
     Write-Host ""
     Write-Host "To start the database, you need Docker:" -ForegroundColor Yellow
     Write-Host "1. Install Docker Desktop from: https://www.docker.com/products/docker-desktop/" -ForegroundColor Yellow
@@ -22,13 +22,13 @@ if (-not $dockerInstalled) {
 Write-Host "Checking Docker daemon..." -ForegroundColor Cyan
 docker info 2>&1 | Out-Null
 if ($LASTEXITCODE -ne 0) {
-    Write-Host "✗ Docker daemon is not running" -ForegroundColor Red
+    Write-Host "[X] Docker daemon is not running" -ForegroundColor Red
     Write-Host ""
     Write-Host "Please start Docker Desktop and try again." -ForegroundColor Yellow
     Write-Host ""
     exit 1
 } else {
-    Write-Host "✓ Docker is running" -ForegroundColor Green
+    Write-Host "[OK] Docker is running" -ForegroundColor Green
 }
 Write-Host ""
 
@@ -38,26 +38,32 @@ $containerStatus = docker ps -a --filter "name=postgres_db" --format "{{.Status}
 
 if ($LASTEXITCODE -eq 0 -and $containerStatus) {
     if ($containerStatus -match "Up") {
-        Write-Host "✓ PostgreSQL container is running" -ForegroundColor Green
+        Write-Host "[OK] PostgreSQL container is running" -ForegroundColor Green
         Write-Host "  Status: $containerStatus" -ForegroundColor Gray
     } else {
-        Write-Host "⚠ PostgreSQL container exists but is stopped" -ForegroundColor Yellow
+        Write-Host "[!] PostgreSQL container exists but is stopped" -ForegroundColor Yellow
         Write-Host "  Status: $containerStatus" -ForegroundColor Gray
         Write-Host ""
         Write-Host "Starting container..." -ForegroundColor Cyan
         docker start postgres_db 2>&1 | Out-Null
         if ($LASTEXITCODE -eq 0) {
-            Write-Host "✓ Container started successfully" -ForegroundColor Green
+            Write-Host "[OK] Container started successfully" -ForegroundColor Green
             Write-Host ""
             Write-Host "Waiting for database to be ready..." -ForegroundColor Cyan
             Start-Sleep -Seconds 3
         } else {
-            Write-Host "✗ Failed to start container" -ForegroundColor Red
+            Write-Host "[X] Failed to start container" -ForegroundColor Red
+            Write-Host ""
+            Write-Host "Recent container logs:" -ForegroundColor Yellow
+            docker logs postgres_db 2>&1 | Select-Object -Last 15
+            Write-Host ""
+            Write-Host "To repair: .\scripts\troubleshoot-database.ps1 -Repair" -ForegroundColor Cyan
+            Write-Host "See TROUBLESHOOTING_DATABASE.md for details" -ForegroundColor Gray
             exit 1
         }
     }
 } else {
-    Write-Host "⚠ PostgreSQL container not found" -ForegroundColor Yellow
+    Write-Host "[!] PostgreSQL container not found" -ForegroundColor Yellow
     Write-Host ""
     Write-Host "Creating and starting PostgreSQL container..." -ForegroundColor Cyan
     
@@ -68,12 +74,12 @@ if ($LASTEXITCODE -eq 0 -and $containerStatus) {
     docker-compose up -d postgres_db 2>&1 | Out-Null
     
     if ($LASTEXITCODE -eq 0) {
-        Write-Host "✓ Container created and started successfully" -ForegroundColor Green
+        Write-Host "[OK] Container created and started successfully" -ForegroundColor Green
         Write-Host ""
         Write-Host "Waiting for database to be ready..." -ForegroundColor Cyan
         Start-Sleep -Seconds 5
     } else {
-        Write-Host "✗ Failed to create container" -ForegroundColor Red
+        Write-Host "[X] Failed to create container" -ForegroundColor Red
         Write-Host "  Try running manually: docker-compose up -d postgres_db" -ForegroundColor Yellow
         exit 1
     }
@@ -86,18 +92,18 @@ try {
     $tcpClient = New-Object System.Net.Sockets.TcpClient
     $connection = $tcpClient.BeginConnect("127.0.0.1", 6543, $null, $null)
     $wait = $connection.AsyncWaitHandle.WaitOne(2000, $false)
-    
+
     if ($wait) {
         $tcpClient.EndConnect($connection)
         $tcpClient.Close()
-        Write-Host "✓ Database is accepting connections on port 6543" -ForegroundColor Green
+        Write-Host "Database is accepting connections on port 6543" -ForegroundColor Green
     } else {
-        Write-Host "⚠ Database may still be starting up" -ForegroundColor Yellow
-        Write-Host "  Port 6543 is not yet accepting connections" -ForegroundColor Gray
+        Write-Host "Database may still be starting up" -ForegroundColor Yellow
+        Write-Host "Port 6543 is not yet accepting connections" -ForegroundColor Gray
     }
     $tcpClient.Close()
 } catch {
-    Write-Host "⚠ Could not verify connection (this is normal if the database is still starting)" -ForegroundColor Yellow
+    Write-Host "Could not verify connection (database may still be starting)" -ForegroundColor Yellow
 }
 Write-Host ""
 
@@ -122,5 +128,5 @@ Write-Host "To stop the database:" -ForegroundColor Cyan
 Write-Host "  docker stop postgres_db" -ForegroundColor White
 Write-Host ""
 Write-Host "To view logs:" -ForegroundColor Cyan
-Write-Host "  docker logs -f postgres_db" -ForegroundColor White
+Write-Host ("  docker logs -f postgres_db") -ForegroundColor White
 Write-Host ""

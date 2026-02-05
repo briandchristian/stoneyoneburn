@@ -16,12 +16,27 @@ Useful links:
 
 ## Development
 
+**Prerequisites:** Start PostgreSQL before running the app. The database must be running on port 6543.
+
+```powershell
+# Windows (PowerShell) - starts Docker PostgreSQL container
+.\start-database.ps1
+```
+
+```bash
+# Or manually with Docker Compose
+docker-compose up -d postgres_db
+```
+
+Then start the Vendure server and [worker](https://www.vendure.io/docs/developer-guide/vendure-worker/):
+
 ```
 npm run dev
 ```
 
-will start the Vendure server and [worker](https://www.vendure.io/docs/developer-guide/vendure-worker/) processes from
-the `src` directory.
+This starts the server, worker, and dashboard from the `src` directory. If you see `ECONNREFUSED 127.0.0.1:6543`, the database is not running—run `.\start-database.ps1` first.
+
+**Database issues?** If the PostgreSQL container fails to start (e.g. Exited 255), see [TROUBLESHOOTING_DATABASE.md](TROUBLESHOOTING_DATABASE.md). Quick fix: `.\scripts\troubleshoot-database.ps1 -Repair`
 
 ## Build
 

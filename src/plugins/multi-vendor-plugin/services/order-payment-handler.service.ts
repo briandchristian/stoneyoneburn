@@ -20,6 +20,7 @@ import {
   OrderForSplitPayment,
   OrderLineForSplitPayment,
   OrderSplitPaymentResult,
+  type SellerSplitPayment,
 } from './split-payment.service';
 import { SellerPayoutService, PayoutStatus } from './seller-payout.service';
 import { SellerPayout } from '../entities/seller-payout.entity';
@@ -136,7 +137,8 @@ export class OrderPaymentHandlerService {
       const sellerIdStr = sellerSplit.sellerId.toString();
       const commissionRate = sellerCommissionRates.get(sellerIdStr) ?? defaultCommissionRate;
       // Add commission rate to the split for commission history creation
-      (sellerSplit as any).commissionRate = commissionRate;
+      (sellerSplit as SellerSplitPayment & { commissionRate?: number }).commissionRate =
+        commissionRate;
 
       await this.sellerPayoutService.createPayout(
         ctx,
@@ -190,14 +192,14 @@ export class OrderPaymentHandlerService {
     // existing payout (idempotent behavior). This ensures correctness despite the non-atomic check.
     try {
       return await this.processOrderPayment(ctx, order);
-    } catch (error: any) {
+    } catch (error: unknown) {
       // Additional error handling: if processOrderPayment throws a duplicate error
       // (shouldn't happen if createPayout handles it, but added as extra safety)
       if (
-        error?.code === '23505' ||
-        error?.code === 'ER_DUP_ENTRY' ||
-        error?.message?.includes('UNIQUE constraint') ||
-        error?.message?.includes('duplicate')
+        (error as NodeJS.ErrnoException)?.code === '23505' ||
+        (error as NodeJS.ErrnoException)?.code === 'ER_DUP_ENTRY' ||
+        (error as Error)?.message?.includes('UNIQUE constraint') ||
+        (error as Error)?.message?.includes('duplicate')
       ) {
         // Duplicate detected - another handler created payouts, return null (idempotent)
         return null;

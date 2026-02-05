@@ -3,11 +3,18 @@
  *
  * Service for managing seller accounts, registration, and profile updates.
  * Part of Phase 2.2: Seller Registration & Onboarding
+ * Phase 5.4: Creates a dedicated Channel per seller for order splitting.
  */
 
 import { Injectable } from '@nestjs/common';
 import type { RequestContext, ID } from '@vendure/core';
-import { TransactionalConnection, Transaction, CustomerService } from '@vendure/core';
+import {
+  TransactionalConnection,
+  Transaction,
+  CustomerService,
+  ChannelService,
+  LanguageCode,
+} from '@vendure/core';
 import { MarketplaceSeller, SellerVerificationStatus } from '../entities/seller.entity';
 import { MarketplaceSellerBase, SellerType } from '../entities/marketplace-seller-base.entity';
 import { IndividualSeller } from '../entities/individual-seller.entity';
@@ -48,7 +55,8 @@ export interface UpdateSellerProfileInput {
 export class SellerService {
   constructor(
     private connection: TransactionalConnection,
-    private customerService: CustomerService
+    private customerService: CustomerService,
+    private channelService: ChannelService
   ) {}
 
   /**
@@ -120,9 +128,74 @@ export class SellerService {
     // Save seller
     const savedSeller = await sellerRepository.save(seller);
 
+    // Phase 5.4: Create dedicated Channel for this seller (channel-per-seller)
+    const channelResult = await this.createSellerChannel(ctx, savedSeller.id);
+    if (channelResult) {
+      savedSeller.channelId = channelResult.id;
+      await sellerRepository.save(savedSeller);
+    }
+
     // TODO: Send welcome email (Phase 2.2 - future enhancement)
 
     return savedSeller;
+  }
+
+  /**
+   * Ensure a seller has a dedicated Channel (Phase 5.4).
+   * If the seller has no channelId, attempts to create one (lazy channel creation).
+   * Use when creating products so sellers whose channel creation failed at registration
+   * get a channel on first product creation.
+   *
+   * @returns The seller, possibly with channelId now set
+   */
+  async ensureSellerHasChannel(
+    ctx: RequestContext,
+    seller: MarketplaceSeller
+  ): Promise<MarketplaceSeller> {
+    if (seller.channelId) {
+      return seller;
+    }
+    const channelResult = await this.createSellerChannel(ctx, seller.id);
+    if (channelResult) {
+      seller.channelId = channelResult.id;
+      await this.connection.getRepository(ctx, MarketplaceSeller).save(seller);
+    }
+    return seller;
+  }
+
+  /**
+   * Create a dedicated Vendure Channel for a seller (Phase 5.4).
+   * Uses default channel's tax/shipping zones. Returns null if creation fails
+   * (e.g. permission denied from Shop API context).
+   */
+  private async createSellerChannel(ctx: RequestContext, sellerId: ID): Promise<{ id: ID } | null> {
+    try {
+      const defaultCh = await this.channelService.getDefaultChannel(ctx);
+      const defaultChannel = await this.channelService.findOne(ctx, defaultCh.id);
+      if (!defaultChannel?.defaultTaxZone?.id || !defaultChannel?.defaultShippingZone?.id) {
+        return null;
+      }
+
+      const code = `seller-${sellerId}`;
+      const token = `seller-${sellerId}-token`;
+
+      const newChannel = await this.channelService.create(ctx, {
+        code,
+        token,
+        defaultLanguageCode: LanguageCode.en,
+        defaultTaxZoneId: defaultChannel.defaultTaxZone.id.toString(),
+        defaultShippingZoneId: defaultChannel.defaultShippingZone.id.toString(),
+        pricesIncludeTax: defaultChannel.pricesIncludeTax,
+        defaultCurrencyCode: defaultChannel.defaultCurrencyCode,
+      });
+
+      if (newChannel && 'id' in newChannel) {
+        return { id: newChannel.id };
+      }
+      return null;
+    } catch {
+      return null;
+    }
   }
 
   /**

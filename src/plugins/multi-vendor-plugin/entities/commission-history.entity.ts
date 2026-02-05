@@ -12,7 +12,7 @@
  * - Timestamps for audit trail
  */
 
-import { Entity, Column, ManyToOne, Index, Check } from 'typeorm';
+import { Entity, Column, ManyToOne, Index, Check, type DeepPartial } from 'typeorm';
 import { VendureEntity } from '@vendure/core';
 import type { ID } from '@vendure/core';
 import { ObjectType, Field, ID as GraphQLID, registerEnumType } from '@nestjs/graphql';
@@ -51,7 +51,7 @@ registerEnumType(CommissionHistoryStatus, {
 @Check('CHK_commission_history_sellerPayout', `"sellerPayout" >= 0`)
 @Check('CHK_commission_history_amounts', `"commissionAmount" + "sellerPayout" = "orderTotal"`)
 export class CommissionHistory extends VendureEntity {
-  constructor(input?: any) {
+  constructor(input?: DeepPartial<CommissionHistory>) {
     super(input);
   }
 

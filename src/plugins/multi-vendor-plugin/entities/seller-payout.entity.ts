@@ -11,7 +11,7 @@
  * - Timestamps for lifecycle tracking
  */
 
-import { Entity, Column, ManyToOne, Index } from 'typeorm';
+import { Entity, Column, ManyToOne, Index, type DeepPartial } from 'typeorm';
 import { VendureEntity } from '@vendure/core';
 import type { ID } from '@vendure/core';
 import { ObjectType, Field, ID as GraphQLID } from '@nestjs/graphql';
@@ -47,7 +47,7 @@ export enum PayoutStatus {
 @Index(['status'])
 @Index(['sellerId', 'status'])
 export class SellerPayout extends VendureEntity {
-  constructor(input?: any) {
+  constructor(input?: DeepPartial<SellerPayout>) {
     super(input);
   }
   /**

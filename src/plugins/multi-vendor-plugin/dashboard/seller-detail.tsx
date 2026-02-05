@@ -23,6 +23,7 @@ import { Trans } from '@lingui/react/macro';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useParams, Link } from '@tanstack/react-router';
 import { toast } from 'sonner';
+import type { DocumentNode } from 'graphql';
 import {
   marketplaceSellerDetailDocument,
   sellerDashboardStatsDocument,
@@ -40,6 +41,23 @@ const VERIFICATION_COLORS: Record<string, 'default' | 'secondary' | 'destructive
   SUSPENDED: 'outline',
 };
 
+type SellerDetailData = {
+  id?: string;
+  shopName?: string;
+  verificationStatus?: string;
+  [key: string]: unknown;
+};
+
+type CommissionHistoryItem = {
+  id: string;
+  orderId: string;
+  commissionRate?: number;
+  orderTotal: number;
+  commissionAmount: number;
+  sellerPayout: number;
+  status: string;
+};
+
 const STATUS_OPTIONS = [
   { value: 'VERIFIED', label: 'Verify' },
   { value: 'REJECTED', label: 'Reject' },
@@ -53,7 +71,7 @@ export function SellerDetail() {
 
   const { data: sellerData, isLoading: sellerLoading } = useQuery({
     queryKey: ['marketplaceSellerDetail', sellerId],
-    queryFn: () => api.query(marketplaceSellerDetailDocument as any, { id: sellerId }),
+    queryFn: () => api.query(marketplaceSellerDetailDocument as DocumentNode, { id: sellerId }),
     enabled: !!sellerId,
   });
 
@@ -77,14 +95,14 @@ export function SellerDetail() {
 
   const { data: commissionSummary } = useQuery({
     queryKey: ['sellerCommissionSummary', sellerId],
-    queryFn: () => api.query(sellerCommissionSummaryDocument as any, { sellerId }),
+    queryFn: () => api.query(sellerCommissionSummaryDocument as DocumentNode, { sellerId }),
     enabled: !!sellerId,
   });
 
   const { data: commissionHistory } = useQuery({
     queryKey: ['commissionHistory', sellerId],
     queryFn: () =>
-      api.query(commissionHistoryDocument as any, {
+      api.query(commissionHistoryDocument as DocumentNode, {
         sellerId,
         options: { skip: 0, take: 10 },
       }),
@@ -93,7 +111,7 @@ export function SellerDetail() {
 
   const updateStatusMutation = useMutation({
     mutationFn: (variables: { sellerId: string; status: string }) =>
-      api.mutate(updateSellerVerificationStatusMutationDocument as any, variables),
+      api.mutate(updateSellerVerificationStatusMutationDocument as DocumentNode, variables),
     onSuccess: () => {
       toast.success('Verification status updated');
       queryClient.invalidateQueries({ queryKey: ['marketplaceSellerDetail', sellerId] });
@@ -104,7 +122,7 @@ export function SellerDetail() {
     },
   });
 
-  const seller = (sellerData as any)?.marketplaceSeller;
+  const seller = (sellerData as { marketplaceSeller?: SellerDetailData })?.marketplaceSeller;
   const isLoading = sellerLoading || statsLoading || ordersLoading || productsLoading;
 
   if (!sellerId) {
@@ -260,29 +278,31 @@ export function SellerDetail() {
                               </tr>
                             </thead>
                             <tbody>
-                              {commissionHistory.commissionHistory.items.map((item: any) => (
-                                <tr key={item.id} className="border-b last:border-0">
-                                  <td className="p-2 font-mono">{item.orderId}</td>
-                                  <td className="p-2 text-right">
-                                    {Math.round((item.commissionRate ?? 0) * 100)}%
-                                  </td>
-                                  <td className="p-2 text-right">
-                                    <Money value={item.orderTotal} />
-                                  </td>
-                                  <td className="p-2 text-right">
-                                    <Money value={item.commissionAmount} />
-                                  </td>
-                                  <td className="p-2 text-right">
-                                    <Money value={item.sellerPayout} />
-                                  </td>
-                                  <td className="p-2">
-                                    <Badge variant="outline">{item.status}</Badge>
-                                  </td>
-                                  <td className="p-2">
-                                    <DateTime value={item.createdAt} />
-                                  </td>
-                                </tr>
-                              ))}
+                              {commissionHistory.commissionHistory.items.map(
+                                (item: CommissionHistoryItem) => (
+                                  <tr key={item.id} className="border-b last:border-0">
+                                    <td className="p-2 font-mono">{item.orderId}</td>
+                                    <td className="p-2 text-right">
+                                      {Math.round((item.commissionRate ?? 0) * 100)}%
+                                    </td>
+                                    <td className="p-2 text-right">
+                                      <Money value={item.orderTotal} />
+                                    </td>
+                                    <td className="p-2 text-right">
+                                      <Money value={item.commissionAmount} />
+                                    </td>
+                                    <td className="p-2 text-right">
+                                      <Money value={item.sellerPayout} />
+                                    </td>
+                                    <td className="p-2">
+                                      <Badge variant="outline">{item.status}</Badge>
+                                    </td>
+                                    <td className="p-2">
+                                      <DateTime value={item.createdAt} />
+                                    </td>
+                                  </tr>
+                                )
+                              )}
                             </tbody>
                           </table>
                         </div>

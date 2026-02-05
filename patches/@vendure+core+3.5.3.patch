@@ -1,0 +1,15 @@
+diff --git a/node_modules/@vendure/core/dist/service/helpers/order-splitter/order-splitter.js b/node_modules/@vendure/core/dist/service/helpers/order-splitter/order-splitter.js
+index 05bc885..361ed73 100644
+--- a/node_modules/@vendure/core/dist/service/helpers/order-splitter/order-splitter.js
++++ b/node_modules/@vendure/core/dist/service/helpers/order-splitter/order-splitter.js
+@@ -62,7 +62,9 @@ let OrderSplitter = class OrderSplitter {
+                 active: false,
+                 orderPlacedAt: new Date(),
+                 customer: order.customer,
+-                channels: [new channel_entity_1.Channel({ id: partialOrder.channelId }), defaultChannel],
++                channels: partialOrder.channelId === defaultChannel.id
++                    ? [defaultChannel]
++                    : [new channel_entity_1.Channel({ id: partialOrder.channelId }), defaultChannel],
+                 state: partialOrder.state,
+                 lines,
+                 surcharges: [],

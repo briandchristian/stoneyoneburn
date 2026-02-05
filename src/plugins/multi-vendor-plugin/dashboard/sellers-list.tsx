@@ -6,6 +6,7 @@
 import { Badge, DetailPageButton, ListPage } from '@vendure/dashboard';
 import { Trans } from '@lingui/react/macro';
 import type { AnyRoute } from '@tanstack/react-router';
+import type { DocumentNode } from 'graphql';
 import { marketplaceSellersListDocument } from './marketplace-sellers.graphql';
 
 const VERIFICATION_COLORS: Record<string, 'default' | 'secondary' | 'destructive' | 'outline'> = {
@@ -29,7 +30,7 @@ export function SellersList({ route }: { route: AnyRoute }) {
     <ListPage
       pageId="marketplace-sellers-list"
       title={<Trans>Marketplace Sellers</Trans>}
-      listQuery={marketplaceSellersListDocument as any}
+      listQuery={marketplaceSellersListDocument as DocumentNode}
       route={route}
       transformVariables={(variables) => ({
         skip: (variables?.options as { skip?: number })?.skip ?? 0,
@@ -60,7 +61,7 @@ export function SellersList({ route }: { route: AnyRoute }) {
               return <DetailPageButton id={r.id} label={r.shopName} />;
             },
           },
-        } as any
+        } as Record<string, unknown>
       }
       defaultColumnOrder={['shopName', 'shopSlug', 'verificationStatus', 'isActive', 'createdAt']}
       defaultVisibility={{

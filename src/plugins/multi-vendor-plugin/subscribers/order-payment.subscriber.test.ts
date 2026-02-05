@@ -58,19 +58,17 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
     } as any;
 
     // Create mock observable that supports pipe and subscribe
-    const createMockObservable = () => {
+    type EventHandler = (event: OrderPlacedEvent | PaymentStateTransitionEvent) => Promise<void>;
+    const createMockObservable = (handlerSetter?: (h: EventHandler) => void) => {
       const observable = {
-        pipe: jest.fn((...operators: any[]) => {
-          // Return a new observable that applies operators
-          return {
-            subscribe: jest.fn((handler: any) => {
-              // Store handler for testing
-              return { unsubscribe: jest.fn() };
-            }),
-          };
-        }),
-        subscribe: jest.fn((handler: any) => {
-          // Store handler for direct subscription (OrderPlacedEvent)
+        pipe: jest.fn(() => ({
+          subscribe: jest.fn((handler: EventHandler) => {
+            if (handlerSetter) handlerSetter(handler);
+            return { unsubscribe: jest.fn() };
+          }),
+        })),
+        subscribe: jest.fn((handler: EventHandler) => {
+          if (handlerSetter) handlerSetter(handler);
           return { unsubscribe: jest.fn() };
         }),
       };
@@ -79,27 +77,20 @@ describe('OrderPaymentSubscriber - Unit Tests', () => {
 
     // Create mock event bus
     mockEventBus = {
-      ofType: jest.fn((eventType: any) => {
-        const observable = createMockObservable();
-        // Store handlers when subscribe is called
+      ofType: jest.fn((eventType: new (...args: unknown[]) => unknown) => {
         if (eventType === OrderPlacedEvent) {
-          observable.subscribe = jest.fn((handler) => {
-            orderPlacedHandler = handler;
-            return { unsubscribe: jest.fn() };
-          });
-        } else if (eventType === PaymentStateTransitionEvent) {
-          observable.pipe = jest.fn(() => {
-            return {
-              subscribe: jest.fn((handler) => {
-                paymentSettledHandler = handler;
-                return { unsubscribe: jest.fn() };
-              }),
-            };
+          return createMockObservable((h) => {
+            orderPlacedHandler = h as (event: OrderPlacedEvent) => Promise<void>;
           });
         }
-        return observable;
+        if (eventType === PaymentStateTransitionEvent) {
+          return createMockObservable((h) => {
+            paymentSettledHandler = h as (event: PaymentStateTransitionEvent) => Promise<void>;
+          });
+        }
+        return createMockObservable();
       }),
-    } as any;
+    } as unknown as jest.Mocked<EventBus>;
 
     // Create subscriber instance
     subscriber = new OrderPaymentSubscriber(

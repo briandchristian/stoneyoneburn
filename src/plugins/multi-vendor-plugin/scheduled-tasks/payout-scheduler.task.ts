@@ -89,7 +89,7 @@ export const processScheduledPayoutsTask = new ScheduledTask({
         payoutSchedulerLastRun: now.toISOString(),
       };
       await globalSettingsService.updateSettings(ctx, {
-        customFields: updatedCustomFields as any,
+        customFields: updatedCustomFields as Record<string, unknown>,
       });
 
       // Log the result for monitoring
@@ -107,7 +107,7 @@ export const processScheduledPayoutsTask = new ScheduledTask({
         frequency,
         daysSinceLastRun,
       };
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('[Payout Scheduler] Error processing scheduled payouts:', error);
       throw error;
     }

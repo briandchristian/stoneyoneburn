@@ -14,6 +14,7 @@
 import { useQuery, useMutation } from '@apollo/client';
 import {
   GET_PRODUCT_BY_SLUG,
+  GET_REVIEWS,
   ADD_ITEM_TO_ORDER,
   GET_ACTIVE_ORDER,
   TRANSITION_ORDER_TO_STATE,
@@ -71,6 +72,23 @@ interface ActiveOrderData {
   activeOrder?: { id: string; state: string } | null;
 }
 
+interface Review {
+  id: string;
+  rating: number;
+  title: string;
+  body: string;
+  verified: boolean;
+  helpfulCount: number;
+  createdAt: string;
+}
+
+interface ReviewsData {
+  getReviews?: {
+    items: Review[];
+    totalItems: number;
+  };
+}
+
 export default function ProductDetailPage() {
   const params = useParams();
   const router = useRouter();
@@ -81,6 +99,18 @@ export default function ProductDetailPage() {
 
   const { data, loading, error } = useQuery<ProductData>(GET_PRODUCT_BY_SLUG, {
     variables: { slug },
+  });
+
+  const { data: reviewsData } = useQuery<ReviewsData>(GET_REVIEWS, {
+    variables: {
+      options: {
+        productId: data?.product?.id,
+        status: 'APPROVED',
+        skip: 0,
+        take: 10,
+      },
+    },
+    skip: !data?.product?.id,
   });
 
   const { data: orderData } = useQuery<ActiveOrderData>(GET_ACTIVE_ORDER, {
@@ -401,6 +431,41 @@ export default function ProductDetailPage() {
                   </dl>
                 </div>
               )}
+
+              {/* Customer Reviews */}
+              <div className="mt-10 pt-10 border-t border-gray-200">
+                <h2 className="text-lg font-bold text-black">Customer Reviews</h2>
+                {reviewsData?.getReviews?.items && reviewsData.getReviews.items.length > 0 ? (
+                  <div className="mt-4 space-y-6">
+                    {reviewsData.getReviews.items.map((review) => (
+                      <div
+                        key={review.id}
+                        className="rounded-lg border border-gray-200 bg-gray-50 p-4"
+                      >
+                        <div className="flex items-center gap-2 flex-wrap">
+                          <span className="text-sm font-semibold text-black" aria-label={`${review.rating} out of 5 stars`}>
+                            {review.rating} out of 5 stars
+                          </span>
+                          {review.verified && (
+                            <span className="inline-flex items-center rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-800">
+                              Verified Purchase
+                            </span>
+                          )}
+                        </div>
+                        <h3 className="mt-2 font-semibold text-black">{review.title}</h3>
+                        <p className="mt-1 text-sm text-gray-700">{review.body}</p>
+                        {review.helpfulCount > 0 && (
+                          <p className="mt-2 text-xs text-gray-500">
+                            {review.helpfulCount} {review.helpfulCount === 1 ? 'person' : 'people'} found this helpful
+                          </p>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <p className="mt-4 text-sm text-gray-600">No reviews yet. Be the first to review this product!</p>
+                )}
+              </div>
             </div>
           </div>
         </div>

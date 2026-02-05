@@ -3,15 +3,31 @@
  *
  * Tests for database connection functionality.
  * Following TDD: These tests should fail initially, then we implement the connection utilities.
+ * Uses mocked pg Client so tests run without a real PostgreSQL instance.
  */
 
-import { describe, it, expect, beforeEach, afterEach } from '@jest/globals';
+import { describe, it, expect, beforeEach, afterEach, jest } from '@jest/globals';
 import {
   testDatabaseConnection,
   getDatabaseConfig,
   validateDatabaseConfig,
   DatabaseConnectionError,
 } from './database-connection';
+
+// Mock pg Client - tests run without real PostgreSQL
+// Explicit types avoid TS2345 "parameter of type 'never'" with jest.fn()
+const mockConnect = jest.fn<() => Promise<void>>();
+const mockQuery =
+  jest.fn<(queryText: string, values?: unknown[]) => Promise<{ rows: unknown[] }>>();
+const mockEnd = jest.fn<() => Promise<void>>();
+
+jest.mock('pg', () => ({
+  Client: jest.fn().mockImplementation(() => ({
+    connect: mockConnect,
+    query: mockQuery,
+    end: mockEnd,
+  })),
+}));
 
 describe('Database Connection', () => {
   const originalEnv = process.env;
@@ -143,32 +159,41 @@ describe('Database Connection', () => {
   });
 
   describe('testDatabaseConnection', () => {
+    beforeEach(() => {
+      mockConnect.mockReset();
+      mockQuery.mockReset();
+      mockEnd.mockReset();
+    });
+
     it('should successfully connect to a valid database', async () => {
-      // Use test database configuration
-      // Use 'postgres' database which always exists in PostgreSQL
+      mockConnect.mockResolvedValue(undefined);
+      mockQuery.mockResolvedValue({ rows: [{ '?column?': 1 }] });
+      mockEnd.mockResolvedValue(undefined);
+
       const config = {
-        host: process.env.DB_HOST || 'localhost',
-        port: +(process.env.DB_PORT || 6543),
-        username: process.env.DB_USERNAME || 'postgres',
-        password: process.env.DB_PASSWORD || 'postgres',
-        database: process.env.DB_DATABASE || 'postgres', // Use 'postgres' which always exists
+        host: 'localhost',
+        port: 5432,
+        username: 'postgres',
+        password: 'postgres',
+        database: 'postgres',
       };
 
       const result = await testDatabaseConnection(config);
 
-      if (!result.success && result.error) {
-        // Log the actual error for debugging
-        console.error('Connection failed:', result.error.message);
-        console.error('Config used:', config);
-      }
-
       expect(result.success).toBe(true);
       expect(result.error).toBeUndefined();
       expect(result.connectionTime).toBeDefined();
-      expect(result.connectionTime).toBeGreaterThan(0);
-    }, 15000); // 15 second timeout for database connection
+      expect(result.connectionTime).toBeGreaterThanOrEqual(0);
+      expect(mockConnect).toHaveBeenCalled();
+      expect(mockQuery).toHaveBeenCalledWith('SELECT 1');
+      expect(mockEnd).toHaveBeenCalled();
+    }, 5000);
 
     it('should fail to connect with invalid host', async () => {
+      mockConnect.mockRejectedValue(
+        new Error('getaddrinfo ENOTFOUND invalid-host-that-does-not-exist')
+      );
+
       const config = {
         host: 'invalid-host-that-does-not-exist',
         port: 5432,
@@ -182,12 +207,14 @@ describe('Database Connection', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
       expect(result.error).toBeInstanceOf(DatabaseConnectionError);
-    }, 10000);
+    }, 5000);
 
     it('should fail to connect with invalid port', async () => {
+      mockConnect.mockRejectedValue(new Error('connect ECONNREFUSED'));
+
       const config = {
         host: 'localhost',
-        port: 99999, // Invalid port
+        port: 99999,
         username: 'postgres',
         password: 'postgres',
         database: 'vendure',
@@ -197,15 +224,17 @@ describe('Database Connection', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
-    }, 10000);
+    }, 5000);
 
     it('should fail to connect with invalid credentials', async () => {
+      mockConnect.mockRejectedValue(new Error('password authentication failed'));
+
       const config = {
-        host: process.env.DB_HOST || 'localhost',
-        port: +(process.env.DB_PORT || 6543),
+        host: 'localhost',
+        port: 5432,
         username: 'invalid-user',
         password: 'invalid-password',
-        database: process.env.DB_DATABASE || 'vendure',
+        database: 'vendure',
       };
 
       const result = await testDatabaseConnection(config);
@@ -213,14 +242,18 @@ describe('Database Connection', () => {
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
       expect(result.error).toBeInstanceOf(DatabaseConnectionError);
-    }, 10000);
+    }, 5000);
 
     it('should fail to connect to non-existent database', async () => {
+      mockConnect.mockRejectedValue(
+        new Error('database "non_existent_database_12345" does not exist')
+      );
+
       const config = {
-        host: process.env.DB_HOST || 'localhost',
-        port: +(process.env.DB_PORT || 6543),
-        username: process.env.DB_USERNAME || 'postgres',
-        password: process.env.DB_PASSWORD || 'postgres',
+        host: 'localhost',
+        port: 5432,
+        username: 'postgres',
+        password: 'postgres',
         database: 'non_existent_database_12345',
       };
 
@@ -228,9 +261,11 @@ describe('Database Connection', () => {
 
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
-    }, 10000);
+    }, 5000);
 
     it('should include connection details in error message', async () => {
+      mockConnect.mockRejectedValue(new Error('connection refused'));
+
       const config = {
         host: 'invalid-host',
         port: 5432,
@@ -246,6 +281,6 @@ describe('Database Connection', () => {
         expect(result.error.message).toContain('invalid-host');
         expect(result.error.message).toContain('5432');
       }
-    }, 10000);
+    }, 5000);
   });
 });

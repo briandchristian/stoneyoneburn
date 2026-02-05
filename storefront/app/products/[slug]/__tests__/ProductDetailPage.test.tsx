@@ -9,7 +9,7 @@ import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MockedProvider } from '@apollo/client/testing';
 import ProductDetailPage from '../page';
-import { GET_PRODUCT_BY_SLUG, ADD_ITEM_TO_ORDER, GET_ACTIVE_ORDER } from '@/graphql/queries';
+import { GET_PRODUCT_BY_SLUG, ADD_ITEM_TO_ORDER, GET_ACTIVE_ORDER, GET_REVIEWS } from '@/graphql/queries';
 
 // Mock Next.js components
 jest.mock('next/navigation', () => ({
@@ -60,6 +60,33 @@ const activeOrderAddingItemsMock = {
   result: { data: { activeOrder: { id: 'order-1', state: 'AddingItems' } } },
 };
 
+/** GET_REVIEWS mock - required for all tests since ProductDetailPage fetches reviews when product loads */
+const reviewsMock = (
+  items: Array<{ id: string; rating: number; title: string; body: string; verified: boolean; helpfulCount: number; createdAt: string }>,
+  totalItems: number
+) => ({
+  request: {
+    query: GET_REVIEWS,
+    variables: {
+      options: {
+        productId: 'product-1',
+        status: 'APPROVED',
+        skip: 0,
+        take: 10,
+      },
+    },
+  },
+  result: {
+    data: {
+      getReviews: {
+        __typename: 'ReviewList',
+        items,
+        totalItems,
+      },
+    },
+  },
+});
+
 describe('ProductDetailPage - Add to Cart', () => {
   describe('Product Display', () => {
     it('should display product information', async () => {
@@ -76,6 +103,7 @@ describe('ProductDetailPage - Add to Cart', () => {
           },
         },
         activeOrderNullMock,
+        reviewsMock([], 0),
       ];
 
       render(
@@ -106,6 +134,7 @@ describe('ProductDetailPage - Add to Cart', () => {
           },
         },
         activeOrderNullMock,
+        reviewsMock([], 0),
       ];
 
       render(
@@ -143,6 +172,7 @@ describe('ProductDetailPage - Add to Cart', () => {
           },
         },
         activeOrderNullMock,
+        reviewsMock([], 0),
       ];
 
       render(
@@ -172,6 +202,8 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderNullMock,
+        reviewsMock([], 0),
       ];
 
       render(
@@ -202,6 +234,8 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderNullMock,
+        reviewsMock([], 0),
       ];
 
       render(
@@ -237,6 +271,8 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderNullMock,
+        reviewsMock([], 0),
       ];
 
       render(
@@ -272,6 +308,8 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderNullMock,
+        reviewsMock([], 0),
       ];
 
       const { container } = render(
@@ -379,6 +417,8 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderAddingItemsMock,
+        reviewsMock([], 0),
         addItemMock,
         activeOrderAddingItemsMock,
         activeOrderAddingItemsMock,
@@ -473,6 +513,8 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderAddingItemsMock,
+        reviewsMock([], 0),
         addItemMock,
         activeOrderAddingItemsMock,
         activeOrderAddingItemsMock,
@@ -573,6 +615,8 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderAddingItemsMock,
+        reviewsMock([], 0),
         addItemMock,
         activeOrderAddingItemsMock,
         activeOrderAddingItemsMock,
@@ -629,6 +673,8 @@ describe('ProductDetailPage - Add to Cart', () => {
             },
           },
         },
+        activeOrderNullMock,
+        reviewsMock([], 0),
         addItemMock,
         activeOrderNullMock,
         activeOrderNullMock,
@@ -650,6 +696,142 @@ describe('ProductDetailPage - Add to Cart', () => {
       await waitFor(() => {
         expect(screen.getByText(/not enough stock available/i)).toBeInTheDocument();
       });
+    });
+  });
+
+  describe('Review Display', () => {
+    it('should display reviews when product has reviews', async () => {
+      const mockReviews = [
+        {
+          __typename: 'Review' as const,
+          id: 'review-1',
+          rating: 5,
+          title: 'Great product!',
+          body: 'Really happy with this purchase.',
+          verified: true,
+          helpfulCount: 3,
+          createdAt: '2025-01-15T10:00:00Z',
+        },
+      ];
+
+      const mocks = [
+        {
+          request: { query: GET_PRODUCT_BY_SLUG, variables: { slug: 'test-product' } },
+          result: { data: { product: mockProduct } },
+        },
+        activeOrderNullMock,
+        reviewsMock(mockReviews, 1),
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <ProductDetailPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Product')).toBeInTheDocument();
+      });
+
+      await waitFor(() => {
+        expect(screen.getByText('Great product!')).toBeInTheDocument();
+        expect(screen.getByText(/really happy with this purchase/i)).toBeInTheDocument();
+      });
+    });
+
+    it('should display Verified Purchase badge for verified reviews', async () => {
+      const mockReviews = [
+        {
+          __typename: 'Review' as const,
+          id: 'review-1',
+          rating: 5,
+          title: 'Verified review',
+          body: 'Bought and loved it.',
+          verified: true,
+          helpfulCount: 0,
+          createdAt: '2025-01-15T10:00:00Z',
+        },
+      ];
+
+      const mocks = [
+        {
+          request: { query: GET_PRODUCT_BY_SLUG, variables: { slug: 'test-product' } },
+          result: { data: { product: mockProduct } },
+        },
+        activeOrderNullMock,
+        reviewsMock(mockReviews, 1),
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <ProductDetailPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Verified review')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/verified purchase/i)).toBeInTheDocument();
+    });
+
+    it('should display star rating for each review', async () => {
+      const mockReviews = [
+        {
+          __typename: 'Review' as const,
+          id: 'review-1',
+          rating: 4,
+          title: 'Good product',
+          body: 'Four stars.',
+          verified: false,
+          helpfulCount: 0,
+          createdAt: '2025-01-15T10:00:00Z',
+        },
+      ];
+
+      const mocks = [
+        {
+          request: { query: GET_PRODUCT_BY_SLUG, variables: { slug: 'test-product' } },
+          result: { data: { product: mockProduct } },
+        },
+        activeOrderNullMock,
+        reviewsMock(mockReviews, 1),
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <ProductDetailPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Good product')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText(/4.*out of 5|4\/5|4 stars/i)).toBeInTheDocument();
+    });
+
+    it('should display reviews section heading when product loads', async () => {
+      const mocks = [
+        {
+          request: { query: GET_PRODUCT_BY_SLUG, variables: { slug: 'test-product' } },
+          result: { data: { product: mockProduct } },
+        },
+        activeOrderNullMock,
+        reviewsMock([], 0),
+      ];
+
+      render(
+        <MockedProvider mocks={mocks}>
+          <ProductDetailPage />
+        </MockedProvider>
+      );
+
+      await waitFor(() => {
+        expect(screen.getByText('Test Product')).toBeInTheDocument();
+      });
+
+      expect(screen.getByText('Customer Reviews')).toBeInTheDocument();
     });
   });
 });

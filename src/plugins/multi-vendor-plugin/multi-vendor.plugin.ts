@@ -11,14 +11,16 @@
  * Part of Phase 2: Multi-Vendor Core Plugin
  */
 
-import { PluginCommonModule, VendurePlugin, LanguageCode } from '@vendure/core';
+import {
+  PluginCommonModule,
+  VendurePlugin,
+  LanguageCode,
+  configureDefaultOrderProcess,
+} from '@vendure/core';
 import { parse, DocumentNode } from 'graphql';
-import { IndividualSeller } from './entities/individual-seller.entity';
-import { CompanySeller } from './entities/company-seller.entity';
 import { SellerPayout } from './entities/seller-payout.entity';
 import { CommissionHistory } from './entities/commission-history.entity';
 import { Review } from './entities/review.entity';
-import { MarketplaceSellerSTIBase } from './entities/marketplace-seller-sti-base.entity';
 import { MarketplaceSeller } from './entities/seller.entity';
 import { SellerService } from './services/seller.service';
 import { ProductOwnershipService } from './services/product-ownership.service';
@@ -31,6 +33,9 @@ import { OrderPaymentHandlerService } from './services/order-payment-handler.ser
 import { PayoutSchedulerService } from './services/payout-scheduler.service';
 import { ReviewService } from './services/review.service';
 import { ShopService } from './services/shop.service';
+import { ShopSearchService } from './services/shop-search.service';
+import { SellerRecommendationsService } from './services/seller-recommendations.service';
+import { ProductSearchService } from './services/product-search.service';
 import { SellerResolver } from './resolvers/seller.resolver';
 import { MarketplaceSellerResolver } from './resolvers/marketplace-seller.resolver';
 import { SellerProductResolver } from './resolvers/seller-product.resolver';
@@ -42,7 +47,15 @@ import { SellerPayoutAdminResolver } from './resolvers/seller-payout-admin.resol
 import { ReviewResolver } from './resolvers/review.resolver';
 import { ReviewAdminResolver } from './resolvers/review-admin.resolver';
 import { ShopResolver } from './resolvers/shop.resolver';
+import { ShopSearchResolver } from './resolvers/shop-search.resolver';
+import { SellerRecommendationsResolver } from './resolvers/seller-recommendations.resolver';
+import { ProductSearchResolver } from './resolvers/product-search.resolver';
+import { ProductSellerResolver } from './resolvers/product-seller.resolver';
 import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
+import { MarketplaceOrderSellerStrategy } from './strategies/marketplace-order-seller.strategy';
+import { TestBypassOrderSellerStrategy } from './strategies/test-bypass-order-seller.strategy';
+import { marketplaceShippingEligibilityChecker } from './strategies/marketplace-shipping-eligibility.checker';
+import { MarketplaceShippingLineAssignmentStrategy } from './strategies/marketplace-shipping-line-assignment.strategy';
 
 /**
  * Multi-Vendor Plugin
@@ -57,7 +70,12 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
   // STI entities (MarketplaceSellerSTIBase, IndividualSeller, CompanySeller) are kept
   // for future polymorphic support but use a different table to avoid conflicts
   // For now, we register MarketplaceSeller as the primary entity
-  entities: [MarketplaceSeller, SellerPayout, CommissionHistory, Review as any],
+  entities: [
+    MarketplaceSeller,
+    SellerPayout,
+    CommissionHistory,
+    Review as unknown as typeof MarketplaceSeller,
+  ],
   // STI entities commented out to avoid table name conflict with MarketplaceSeller
   // Both use 'marketplace_seller' table which causes TypeORM metadata issues
   // TODO: Migrate to STI by updating all resolvers to use IndividualSeller/CompanySeller
@@ -76,6 +94,9 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
     PayoutSchedulerService,
     ReviewService,
     ShopService,
+    ShopSearchService,
+    SellerRecommendationsService,
+    ProductSearchService,
   ],
   shopApiExtensions: {
     // Register both resolvers: legacy SellerResolver and new polymorphic MarketplaceSellerResolver
@@ -87,6 +108,10 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
       SellerPayoutResolver,
       ReviewResolver,
       ShopResolver,
+      ShopSearchResolver, // Phase 5.1: Shop search functionality
+      SellerRecommendationsResolver, // Phase 5.3: Seller recommendations
+      ProductSearchResolver,
+      ProductSellerResolver, // Phase 5.2: Expose seller info on Product
     ],
     // Hybrid schema-first + code-first: Define types and queries in schema string (required by Vendure)
     // This is necessary because Vendure parses schema extensions before NestJS GraphQL decorators register types
@@ -298,15 +323,49 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           totalItems: Int!
         }
 
+        type ShopSearchList {
+          items: [MarketplaceSeller!]!
+          totalItems: Int!
+        }
+
         input ShopProductsOptionsInput {
           skip: Int
           take: Int
+        }
+
+        input ShopSearchOptionsInput {
+          skip: Int
+          take: Int
+          verifiedOnly: Boolean
+          minRating: Int
+        }
+
+        input SellerRecommendationsOptionsInput {
+          limit: Int
         }
 
         input UpdateShopCustomizationInput {
           shopDescription: String
           shopBannerAssetId: ID
           shopLogoAssetId: ID
+        }
+
+        # Product Search Types (Phase 5.3)
+        type ProductSearchList {
+          items: [Product!]!
+          totalItems: Int!
+        }
+
+        input ProductSearchOptionsInput {
+          skip: Int
+          take: Int
+          minPrice: Int
+          maxPrice: Int
+        }
+
+        # Phase 5.2: Expose seller on Product for multi-seller cart display
+        extend type Product {
+          seller: MarketplaceSeller
         }
 
         extend type Mutation {
@@ -331,6 +390,10 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
           getReviews(options: ReviewListOptionsInput!): ReviewList!
           shop(slug: String!): MarketplaceSeller
           shopProducts(slug: String!, options: ShopProductsOptionsInput): ShopProductsList!
+          searchShops(searchTerm: String!, options: ShopSearchOptionsInput): ShopSearchList!
+          recommendedSellers(options: SellerRecommendationsOptionsInput): [MarketplaceSeller!]!
+          productsBySeller(sellerId: ID!, options: ProductSearchOptionsInput): ProductSearchList!
+          searchBySeller(sellerId: ID!, searchTerm: String!, options: ProductSearchOptionsInput): ProductSearchList!
         }
       `);
     },
@@ -591,6 +654,35 @@ import { OrderPaymentSubscriber } from './subscribers/order-payment.subscriber';
     },
   },
   configuration: (config) => {
+    // Phase 5.4: Backend order splitting - MarketplaceOrderSellerStrategy uses init(injector)
+    // so it can be instantiated with new and passed to orderOptions.orderSellerStrategy.
+    // Vendure calls init() during bootstrap.
+    // In test mode, use TestBypassOrderSellerStrategy to avoid order_channels_channel duplicate key
+    config.orderOptions = config.orderOptions || {};
+    config.orderOptions.orderSellerStrategy =
+      process.env.APP_ENV === 'test'
+        ? new TestBypassOrderSellerStrategy()
+        : new MarketplaceOrderSellerStrategy();
+
+    // In test mode, relax order process for integration tests
+    if (process.env.APP_ENV === 'test') {
+      config.orderOptions.process = [
+        configureDefaultOrderProcess({
+          arrangingPaymentRequiresShipping: false,
+          arrangingPaymentRequiresStock: false,
+        }),
+      ];
+    }
+
+    // Phase 5.4: Multi-vendor shipping - filter methods by seller channel, assign lines by channel
+    config.shippingOptions = config.shippingOptions || {};
+    config.shippingOptions.shippingLineAssignmentStrategy =
+      new MarketplaceShippingLineAssignmentStrategy();
+    config.shippingOptions.shippingEligibilityCheckers = [
+      ...(config.shippingOptions.shippingEligibilityCheckers || []),
+      marketplaceShippingEligibilityChecker,
+    ];
+
     // Add custom field to Customer entity to link to MarketplaceSeller
     // This allows bidirectional navigation: Customer <-> MarketplaceSeller
     config.customFields.Customer = config.customFields.Customer || [];

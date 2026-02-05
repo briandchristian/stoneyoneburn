@@ -8,6 +8,8 @@
 import { Column, ChildEntity, Index } from 'typeorm';
 import { ObjectType, Field, registerEnumType } from '@nestjs/graphql';
 import type { ID, DeepPartial } from '@vendure/core';
+import type { DeepPartial as TypeOrmDeepPartial } from 'typeorm';
+import type { MarketplaceSellerSTIBase as STIBase } from './marketplace-seller-sti-base.entity';
 import {
   MarketplaceSellerBase,
   SellerType,
@@ -58,7 +60,7 @@ registerEnumType(CompanyLegalForm, {
 @Index(['customerId'])
 export class CompanySeller extends MarketplaceSellerSTIBase implements MarketplaceSellerBase {
   constructor(input?: DeepPartial<CompanySeller>) {
-    super(input);
+    super(input as TypeOrmDeepPartial<STIBase> | undefined);
     // Always set discriminator - required for TypeORM STI
     this.sellerType = SellerType.COMPANY;
   }

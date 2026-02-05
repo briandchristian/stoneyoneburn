@@ -13,9 +13,10 @@
  * - Returns ProductList with items and totalItems
  */
 
-import { Resolver, Query, Args, ID } from '@nestjs/graphql';
+import { Resolver, Query, Args, ID, ObjectType, Field, Int } from '@nestjs/graphql';
 import type { RequestContext } from '@vendure/core';
 import { Ctx, Allow, Permission, Product, TransactionalConnection } from '@vendure/core';
+import type { SelectQueryBuilder } from 'typeorm';
 
 /**
  * ProductListOptions - GraphQL input type for pagination, sorting, and filtering
@@ -36,12 +37,16 @@ interface ProductListOptions {
 }
 
 /**
- * ProductList - GraphQL return type for paginated product lists
- * This matches the ProductList type defined in the Vendure GraphQL schema
+ * ProductListType - GraphQL return type for paginated product lists
+ * Matches the ProductList type in the Vendure schema
  */
-interface ProductList {
-  items: Product[];
-  totalItems: number;
+@ObjectType('ProductList')
+class ProductListType {
+  @Field(() => [Product])
+  items!: Product[];
+
+  @Field(() => Int)
+  totalItems!: number;
 }
 
 /**
@@ -79,16 +84,16 @@ export class SellerProductResolver {
    * @param options - Pagination, sorting, and filtering options
    * @returns ProductList with items and totalItems
    */
-  @Query(() => 'ProductList' as any, {
+  @Query(() => ProductListType, {
     description: 'Get paginated products for a seller',
   })
   @Allow(Permission.Public) // Public access - anyone can view products from verified sellers
   async sellerProducts(
     @Ctx() ctx: RequestContext,
     @Args('sellerId', { type: () => ID }) sellerId: string,
-    @Args('options', { type: () => 'ProductListOptions' as any, nullable: true })
+    @Args('options', { nullable: true })
     options?: ProductListOptions
-  ): Promise<ProductList> {
+  ): Promise<ProductListType> {
     const sellerIdNum = parseInt(sellerId, 10);
 
     // Create base query builder with seller filter
@@ -120,7 +125,10 @@ export class SellerProductResolver {
   /**
    * Apply pagination to query builder
    */
-  private applyPagination(queryBuilder: any, options?: ProductListOptions): void {
+  private applyPagination(
+    queryBuilder: SelectQueryBuilder<Product>,
+    options?: ProductListOptions
+  ): void {
     if (options?.skip !== undefined) {
       queryBuilder.skip(options.skip);
     }
@@ -132,7 +140,10 @@ export class SellerProductResolver {
   /**
    * Apply sorting to query builder
    */
-  private applySorting(queryBuilder: any, options?: ProductListOptions): void {
+  private applySorting(
+    queryBuilder: SelectQueryBuilder<Product>,
+    options?: ProductListOptions
+  ): void {
     if (!options?.sort) {
       return;
     }
@@ -147,7 +158,10 @@ export class SellerProductResolver {
   /**
    * Apply filtering to query builder
    */
-  private applyFiltering(queryBuilder: any, options?: ProductListOptions): void {
+  private applyFiltering(
+    queryBuilder: SelectQueryBuilder<Product>,
+    options?: ProductListOptions
+  ): void {
     if (!options?.filter) {
       return;
     }

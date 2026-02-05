@@ -11,7 +11,7 @@
  */
 
 import { describe, it, expect, beforeEach, jest } from '@jest/globals';
-import type { RequestContext, ID, Order, OrderLine } from '@vendure/core';
+import type { RequestContext, Order, OrderLine } from '@vendure/core';
 import { TransactionalConnection, ProductVariant, Product } from '@vendure/core';
 import { OrderPaymentHandlerService } from './order-payment-handler.service';
 import { SplitPaymentService } from './split-payment.service';

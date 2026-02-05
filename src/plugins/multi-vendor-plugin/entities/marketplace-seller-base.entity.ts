@@ -74,32 +74,35 @@ registerEnumType(SellerVerificationStatus, {
  */
 @InterfaceType('MarketplaceSellerBase', {
   description: 'Base interface for marketplace sellers (individual or company)',
-  resolveType: (value: any) => {
+  resolveType: (value: unknown) => {
     // Type resolution function for GraphQL interface
-    // This function must return a string (type name) for NestJS GraphQL
+    const v = value as Record<string, unknown> & {
+      constructor?: { name: string };
+      sellerType?: SellerType;
+    };
     // Check if it's a class instance first (most reliable)
-    if (value instanceof Object && value.constructor) {
-      if (value.constructor.name === 'IndividualSeller') {
+    if (v instanceof Object && v.constructor) {
+      if (v.constructor.name === 'IndividualSeller') {
         return 'IndividualSeller';
       }
-      if (value.constructor.name === 'CompanySeller') {
+      if (v.constructor.name === 'CompanySeller') {
         return 'CompanySeller';
       }
     }
 
     // Check by discriminator field (for plain objects from database)
-    if (value.sellerType === SellerType.INDIVIDUAL) {
+    if (v.sellerType === SellerType.INDIVIDUAL) {
       return 'IndividualSeller';
     }
-    if (value.sellerType === SellerType.COMPANY) {
+    if (v.sellerType === SellerType.COMPANY) {
       return 'CompanySeller';
     }
 
     // Fallback: check for type-specific fields
-    if (value.firstName !== undefined || value.lastName !== undefined) {
+    if (v.firstName !== undefined || v.lastName !== undefined) {
       return 'IndividualSeller';
     }
-    if (value.companyName !== undefined || value.vatNumber !== undefined) {
+    if (v.companyName !== undefined || v.vatNumber !== undefined) {
       return 'CompanySeller';
     }
 
